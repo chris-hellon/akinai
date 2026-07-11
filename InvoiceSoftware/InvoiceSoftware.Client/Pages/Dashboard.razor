@@ -1,0 +1,293 @@
+@page "/dashboard"
+@attribute [Authorize]
+@inject ICall<GetDashboardMetrics, DashboardMetricsDto> GetMetricsCall
+@inject ICall<GetInvoiceStatusBreakdown, InvoiceStatusBreakdownDto> GetStatusBreakdownCall
+@inject ICall<GetTopClients, List<TopClientDto>> GetTopClientsCall
+@inject ICall<GetRevenueChart, RevenueChartDataDto> GetRevenueChartCall
+@inject ICall<GetInvoices, PaginatedResponse<InvoiceSummaryDto>> GetInvoicesCall
+@inject ICall<GetEstimates, PaginatedResponse<EstimateSummaryDto>> GetEstimatesCall
+
+<PageTitle>Dashboard - InvoicePro</PageTitle>
+
+<div class="max-w-[1180px]">
+    <!-- Header -->
+    <div class="flex flex-col sm:flex-row sm:items-end sm:justify-between gap-4 mb-7">
+        <div>
+            <div class="font-mono text-[11px] uppercase tracking-wider text-gray-400 dark:text-slate-500 mb-1.5">@DateTime.Now.ToString("dddd, d MMMM")</div>
+            <h1 class="font-display text-3xl font-semibold tracking-tight text-gray-900 dark:text-slate-100">Good @GetGreeting()</h1>
+        </div>
+        <div class="flex items-center gap-2">
+            <a href="estimates/new" class="btn-secondary">New Estimate</a>
+            <a href="invoices/new" class="btn-primary">
+                <svg class="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                    <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M12 6v6m0 0v6m0-6h6m-6 0H6" />
+                </svg>
+                Create Invoice
+            </a>
+        </div>
+    </div>
+
+    <!-- Summary ledger strip -->
+    @if (_isLoading)
+    {
+        <div class="h-[104px] card animate-pulse mb-6"></div>
+    }
+    else if (_metrics != null)
+    {
+        <div class="flex flex-col sm:flex-row card overflow-hidden mb-6">
+            <div class="flex-1 p-5">
+                <div class="font-mono text-[10px] uppercase tracking-[0.07em] text-gray-400 dark:text-slate-500">Paid this month</div>
+                <div class="mt-2.5 font-display text-[27px] leading-none font-semibold tracking-tight tnum text-success">@_currency@_metrics.PaidRevenue.ToString("N0")</div>
+                <div class="mt-2 text-xs text-gray-500 dark:text-slate-400">Revenue collected</div>
+            </div>
+            <div class="flex-1 p-5 border-t sm:border-t-0 sm:border-l border-line-subtle">
+                <div class="font-mono text-[10px] uppercase tracking-[0.07em] text-gray-400 dark:text-slate-500">Outstanding</div>
+                <div class="mt-2.5 font-display text-[27px] leading-none font-semibold tracking-tight tnum text-gray-900 dark:text-slate-100">@_currency@_metrics.OutstandingAmount.ToString("N0")</div>
+                <div class="mt-2 text-xs text-gray-500 dark:text-slate-400 tnum">@_metrics.OutstandingInvoices awaiting payment</div>
+            </div>
+            <div class="flex-1 p-5 border-t sm:border-t-0 sm:border-l border-line-subtle">
+                <div class="font-mono text-[10px] uppercase tracking-[0.07em] text-gray-400 dark:text-slate-500">Overdue</div>
+                <div class="mt-2.5 font-display text-[27px] leading-none font-semibold tracking-tight tnum text-danger">@_currency@_metrics.OverdueAmount.ToString("N0")</div>
+                <div class="mt-2 text-xs text-gray-500 dark:text-slate-400 tnum">@_metrics.OverdueInvoices past due</div>
+            </div>
+            <div class="flex-1 p-5 border-t sm:border-t-0 sm:border-l border-line-subtle">
+                <div class="font-mono text-[10px] uppercase tracking-[0.07em] text-gray-400 dark:text-slate-500">Unbilled time</div>
+                <div class="mt-2.5 font-display text-[27px] leading-none font-semibold tracking-tight tnum text-gray-900 dark:text-slate-100">@_metrics.UnbilledHours.ToString("N1")<span class="text-lg text-gray-400 dark:text-slate-500">h</span></div>
+                <div class="mt-2 text-xs text-gray-500 dark:text-slate-400">Ready to invoice</div>
+            </div>
+        </div>
+    }
+
+    <!-- Recent invoices + Top clients -->
+    <div class="grid grid-cols-1 lg:grid-cols-3 gap-6 mb-6">
+        <!-- Recent invoices -->
+        <div class="lg:col-span-2 card overflow-hidden">
+            <div class="card-header flex items-center justify-between">
+                <h2 class="font-display text-[15px] font-semibold text-gray-900 dark:text-slate-100">Recent invoices</h2>
+                <a href="invoices" class="link text-sm">View all</a>
+            </div>
+            @if (_isLoading)
+            {
+                <div class="p-5 space-y-3 animate-pulse">
+                    @for (int i = 0; i < 5; i++)
+                    {
+                        <div class="h-9 bg-gray-100 dark:bg-slate-700 rounded"></div>
+                    }
+                </div>
+            }
+            else if (_recentInvoices.Count == 0)
+            {
+                <div class="p-10 text-center">
+                    <p class="text-sm text-gray-500 dark:text-slate-400 mb-3">No invoices yet</p>
+                    <a href="invoices/new" class="link text-sm">Create your first invoice</a>
+                </div>
+            }
+            else
+            {
+                <div class="flex px-5 py-2.5 font-mono text-[10px] uppercase tracking-[0.06em] text-gray-400 dark:text-slate-500 border-b border-line-subtle">
+                    <div class="w-24">Invoice</div>
+                    <div class="flex-1">Client</div>
+                    <div class="w-24">Status</div>
+                    <div class="w-28 text-right">Amount</div>
+                </div>
+                @foreach (var inv in _recentInvoices.Take(5))
+                {
+                    var isOverdue = inv.Status != "Paid" && inv.Status != "Void" && inv.DueDate < DateOnly.FromDateTime(DateTime.Today);
+                    var (sc, sl) = StatusDisplay(inv.Status, isOverdue);
+                    <a href="invoices/@inv.Id" class="flex items-center px-5 py-3 border-b hover:bg-gray-50 dark:hover:bg-slate-800/50 transition-colors group border-line-subtle">
+                        <div class="w-24 font-mono text-[13px] text-gray-900 dark:text-slate-200">@inv.InvoiceNumber</div>
+                        <div class="flex-1 text-sm text-gray-700 dark:text-slate-300 truncate pr-3">@inv.ClientName</div>
+                        <div class="w-24">
+                            <span class="inline-flex items-center gap-1.5 text-xs font-medium" style="color:@sc;">
+                                <span class="w-1.5 h-1.5 rounded-full" style="background:@sc;"></span>@sl
+                            </span>
+                        </div>
+                        <div class="w-28 text-right text-sm font-semibold tnum text-gray-900 dark:text-slate-100">@CurrencyExtensions.GetSymbol(inv.Currency)@inv.Total.ToString("N2")</div>
+                    </a>
+                }
+            }
+        </div>
+
+        <!-- Top clients -->
+        <div class="card overflow-hidden">
+            <div class="card-header">
+                <h2 class="font-display text-[15px] font-semibold text-gray-900 dark:text-slate-100">Top clients</h2>
+            </div>
+            @if (_isLoading)
+            {
+                <div class="p-5 space-y-3 animate-pulse">
+                    @for (int i = 0; i < 4; i++)
+                    {
+                        <div class="h-9 bg-gray-100 dark:bg-slate-700 rounded"></div>
+                    }
+                </div>
+            }
+            else if (_topClients.Count == 0)
+            {
+                <div class="p-10 text-center"><p class="text-sm text-gray-500 dark:text-slate-400">No client data yet</p></div>
+            }
+            else
+            {
+                @foreach (var client in _topClients)
+                {
+                    <a href="clients/@client.ClientId" class="flex items-center gap-3 px-5 py-3 border-b hover:bg-gray-50 dark:hover:bg-slate-800/50 transition-colors border-line-subtle">
+                        <span class="w-8 h-8 rounded-md flex items-center justify-center font-display font-semibold text-[13px] shrink-0 bg-primary-50 text-primary-600">@client.ClientName[..1].ToUpper()</span>
+                        <div class="flex-1 min-w-0">
+                            <div class="text-[13px] font-medium text-gray-900 dark:text-slate-200 truncate">@client.ClientName</div>
+                            <div class="text-[11px] text-gray-500 dark:text-slate-400 tnum">@client.InvoiceCount invoices</div>
+                        </div>
+                        <div class="text-[13px] font-semibold tnum text-gray-900 dark:text-slate-100">@CurrencyExtensions.GetSymbol(client.Currency)@client.TotalRevenue.ToString("N0")</div>
+                    </a>
+                }
+            }
+        </div>
+    </div>
+
+    <!-- Invoice status + Activity -->
+    <div class="grid grid-cols-1 lg:grid-cols-3 gap-6 mb-6">
+        <!-- Invoice status breakdown -->
+        <div class="lg:col-span-2 card overflow-hidden">
+            <div class="card-header flex items-center justify-between">
+                <h2 class="font-display text-[15px] font-semibold text-gray-900 dark:text-slate-100">Invoice status</h2>
+                <a href="invoices" class="link text-sm">View all</a>
+            </div>
+            @if (_isLoading || _statusBreakdown == null)
+            {
+                <div class="p-5 h-24 animate-pulse"><div class="h-full bg-gray-100 dark:bg-slate-700 rounded"></div></div>
+            }
+            else
+            {
+                <div class="flex flex-col sm:flex-row">
+                    @foreach (var s in StatusCells())
+                    {
+                        <div class="flex-1 p-5 border-t sm:border-t-0 sm:border-l first:border-l-0 first:border-t-0 border-line-subtle">
+                            <div class="flex items-center gap-2 mb-2.5">
+                                <span class="w-2 h-2 rounded-full" style="background:@s.Color;"></span>
+                                <span class="font-mono text-[10px] uppercase tracking-[0.06em] text-gray-400 dark:text-slate-500">@s.Label</span>
+                            </div>
+                            <div class="font-display text-2xl font-semibold tnum text-gray-900 dark:text-slate-100">@s.Count</div>
+                            <div class="text-[11px] text-gray-500 dark:text-slate-400 tnum mt-1">@_currency@s.Total.ToString("N0")</div>
+                        </div>
+                    }
+                </div>
+            }
+        </div>
+
+        <!-- Activity -->
+        <div class="card overflow-hidden">
+            <div class="card-header"><h2 class="font-display text-[15px] font-semibold text-gray-900 dark:text-slate-100">Activity</h2></div>
+            @if (_isLoading || _metrics == null)
+            {
+                <div class="p-5 space-y-3 animate-pulse">@for (int i = 0; i < 3; i++){<div class="h-8 bg-gray-100 dark:bg-slate-700 rounded"></div>}</div>
+            }
+            else
+            {
+                <div class="flex items-center justify-between px-5 py-3 border-b border-line-subtle">
+                    <span class="text-[13px] text-gray-600 dark:text-slate-300">Total clients</span>
+                    <span class="font-display text-base font-semibold tnum text-gray-900 dark:text-slate-100">@_metrics.ActiveClients</span>
+                </div>
+                <div class="flex items-center justify-between px-5 py-3 border-b border-line-subtle">
+                    <span class="text-[13px] text-gray-600 dark:text-slate-300">Active projects</span>
+                    <span class="font-display text-base font-semibold tnum text-gray-900 dark:text-slate-100">@_metrics.ActiveProjects</span>
+                </div>
+                <div class="flex items-center justify-between px-5 py-3">
+                    <span class="text-[13px] text-gray-600 dark:text-slate-300">Hours this month</span>
+                    <span class="font-display text-base font-semibold tnum text-gray-900 dark:text-slate-100">@_metrics.BillableHours.ToString("N1")h</span>
+                </div>
+            }
+        </div>
+    </div>
+
+    <!-- Quick actions -->
+    <div class="card overflow-hidden">
+        <div class="flex flex-wrap divide-x" style="--tw-divide-opacity:1;">
+            @foreach (var action in QuickActions)
+            {
+                <a href="@action.Href" class="flex items-center gap-2.5 px-5 py-3.5 text-[13px] font-medium text-gray-600 dark:text-slate-300 hover:text-primary-600 dark:hover:text-primary-400 hover:bg-gray-50 dark:hover:bg-slate-800/50 transition-colors border-r border-line-subtle">
+                    <svg class="w-4 h-4 text-gray-400 dark:text-slate-500" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                        <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="@action.Icon" />
+                    </svg>
+                    @action.Label
+                </a>
+            }
+        </div>
+    </div>
+</div>
+
+@code {
+    private bool _isLoading = true;
+    private string _currency = "£";
+    private DashboardMetricsDto? _metrics;
+    private InvoiceStatusBreakdownDto? _statusBreakdown;
+    private List<TopClientDto> _topClients = [];
+    private List<InvoiceSummaryDto> _recentInvoices = [];
+
+    private record QuickAction(string Label, string Href, string Icon);
+    private static readonly QuickAction[] QuickActions =
+    {
+        new("New Invoice", "invoices/new", "M9 12h6m-6 4h6m2 5H7a2 2 0 01-2-2V5a2 2 0 012-2h5.586a1 1 0 01.707.293l5.414 5.414a1 1 0 01.293.707V19a2 2 0 01-2 2z"),
+        new("New Estimate", "estimates/new", "M9 7h6m0 10v-3m-3 3h.01M9 17h.01M9 14h.01M12 14h.01M15 11h.01M12 11h.01M9 11h.01M7 21h10a2 2 0 002-2V5a2 2 0 00-2-2H7a2 2 0 00-2 2v14a2 2 0 002 2z"),
+        new("Add Client", "clients/new", "M18 9v3m0 0v3m0-3h3m-3 0h-3m-2-5a4 4 0 11-8 0 4 4 0 018 0zM3 20a6 6 0 0112 0v1H3v-1z"),
+        new("New Project", "projects/new", "M9 13h6m-3-3v6m-9 1V7a2 2 0 012-2h6l2 2h6a2 2 0 012 2v8a2 2 0 01-2 2H5a2 2 0 01-2-2z"),
+        new("Log Time", "timesheet", "M12 8v4l3 3m6-3a9 9 0 11-18 0 9 9 0 0118 0z"),
+        new("Add Product", "products/new", "M20 7l-8-4-8 4m16 0l-8 4m8-4v10l-8 4m0-10L4 7m8 4v10M4 7v10l8 4"),
+    };
+
+    private record StatusCell(string Label, string Color, int Count, decimal Total);
+    private IEnumerable<StatusCell> StatusCells()
+    {
+        if (_statusBreakdown is null) yield break;
+        yield return new("Draft", "#9a917f", _statusBreakdown.Draft, _statusBreakdown.DraftTotal);
+        yield return new("Sent", "#2b6d7d", _statusBreakdown.Sent, _statusBreakdown.SentTotal);
+        yield return new("Paid", "#0f7a5a", _statusBreakdown.Paid, _statusBreakdown.PaidTotal);
+        yield return new("Overdue", "#b23b30", _statusBreakdown.Overdue, _statusBreakdown.OverdueTotal);
+    }
+
+    private static (string color, string label) StatusDisplay(string status, bool overdue)
+    {
+        if (overdue) return ("#b23b30", "Overdue");
+        return status switch
+        {
+            "Paid" => ("#0f7a5a", "Paid"),
+            "Sent" => ("#2b6d7d", "Sent"),
+            "Draft" => ("#9a917f", "Draft"),
+            "Void" => ("#9a917f", "Void"),
+            _ => ("#57503f", status),
+        };
+    }
+
+    protected override async Task OnInitializedAsync()
+    {
+        try
+        {
+            var metricsTask = GetMetricsCall.Call(new GetDashboardMetrics { Period = "month" });
+            var statusTask = GetStatusBreakdownCall.Call(new GetInvoiceStatusBreakdown());
+            var topClientsTask = GetTopClientsCall.Call(new GetTopClients { Count = 5 });
+            var invoicesTask = GetInvoicesCall.Call(new GetInvoices { PageSize = 5 });
+
+            await Task.WhenAll(metricsTask, statusTask, topClientsTask, invoicesTask);
+
+            _metrics = await metricsTask;
+            _statusBreakdown = await statusTask;
+            _topClients = await topClientsTask ?? [];
+            var invoicesResponse = await invoicesTask;
+            _recentInvoices = invoicesResponse?.Items?.ToList() ?? [];
+        }
+        catch (Exception ex)
+        {
+            Console.WriteLine($"Error loading dashboard: {ex.Message}");
+        }
+        finally
+        {
+            _isLoading = false;
+        }
+    }
+
+    private static string GetGreeting()
+    {
+        var hour = DateTime.Now.Hour;
+        if (hour < 12) return "morning";
+        if (hour < 17) return "afternoon";
+        return "evening";
+    }
+}

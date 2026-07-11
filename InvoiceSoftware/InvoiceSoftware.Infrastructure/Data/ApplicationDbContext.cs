@@ -103,5 +103,34 @@ public sealed class ApplicationDbContext : IdentityDbContext<ApplicationUser>
         base.OnModelCreating(modelBuilder);
 
         modelBuilder.ApplyConfigurationsFromAssembly(typeof(ApplicationDbContext).Assembly);
+
+        // Organise tables into schemas: application tables live in the "App" schema,
+        // and the ASP.NET Identity tables live in the "Identity" schema with the
+        // redundant "AspNet" prefix removed (AspNetUsers -> Users, AspNetRoles -> Roles, etc.).
+        // Note: SQLite has no concept of schemas, so its provider ignores the schema and
+        // creates every table in the single default namespace (the renames still apply).
+        modelBuilder.HasDefaultSchema("App");
+
+        var identityTableNames = new Dictionary<string, string>
+        {
+            ["AspNetUsers"] = "Users",
+            ["AspNetRoles"] = "Roles",
+            ["AspNetUserClaims"] = "UserClaims",
+            ["AspNetUserRoles"] = "UserRoles",
+            ["AspNetUserLogins"] = "UserLogins",
+            ["AspNetUserTokens"] = "UserTokens",
+            ["AspNetRoleClaims"] = "RoleClaims",
+            ["AspNetUserPasskeys"] = "UserPasskeys",
+        };
+
+        foreach (var entityType in modelBuilder.Model.GetEntityTypes())
+        {
+            var tableName = entityType.GetTableName();
+            if (tableName is not null && identityTableNames.TryGetValue(tableName, out var newName))
+            {
+                entityType.SetTableName(newName);
+                entityType.SetSchema("Identity");
+            }
+        }
     }
 }

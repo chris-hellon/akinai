@@ -20,7 +20,7 @@
         <div class="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-6">
             @for (int i = 0; i < 3; i++)
             {
-                <div class="bg-white dark:bg-slate-800 rounded-2xl p-6 animate-pulse">
+                <div class="bg-white dark:bg-slate-800 rounded-lg p-6 animate-pulse">
                     <div class="h-32 bg-gray-200 dark:bg-slate-700 rounded-xl mb-4"></div>
                     <div class="h-4 bg-gray-200 dark:bg-slate-700 rounded w-3/4 mb-2"></div>
                     <div class="h-3 bg-gray-200 dark:bg-slate-700 rounded w-1/2"></div>
@@ -66,7 +66,7 @@
                                 <h3 class="font-semibold text-gray-900 dark:text-slate-100">@template.Name</h3>
                                 @if (template.IsDefault)
                                 {
-                                    <span class="px-2 py-0.5 text-xs font-medium rounded-full bg-indigo-100 text-indigo-700 dark:bg-indigo-900/30 dark:text-indigo-400">Default</span>
+                                    <span class="px-2 py-0.5 text-xs font-medium rounded-full bg-primary-100 text-primary-700 dark:bg-primary-900/30 dark:text-primary-400">Default</span>
                                 }
                                 @if (template.IsSystem)
                                 {
@@ -93,7 +93,7 @@
                         <div class="flex items-center gap-2">
                             @if (!template.IsDefault)
                             {
-                                <button @onclick="() => SetAsDefaultAsync(template)" class="text-sm text-indigo-600 dark:text-indigo-400 hover:underline">
+                                <button @onclick="() => SetAsDefaultAsync(template)" class="text-sm text-primary-600 dark:text-primary-400 hover:underline">
                                     Set as Default
                                 </button>
                             }

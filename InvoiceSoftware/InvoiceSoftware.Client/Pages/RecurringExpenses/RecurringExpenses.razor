@@ -16,14 +16,14 @@
                 SearchValueChanged="OnSearchChanged"
                 Breadcrumbs="@(new List<PageHeader.BreadcrumbItem> { new("Recurring Expenses") })">
     <Filters>
-        <select @bind="_selectedCategory" @bind:after="OnFilterChanged" class="py-3 px-4 text-sm text-gray-700 dark:text-slate-200 bg-gray-50 dark:bg-slate-700 border-0 rounded-xl focus:outline-none focus:ring-2 focus:ring-indigo-500/20 cursor-pointer">
+        <select @bind="_selectedCategory" @bind:after="OnFilterChanged" class="py-3 px-4 text-sm text-gray-700 dark:text-slate-200 bg-gray-50 dark:bg-slate-700 border-0 rounded-xl focus:outline-none focus:ring-2 focus:ring-primary-500/20 cursor-pointer">
             <option value="">All Categories</option>
             @foreach (var category in Enum.GetValues<ExpenseCategory>())
             {
                 <option value="@category.ToString()">@category.GetDisplayName()</option>
             }
         </select>
-        <select @bind="_selectedActive" @bind:after="OnFilterChanged" class="py-3 px-4 text-sm text-gray-700 dark:text-slate-200 bg-gray-50 dark:bg-slate-700 border-0 rounded-xl focus:outline-none focus:ring-2 focus:ring-indigo-500/20 cursor-pointer">
+        <select @bind="_selectedActive" @bind:after="OnFilterChanged" class="py-3 px-4 text-sm text-gray-700 dark:text-slate-200 bg-gray-50 dark:bg-slate-700 border-0 rounded-xl focus:outline-none focus:ring-2 focus:ring-primary-500/20 cursor-pointer">
             <option value="">All Status</option>
             <option value="true">Active</option>
             <option value="false">Paused</option>
@@ -63,7 +63,7 @@
                 <RowTemplate Context="expense">
                     <tr class="group hover:bg-gray-50/50 dark:hover:bg-[#2d2a4a]/50 transition-colors">
                         <td class="px-6 py-4">
-                            <a href="recurring-expenses/@expense.Id" class="text-sm font-medium text-gray-900 dark:text-slate-100 group-hover:text-indigo-600 dark:group-hover:text-indigo-400 transition-colors hover:underline">@expense.MerchantName</a>
+                            <a href="recurring-expenses/@expense.Id" class="text-sm font-medium text-gray-900 dark:text-slate-100 group-hover:text-primary-600 dark:group-hover:text-primary-400 transition-colors hover:underline">@expense.MerchantName</a>
                             @if (expense.ClientName != null)
                             {
                                 <div class="text-sm text-gray-500 dark:text-slate-400">@expense.ClientName</div>

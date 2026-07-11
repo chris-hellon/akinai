@@ -14,14 +14,14 @@
                 SearchValueChanged="OnSearchChanged"
                 Breadcrumbs="@(new List<PageHeader.BreadcrumbItem> { new("Expenses") })">
     <Filters>
-        <select @bind="_selectedCategory" @bind:after="OnFilterChanged" class="py-3 px-4 text-sm text-gray-700 dark:text-slate-200 bg-gray-50 dark:bg-slate-700 border-0 rounded-xl focus:outline-none focus:ring-2 focus:ring-indigo-500/20 cursor-pointer">
+        <select @bind="_selectedCategory" @bind:after="OnFilterChanged" class="py-3 px-4 text-sm text-gray-700 dark:text-slate-200 bg-gray-50 dark:bg-slate-700 border-0 rounded-xl focus:outline-none focus:ring-2 focus:ring-primary-500/20 cursor-pointer">
             <option value="">All Categories</option>
             @foreach (var category in Enum.GetValues<ExpenseCategory>())
             {
                 <option value="@category.ToString()">@category.GetDisplayName()</option>
             }
         </select>
-        <select @bind="_selectedBillable" @bind:after="OnFilterChanged" class="py-3 px-4 text-sm text-gray-700 dark:text-slate-200 bg-gray-50 dark:bg-slate-700 border-0 rounded-xl focus:outline-none focus:ring-2 focus:ring-indigo-500/20 cursor-pointer">
+        <select @bind="_selectedBillable" @bind:after="OnFilterChanged" class="py-3 px-4 text-sm text-gray-700 dark:text-slate-200 bg-gray-50 dark:bg-slate-700 border-0 rounded-xl focus:outline-none focus:ring-2 focus:ring-primary-500/20 cursor-pointer">
             <option value="">All Expenses</option>
             <option value="true">Billable</option>
             <option value="false">Non-Billable</option>
@@ -64,7 +64,7 @@
                             <div class="text-sm font-medium text-gray-900 dark:text-slate-100">@expense.ExpenseDate.ToString("MMM d, yyyy")</div>
                         </td>
                         <td class="px-6 py-4">
-                            <a href="expenses/@expense.Id" class="text-sm font-medium text-gray-900 dark:text-slate-100 group-hover:text-indigo-600 dark:group-hover:text-indigo-400 transition-colors hover:underline">@expense.MerchantName</a>
+                            <a href="expenses/@expense.Id" class="text-sm font-medium text-gray-900 dark:text-slate-100 group-hover:text-primary-600 dark:group-hover:text-primary-400 transition-colors hover:underline">@expense.MerchantName</a>
                             @if (!string.IsNullOrEmpty(expense.GroupName))
                             {
                                 <div class="text-sm text-gray-500 dark:text-slate-400">@expense.GroupName</div>

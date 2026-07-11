@@ -19,10 +19,10 @@
 
 <div class="w-full max-w-md">
     <!-- Card -->
-    <div class="bg-white rounded-3xl shadow-xl shadow-gray-200/50 border border-gray-100/80 p-8 lg:p-10">
+    <div class="bg-white rounded-xl shadow-xl shadow-gray-200/50 border border-gray-100/80 p-8 lg:p-10">
         <!-- Header -->
         <div class="mb-8">
-            <h1 class="text-2xl font-bold text-gray-900 tracking-tight" style="font-family: 'Plus Jakarta Sans', sans-serif;">Create your account</h1>
+            <h1 class="text-2xl font-bold text-gray-900 tracking-tight">Create your account</h1>
             <p class="mt-2 text-gray-500">Start managing your invoices in minutes</p>
         </div>
 
@@ -46,7 +46,7 @@
             <div class="space-y-2">
                 <label for="Input.Email" class="block text-sm font-medium text-gray-700">Email</label>
                 <InputText @bind-Value="Input.Email" id="Input.Email"
-                    class="w-full px-4 py-3.5 text-gray-900 bg-gray-50/50 border border-gray-200 rounded-xl transition-all duration-200 placeholder:text-gray-400 focus:outline-none focus:bg-white focus:border-indigo-500 focus:ring-4 focus:ring-indigo-500/10"
+                    class="w-full px-4 py-3.5 text-gray-900 bg-gray-50/50 border border-gray-200 rounded-xl transition-all duration-200 placeholder:text-gray-400 focus:outline-none focus:bg-white focus:border-primary-500 focus:ring-4 focus:ring-primary-500/10"
                     autocomplete="username"
                     placeholder="you@example.com"/>
                 <ValidationMessage For="() => Input.Email" class="text-xs text-red-600"/>
@@ -55,7 +55,7 @@
             <div class="space-y-2">
                 <label for="Input.Password" class="block text-sm font-medium text-gray-700">Password</label>
                 <InputText type="password" @bind-Value="Input.Password" id="Input.Password"
-                    class="w-full px-4 py-3.5 text-gray-900 bg-gray-50/50 border border-gray-200 rounded-xl transition-all duration-200 placeholder:text-gray-400 focus:outline-none focus:bg-white focus:border-indigo-500 focus:ring-4 focus:ring-indigo-500/10"
+                    class="w-full px-4 py-3.5 text-gray-900 bg-gray-50/50 border border-gray-200 rounded-xl transition-all duration-200 placeholder:text-gray-400 focus:outline-none focus:bg-white focus:border-primary-500 focus:ring-4 focus:ring-primary-500/10"
                     autocomplete="new-password"
                     placeholder="Create a strong password"/>
                 <ValidationMessage For="() => Input.Password" class="text-xs text-red-600"/>
@@ -64,7 +64,7 @@
             <div class="space-y-2">
                 <label for="Input.ConfirmPassword" class="block text-sm font-medium text-gray-700">Confirm password</label>
                 <InputText type="password" @bind-Value="Input.ConfirmPassword" id="Input.ConfirmPassword"
-                    class="w-full px-4 py-3.5 text-gray-900 bg-gray-50/50 border border-gray-200 rounded-xl transition-all duration-200 placeholder:text-gray-400 focus:outline-none focus:bg-white focus:border-indigo-500 focus:ring-4 focus:ring-indigo-500/10"
+                    class="w-full px-4 py-3.5 text-gray-900 bg-gray-50/50 border border-gray-200 rounded-xl transition-all duration-200 placeholder:text-gray-400 focus:outline-none focus:bg-white focus:border-primary-500 focus:ring-4 focus:ring-primary-500/10"
                     autocomplete="new-password"
                     placeholder="Confirm your password"/>
                 <ValidationMessage For="() => Input.ConfirmPassword" class="text-xs text-red-600"/>
@@ -72,8 +72,7 @@
 
             <div class="pt-2">
                 <button type="submit"
-                    class="w-full py-3.5 px-4 text-sm font-semibold text-white rounded-xl transition-all duration-200 hover:opacity-90 active:scale-[0.98]"
-                    style="background: linear-gradient(135deg, #4f46e5 0%, #6366f1 100%); box-shadow: 0 4px 14px -2px rgba(79, 70, 229, 0.4);">
+                    class="w-full py-3.5 px-4 text-sm font-semibold text-white rounded-xl transition-all duration-200 hover:opacity-90 active:scale-[0.98] brand-mark">
                     Create account
                 </button>
             </div>
@@ -91,7 +90,7 @@
             <p class="text-sm text-gray-500">
                 Already have an account?
                 <a href="@(NavigationManager.GetUriWithQueryParameters("account/login", new Dictionary<string, object?> { ["ReturnUrl"] = ReturnUrl }))"
-                   class="font-medium text-indigo-600 hover:text-indigo-700 transition-colors">
+                   class="font-medium text-primary-600 hover:text-primary-700 transition-colors">
                     Sign in
                 </a>
             </p>

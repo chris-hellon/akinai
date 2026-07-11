@@ -25,7 +25,7 @@
     @if (_isLoading)
     {
         <div class="flex justify-center py-8">
-            <div class="w-8 h-8 border-4 border-indigo-200 dark:border-indigo-800 border-t-indigo-600 dark:border-t-indigo-400 rounded-full animate-spin"></div>
+            <div class="w-8 h-8 border-4 border-primary-200 dark:border-primary-800 border-t-primary-600 dark:border-t-primary-400 rounded-full animate-spin"></div>
         </div>
     }
     else if (_status is not null)
@@ -131,8 +131,7 @@
             @if (!_showSetup)
             {
                 <button @onclick="StartSetup"
-                    class="inline-flex items-center gap-2 px-6 py-3 text-sm font-medium text-white rounded-xl transition-all duration-200 hover:shadow-lg active:scale-[0.98]"
-                    style="background: linear-gradient(135deg, #6366f1 0%, #4f46e5 100%); box-shadow: 0 4px 14px rgba(99, 102, 241, 0.35);">
+                    class="inline-flex items-center gap-2 px-6 py-3 text-sm font-medium text-white rounded-xl transition-all duration-200 hover:shadow-lg active:scale-[0.98] brand-mark">
                     <svg class="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
                         <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M12 15v2m-6 4h12a2 2 0 002-2v-6a2 2 0 00-2-2H6a2 2 0 00-2 2v6a2 2 0 002 2zm10-10V7a4 4 0 00-8 0v4h8z" />
                     </svg>
@@ -169,14 +168,13 @@
                         <div>
                             <label class="block text-sm font-medium text-gray-700 dark:text-slate-300 mb-2">Verification Code</label>
                             <InputText @bind-Value="_verificationInput.Code"
-                                class="w-full sm:w-64 px-4 py-3 text-sm text-gray-900 dark:text-slate-100 bg-white dark:bg-[#1a1827] border border-gray-200 dark:border-[#3d3a5c] rounded-xl transition-all duration-200 placeholder:text-gray-400 dark:placeholder:text-slate-500 focus:outline-none focus:border-indigo-400 dark:focus:border-indigo-500 focus:ring-4 focus:ring-indigo-500/10"
+                                class="w-full sm:w-64 px-4 py-3 text-sm text-gray-900 dark:text-slate-100 bg-white dark:bg-[#1a1827] border border-gray-200 dark:border-[#3d3a5c] rounded-xl transition-all duration-200 placeholder:text-gray-400 dark:placeholder:text-slate-500 focus:outline-none focus:border-primary-400 dark:focus:border-primary-500 focus:ring-4 focus:ring-primary-500/10"
                                 placeholder="Enter 6-digit code" autocomplete="off" />
                             <ValidationMessage For="() => _verificationInput.Code" class="mt-1.5 text-xs text-red-600 dark:text-red-400" />
                         </div>
                         <div class="flex gap-3">
                             <button type="submit" disabled="@_isProcessing"
-                                class="inline-flex items-center gap-2 px-6 py-3 text-sm font-medium text-white rounded-xl transition-all duration-200 hover:shadow-lg active:scale-[0.98] disabled:opacity-50"
-                                style="background: linear-gradient(135deg, #6366f1 0%, #4f46e5 100%); box-shadow: 0 4px 14px rgba(99, 102, 241, 0.35);">
+                                class="inline-flex items-center gap-2 px-6 py-3 text-sm font-medium text-white rounded-xl transition-all duration-200 hover:shadow-lg active:scale-[0.98] disabled:opacity-50 brand-mark">
                                 @if (_isProcessing)
                                 {
                                     <div class="w-4 h-4 border-2 border-white/30 border-t-white rounded-full animate-spin"></div>

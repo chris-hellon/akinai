@@ -15,13 +15,12 @@
     <div class="max-w-md w-full space-y-8">
         <!-- Header -->
         <div class="text-center">
-            <div class="mx-auto w-16 h-16 rounded-2xl flex items-center justify-center mb-4"
-                 style="background: linear-gradient(135deg, #eef2ff 0%, #e0e7ff 100%);">
-                <svg class="h-8 w-8 text-indigo-600" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+            <div class="mx-auto w-16 h-16 rounded-lg flex items-center justify-center mb-4 bg-primary-50">
+                <svg class="h-8 w-8 text-primary-600" fill="none" stroke="currentColor" viewBox="0 0 24 24">
                     <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M15 7a2 2 0 012 2m4 0a6 6 0 01-7.743 5.743L11 17H9v2H7v2H4a1 1 0 01-1-1v-2.586a1 1 0 01.293-.707l5.964-5.964A6 6 0 1121 9z" />
                 </svg>
             </div>
-            <h1 class="text-2xl font-bold text-gray-900 tracking-tight" style="font-family: 'Plus Jakarta Sans', sans-serif;">
+            <h1 class="text-2xl font-bold text-gray-900 tracking-tight">
                 Recovery Code Verification
             </h1>
             <p class="mt-2 text-sm text-gray-600">
@@ -44,7 +43,7 @@
         </div>
 
         <!-- Form -->
-        <div class="bg-white rounded-2xl border border-gray-100 shadow-lg p-8">
+        <div class="bg-white rounded-lg border border-gray-100 shadow-lg p-8">
             <EditForm Model="Input" FormName="login-with-recovery-code" OnValidSubmit="OnValidSubmitAsync" method="post" class="space-y-5">
                 <DataAnnotationsValidator />
                 <ValidationSummary class="p-4 bg-red-50 border border-red-200 rounded-xl text-sm text-red-700" role="alert" />
@@ -52,14 +51,13 @@
                 <div>
                     <label for="Input.RecoveryCode" class="block text-sm font-medium text-gray-700 mb-2">Recovery Code</label>
                     <InputText @bind-Value="Input.RecoveryCode" id="Input.RecoveryCode" autocomplete="off"
-                        class="w-full px-4 py-3 text-sm text-gray-900 bg-white border border-gray-200 rounded-xl transition-all duration-200 placeholder:text-gray-400 focus:outline-none focus:border-indigo-400 focus:ring-4 focus:ring-indigo-500/10 hover:border-gray-300 text-center tracking-widest font-mono text-lg"
+                        class="w-full px-4 py-3 text-sm text-gray-900 bg-white border border-gray-200 rounded-xl transition-all duration-200 placeholder:text-gray-400 focus:outline-none focus:border-primary-400 focus:ring-4 focus:ring-primary-500/10 hover:border-gray-300 text-center tracking-widest font-mono text-lg"
                         placeholder="XXXX-XXXX" />
                     <ValidationMessage For="() => Input.RecoveryCode" class="mt-1.5 text-xs text-red-600" />
                 </div>
 
                 <button type="submit"
-                    class="w-full inline-flex items-center justify-center px-6 py-3 text-sm font-medium text-white rounded-xl transition-all duration-200 hover:shadow-lg active:scale-[0.98]"
-                    style="background: linear-gradient(135deg, #6366f1 0%, #4f46e5 100%); box-shadow: 0 4px 14px rgba(99, 102, 241, 0.35);">
+                    class="w-full inline-flex items-center justify-center px-6 py-3 text-sm font-medium text-white rounded-xl transition-all duration-200 hover:shadow-lg active:scale-[0.98] brand-mark">
                     Log in
                 </button>
             </EditForm>
@@ -68,7 +66,7 @@
         <!-- Back to 2FA -->
         <p class="text-center text-sm text-gray-600">
             Have your authenticator device?
-            <a href="account/login-with-2fa" class="font-medium text-indigo-600 hover:text-indigo-700">
+            <a href="account/login-with-2fa" class="font-medium text-primary-600 hover:text-primary-700">
                 Log in with authenticator code
             </a>
         </p>
@@ -103,7 +101,7 @@
         if (result.Succeeded)
         {
             Logger.LogInformation("User with ID '{UserId}' logged in with a recovery code.", userId);
-            RedirectManager.RedirectTo(ReturnUrl);
+            RedirectManager.RedirectTo(ReturnUrl ?? "dashboard");
         }
         else if (result.IsLockedOut)
         {

@@ -15,7 +15,7 @@
                    @bind:event="oninput"
                    @onkeyup="OnSearchChanged"
                    placeholder="Search jobs, projects, or clients..."
-                   class="w-full pl-10 pr-4 py-2.5 text-sm text-gray-900 bg-white border border-gray-200 rounded-xl transition-all duration-200 placeholder:text-gray-400 focus:outline-none focus:border-indigo-400 focus:ring-4 focus:ring-indigo-500/10 hover:border-gray-300" />
+                   class="w-full pl-10 pr-4 py-2.5 text-sm text-gray-900 bg-white border border-gray-200 rounded-xl transition-all duration-200 placeholder:text-gray-400 focus:outline-none focus:border-primary-400 focus:ring-4 focus:ring-primary-500/10 hover:border-gray-300" />
             @if (!string.IsNullOrEmpty(_searchTerm))
             {
                 <button @onclick="ClearSearch"
@@ -33,7 +33,7 @@
             <div class="flex-1">
                 <select @bind="_selectedClientId"
                         @bind:after="ApplyFilters"
-                        class="w-full px-3 py-2 text-sm text-gray-700 bg-white border border-gray-200 rounded-xl focus:outline-none focus:border-indigo-400 focus:ring-4 focus:ring-indigo-500/10 hover:border-gray-300 transition-all duration-200">
+                        class="w-full px-3 py-2 text-sm text-gray-700 bg-white border border-gray-200 rounded-xl focus:outline-none focus:border-primary-400 focus:ring-4 focus:ring-primary-500/10 hover:border-gray-300 transition-all duration-200">
                     <option value="">All Clients</option>
                     @foreach (var client in _clients)
                     {
@@ -46,7 +46,7 @@
             <div class="flex-1">
                 <select @bind="_selectedProjectId"
                         @bind:after="ApplyFilters"
-                        class="w-full px-3 py-2 text-sm text-gray-700 bg-white border border-gray-200 rounded-xl focus:outline-none focus:border-indigo-400 focus:ring-4 focus:ring-indigo-500/10 hover:border-gray-300 transition-all duration-200">
+                        class="w-full px-3 py-2 text-sm text-gray-700 bg-white border border-gray-200 rounded-xl focus:outline-none focus:border-primary-400 focus:ring-4 focus:ring-primary-500/10 hover:border-gray-300 transition-all duration-200">
                     <option value="">All Projects</option>
                     @foreach (var project in _filteredProjects)
                     {
@@ -62,7 +62,7 @@
                 @if (HasActiveFilters)
                 {
                     <button @onclick="ClearFilters"
-                            class="inline-flex items-center gap-1 px-2 py-1 text-xs font-medium text-indigo-600 bg-indigo-50 rounded-lg hover:bg-indigo-100 transition-colors">
+                            class="inline-flex items-center gap-1 px-2 py-1 text-xs font-medium text-primary-600 bg-primary-50 rounded-lg hover:bg-primary-100 transition-colors">
                         <svg class="w-3 h-3" fill="none" stroke="currentColor" viewBox="0 0 24 24">
                             <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M6 18L18 6M6 6l12 12" />
                         </svg>
@@ -74,7 +74,7 @@
             <div class="flex items-center gap-2">
                 @if (_selectedJobIds.Count > 0)
                 {
-                    <span class="px-2 py-1 text-xs font-medium text-indigo-700 bg-indigo-100 rounded-lg">
+                    <span class="px-2 py-1 text-xs font-medium text-primary-700 bg-primary-100 rounded-lg">
                         @_selectedJobIds.Count selected
                     </span>
                 }
@@ -86,15 +86,14 @@
     @if (_isLoading)
     {
         <div class="flex justify-center py-12">
-            <div class="w-8 h-8 border-2 border-gray-200 border-t-indigo-600 rounded-full animate-spin"></div>
+            <div class="w-8 h-8 border-2 border-gray-200 border-t-primary-600 rounded-full animate-spin"></div>
         </div>
     }
     else if (!_pagedJobs.Any())
     {
         <div class="text-center py-8">
-            <div class="mx-auto w-12 h-12 rounded-xl flex items-center justify-center mb-3"
-                 style="background: linear-gradient(135deg, #eef2ff 0%, #e0e7ff 100%);">
-                <svg class="h-6 w-6 text-indigo-500" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+            <div class="mx-auto w-12 h-12 rounded-xl flex items-center justify-center mb-3 bg-primary-50">
+                <svg class="h-6 w-6 text-primary-500" fill="none" stroke="currentColor" viewBox="0 0 24 24">
                     <path stroke-linecap="round" stroke-linejoin="round" stroke-width="1.5" d="M9.172 16.172a4 4 0 015.656 0M9 10h.01M15 10h.01M12 12h.01M21 12a9 9 0 11-18 0 9 9 0 0118 0z" />
                 </svg>
             </div>
@@ -102,7 +101,7 @@
             @if (HasActiveFilters)
             {
                 <button @onclick="ClearFilters"
-                        class="mt-2 text-sm font-medium text-indigo-600 hover:text-indigo-700">
+                        class="mt-2 text-sm font-medium text-primary-600 hover:text-primary-700">
                     Clear filters
                 </button>
             }
@@ -117,7 +116,7 @@
                     <input type="checkbox"
                            checked="@IsAllPageSelected"
                            @onchange="TogglePageSelection"
-                           class="h-4 w-4 text-indigo-600 focus:ring-indigo-500 border-gray-300 rounded" />
+                           class="h-4 w-4 text-primary-600 focus:ring-primary-500 border-gray-300 rounded" />
                     <span class="text-xs font-medium text-gray-600">Select all on this page</span>
                 </label>
                 @if (_selectedJobIds.Count > 0)
@@ -135,9 +134,9 @@
                 {
                     var isSelected = _selectedJobIds.Contains(job.Id);
                     <div @onclick="() => ToggleJobSelection(job.Id)"
-                         class="flex items-center gap-3 px-4 py-3 cursor-pointer transition-colors @(isSelected ? "bg-indigo-50" : "hover:bg-gray-50")">
+                         class="flex items-center gap-3 px-4 py-3 cursor-pointer transition-colors @(isSelected ? "bg-primary-50" : "hover:bg-gray-50")">
                         <div class="flex-shrink-0">
-                            <div class="w-5 h-5 rounded border-2 flex items-center justify-center transition-colors @(isSelected ? "bg-indigo-600 border-indigo-600" : "border-gray-300")">
+                            <div class="w-5 h-5 rounded border-2 flex items-center justify-center transition-colors @(isSelected ? "bg-primary-600 border-primary-600" : "border-gray-300")">
                                 @if (isSelected)
                                 {
                                     <svg class="w-3 h-3 text-white" fill="none" stroke="currentColor" viewBox="0 0 24 24">
@@ -186,7 +185,7 @@
                         else
                         {
                             <button @onclick="() => GoToPage(pageNum)"
-                                    class="w-8 h-8 text-sm font-medium rounded-lg transition-colors @(pageNum == _currentPage ? "bg-indigo-600 text-white" : "text-gray-700 hover:bg-gray-100")">
+                                    class="w-8 h-8 text-sm font-medium rounded-lg transition-colors @(pageNum == _currentPage ? "bg-primary-600 text-white" : "text-gray-700 hover:bg-gray-100")">
                                 @pageNum
                             </button>
                         }
@@ -212,8 +211,7 @@
             Cancel
         </button>
         <button @onclick="Apply"
-                class="inline-flex items-center px-5 py-2.5 text-sm font-medium text-white rounded-xl transition-all duration-200 hover:shadow-lg active:scale-[0.98]"
-                style="background: linear-gradient(135deg, #6366f1 0%, #4f46e5 100%); box-shadow: 0 4px 14px rgba(99, 102, 241, 0.35);">
+                class="inline-flex items-center px-5 py-2.5 text-sm font-medium text-white rounded-xl transition-all duration-200 hover:shadow-lg active:scale-[0.98] brand-mark">
             Apply Selection (@_selectedJobIds.Count)
         </button>
     </div>

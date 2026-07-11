@@ -14,7 +14,7 @@
                 SearchValueChanged="OnSearchChanged"
                 Breadcrumbs="@(new List<PageHeader.BreadcrumbItem> { new("Estimates") })">
     <Filters>
-        <select @bind="_statusFilter" @bind:after="OnFilterChanged" class="py-3 px-4 text-sm text-gray-700 dark:text-slate-200 bg-gray-50 dark:bg-slate-700 border-0 rounded-xl focus:outline-none focus:ring-2 focus:ring-indigo-500/20 cursor-pointer">
+        <select @bind="_statusFilter" @bind:after="OnFilterChanged" class="py-3 px-4 text-sm text-gray-700 dark:text-slate-200 bg-gray-50 dark:bg-slate-700 border-0 rounded-xl focus:outline-none focus:ring-2 focus:ring-primary-500/20 cursor-pointer">
             <option value="">All statuses</option>
             <option value="Draft">Draft</option>
             <option value="Sent">Sent</option>
@@ -39,7 +39,7 @@
         }
         else
         {
-            <div class="bg-white dark:bg-slate-800 rounded-2xl shadow-sm border border-gray-100 dark:border-slate-700 overflow-hidden">
+            <div class="bg-white dark:bg-slate-800 rounded-lg shadow-sm border border-gray-100 dark:border-slate-700 overflow-hidden">
                 <table class="min-w-full divide-y divide-gray-100 dark:divide-slate-700">
                     <thead class="bg-gray-50/50 dark:bg-slate-800/50">
                         <tr>
@@ -177,7 +177,7 @@
         "Accepted" => ("bg-emerald-50 dark:bg-emerald-900/30 ring-1 ring-inset ring-emerald-600/20", "text-emerald-700 dark:text-emerald-400"),
         "Rejected" => ("bg-red-50 dark:bg-red-900/30 ring-1 ring-inset ring-red-600/20", "text-red-700 dark:text-red-400"),
         "Expired" => ("bg-amber-50 dark:bg-amber-900/30 ring-1 ring-inset ring-amber-600/20", "text-amber-700 dark:text-amber-400"),
-        "Converted" => ("bg-purple-50 dark:bg-purple-900/30 ring-1 ring-inset ring-purple-600/20", "text-purple-700 dark:text-purple-400"),
+        "Converted" => ("bg-primary-50 dark:bg-primary-900/30 ring-1 ring-inset ring-primary-600/20", "text-primary-700 dark:text-primary-400"),
         _ => ("bg-gray-50 dark:bg-slate-700 ring-1 ring-inset ring-gray-500/20", "text-gray-600 dark:text-slate-400")
     };
 

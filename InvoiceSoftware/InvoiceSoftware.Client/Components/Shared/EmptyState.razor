@@ -1,8 +1,8 @@
 @* Empty state component for list pages *@
 
-<div class="bg-white dark:bg-slate-800 rounded-2xl border border-gray-100 dark:border-slate-700">
+<div class="bg-white dark:bg-slate-800 rounded-lg border border-gray-100 dark:border-slate-700">
     <div class="text-center py-16 px-6">
-        <div class="mx-auto w-16 h-16 rounded-2xl flex items-center justify-center mb-4"
+        <div class="mx-auto w-16 h-16 rounded-lg flex items-center justify-center mb-4"
              style="background: linear-gradient(135deg, @GradientStart 0%, @GradientEnd 100%);">
             @switch (IconType)
             {
@@ -63,8 +63,7 @@
         @if (!string.IsNullOrEmpty(ActionUrl) && !string.IsNullOrEmpty(ActionText))
         {
             <div class="mt-6">
-                <a href="@ActionUrl" class="inline-flex items-center justify-center gap-2 px-5 py-2.5 text-sm font-medium text-white rounded-xl shadow-md transition-all duration-200 hover:shadow-lg active:scale-[0.98]"
-                   style="background: linear-gradient(135deg, #6366f1 0%, #4f46e5 100%); box-shadow: 0 4px 14px rgba(99, 102, 241, 0.35);">
+                <a href="@ActionUrl" class="inline-flex items-center justify-center gap-2 px-5 py-2.5 text-sm font-medium text-white rounded-xl shadow-md transition-all duration-200 hover:shadow-lg active:scale-[0.98] brand-mark">
                     @if (ShowActionIcon)
                     {
                         <svg class="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
@@ -104,19 +103,19 @@
     private string GradientStart => IconType switch
     {
         EmptyStateIcon.Error => "#fef2f2",
-        _ => "#eef2ff"
+        _ => "#e7f2f3"
     };
 
     private string GradientEnd => IconType switch
     {
         EmptyStateIcon.Error => "#fee2e2",
-        _ => "#e0e7ff"
+        _ => "#e7f2f3"
     };
 
     private string IconColorClass => IconType switch
     {
         EmptyStateIcon.Error => "text-red-400",
-        _ => "text-indigo-500"
+        _ => "text-primary-500"
     };
 
     public enum EmptyStateIcon

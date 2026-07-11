@@ -7,7 +7,7 @@
 <AuthorizeView>
     <Authorized>
         <!-- Premium Authenticated Layout -->
-        <div class="min-h-screen bg-gray-100 dark:bg-[#0f0e1a] transition-colors duration-200">
+        <div class="min-h-screen bg-gray-100 dark:bg-[#0b0e12] transition-colors duration-200">
             <!-- Sidebar -->
             <aside class="@(_sidebarCollapsed ? "sidebar-collapsed" : "sidebar-expanded") fixed inset-y-0 left-0 z-50 transform transition-all duration-300 ease-in-out @(_mobileSidebarOpen ? "" : "-translate-x-full") md:translate-x-0 sidebar-bg"
                    id="sidebar">
@@ -17,8 +17,8 @@
             <!-- Main Content Area -->
             <div id="main-content" class="@(_sidebarCollapsed ? "sidebar-collapsed-margin" : "sidebar-expanded-margin") min-h-screen flex flex-col transition-all duration-300">
                 <!-- Top Header Bar -->
-                <header class="sticky top-0 z-40 bg-white/80 dark:bg-[#0f0e1a]/90 backdrop-blur-md transition-colors">
-                    <div class="flex items-center justify-between h-16 px-6 lg:px-8 border-b border-gray-100 dark:border-indigo-900/30">
+                <header class="sticky top-0 z-40 bg-white/80 dark:bg-[#0b0e12]/90 backdrop-blur-md transition-colors">
+                    <div class="flex items-center justify-between h-16 px-6 lg:px-8 border-b border-[#e5e1d7] dark:border-[#242b34]">
                         <!-- Menu Buttons -->
                         <div class="flex items-center gap-2">
                             <!-- Mobile Menu Button -->
@@ -47,12 +47,12 @@
                         <div class="flex items-center gap-4">
                             <!-- Quick Actions -->
                             <div class="hidden sm:flex items-center gap-2">
-                                <a href="clients/new" class="p-2 rounded-xl text-gray-400 dark:text-slate-500 hover:text-indigo-600 dark:hover:text-indigo-400 hover:bg-indigo-50 dark:hover:bg-indigo-900/50 transition-colors" title="New Client">
+                                <a href="clients/new" class="p-2 rounded-xl text-gray-400 dark:text-slate-500 hover:text-primary-600 dark:hover:text-primary-400 hover:bg-primary-50 dark:hover:bg-primary-900/40 transition-colors" title="New Client">
                                     <svg class="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
                                         <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M18 9v3m0 0v3m0-3h3m-3 0h-3m-2-5a4 4 0 11-8 0 4 4 0 018 0zM3 20a6 6 0 0112 0v1H3v-1z" />
                                     </svg>
                                 </a>
-                                <a href="invoices/new" class="p-2 rounded-xl text-gray-400 dark:text-slate-500 hover:text-indigo-600 dark:hover:text-indigo-400 hover:bg-indigo-50 dark:hover:bg-indigo-900/50 transition-colors" title="New Invoice">
+                                <a href="invoices/new" class="p-2 rounded-xl text-gray-400 dark:text-slate-500 hover:text-primary-600 dark:hover:text-primary-400 hover:bg-primary-50 dark:hover:bg-primary-900/40 transition-colors" title="New Invoice">
                                     <svg class="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
                                         <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M9 12h6m-6 4h6m2 5H7a2 2 0 01-2-2V5a2 2 0 012-2h5.586a1 1 0 01.707.293l5.414 5.414a1 1 0 01.293.707V19a2 2 0 01-2 2z" />
                                     </svg>
@@ -93,8 +93,8 @@
                                         class="flex items-center gap-3 p-1 -m-1 rounded-xl hover:bg-gray-100 dark:hover:bg-slate-800 transition-colors"
                                         @onclick="ToggleUserMenu"
                                         @onclick:stopPropagation="true">
-                                    <div class="w-9 h-9 rounded-full flex items-center justify-center text-white text-sm font-semibold"
-                                         style="background: linear-gradient(135deg, #6366f1 0%, #8b5cf6 100%); box-shadow: 0 2px 8px rgba(99, 102, 241, 0.3);">
+                                    <div class="w-9 h-9 rounded-md flex items-center justify-center text-white text-sm font-semibold"
+                                         style="background: #1c2530;">
                                         @context.User.Identity?.Name?[0].ToString().ToUpper()
                                     </div>
                                     <div class="hidden lg:flex items-center gap-2">
@@ -108,9 +108,9 @@
                                 <!-- Dropdown Menu -->
                                 @if (_userMenuOpen)
                                 {
-                                    <div class="absolute right-0 mt-2 w-56 bg-white dark:bg-[#1a1827] rounded-xl shadow-lg ring-1 ring-black/5 dark:ring-white/10 py-1 z-50">
+                                    <div class="absolute right-0 mt-2 w-56 bg-white dark:bg-[#14181e] rounded-xl shadow-lg ring-1 ring-black/5 dark:ring-white/10 py-1 z-50">
                                         <a href="/"
-                                           class="flex items-center gap-3 px-4 py-2.5 text-sm text-gray-700 dark:text-slate-300 hover:bg-gray-50 dark:hover:bg-[#2d2a4a] transition-colors"
+                                           class="flex items-center gap-3 px-4 py-2.5 text-sm text-gray-700 dark:text-slate-300 hover:bg-gray-50 dark:hover:bg-[#242b34] transition-colors"
                                            @onclick="CloseUserMenu">
                                             <svg class="w-5 h-5 text-gray-400 dark:text-slate-500" fill="none" stroke="currentColor" viewBox="0 0 24 24">
                                                 <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M4 5a1 1 0 011-1h14a1 1 0 011 1v2a1 1 0 01-1 1H5a1 1 0 01-1-1V5zM4 13a1 1 0 011-1h6a1 1 0 011 1v6a1 1 0 01-1 1H5a1 1 0 01-1-1v-6zM16 13a1 1 0 011-1h2a1 1 0 011 1v6a1 1 0 01-1 1h-2a1 1 0 01-1-1v-6z" />
@@ -118,7 +118,7 @@
                                             Dashboard
                                         </a>
                                         <a href="account/manage"
-                                           class="flex items-center gap-3 px-4 py-2.5 text-sm text-gray-700 dark:text-slate-300 hover:bg-gray-50 dark:hover:bg-[#2d2a4a] transition-colors"
+                                           class="flex items-center gap-3 px-4 py-2.5 text-sm text-gray-700 dark:text-slate-300 hover:bg-gray-50 dark:hover:bg-[#242b34] transition-colors"
                                            @onclick="CloseUserMenu">
                                             <svg class="w-5 h-5 text-gray-400 dark:text-slate-500" fill="none" stroke="currentColor" viewBox="0 0 24 24">
                                                 <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M10.325 4.317c.426-1.756 2.924-1.756 3.35 0a1.724 1.724 0 002.573 1.066c1.543-.94 3.31.826 2.37 2.37a1.724 1.724 0 001.065 2.572c1.756.426 1.756 2.924 0 3.35a1.724 1.724 0 00-1.066 2.573c.94 1.543-.826 3.31-2.37 2.37a1.724 1.724 0 00-2.572 1.065c-.426 1.756-2.924 1.756-3.35 0a1.724 1.724 0 00-2.573-1.066c-1.543.94-3.31-.826-2.37-2.37a1.724 1.724 0 00-1.065-2.572c-1.756-.426-1.756-2.924 0-3.35a1.724 1.724 0 001.066-2.573c-.94-1.543.826-3.31 2.37-2.37.996.608 2.296.07 2.572-1.065z" />
@@ -126,9 +126,9 @@
                                             </svg>
                                             Settings
                                         </a>
-                                        <div class="border-t border-gray-100 dark:border-[#2d2a4a] my-1"></div>
+                                        <div class="border-t border-gray-100 dark:border-[#242b34] my-1"></div>
                                         <button type="button"
-                                                class="flex items-center gap-3 px-4 py-2.5 text-sm text-gray-700 dark:text-slate-300 hover:bg-gray-50 dark:hover:bg-[#2d2a4a] transition-colors w-full text-left"
+                                                class="flex items-center gap-3 px-4 py-2.5 text-sm text-gray-700 dark:text-slate-300 hover:bg-gray-50 dark:hover:bg-[#242b34] transition-colors w-full text-left"
                                                 @onclick="ShowSignOutConfirmation">
                                             <svg class="w-5 h-5 text-gray-400 dark:text-slate-500" fill="none" stroke="currentColor" viewBox="0 0 24 24">
                                                 <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M17 16l4-4m0 0l-4-4m4 4H7m6 4v1a3 3 0 01-3 3H6a3 3 0 01-3-3V7a3 3 0 013-3h4a3 3 0 013 3v1" />
@@ -148,7 +148,7 @@
                 </main>
 
                 <!-- Footer -->
-                <footer class="py-4 px-6 lg:px-8 border-t border-gray-100 dark:border-[#2d2a4a] bg-white/50 dark:bg-[#0f0e1a]/50 transition-colors">
+                <footer class="py-4 px-6 lg:px-8 border-t border-gray-100 dark:border-[#242b34] bg-white/50 dark:bg-[#0b0e12]/50 transition-colors">
                     <p class="text-xs text-gray-400 dark:text-[#64748b] text-center">Invoice Software &copy; @DateTime.Now.Year</p>
                 </footer>
             </div>
@@ -164,11 +164,8 @@
 
         <style>
             .sidebar-bg {
-                background: linear-gradient(180deg, #1e1b4b 0%, #312e81 50%, #3730a3 100%);
-            }
-            :root.dark .sidebar-bg {
-                background: #1a1827;
-                border-right: 1px solid #2d2a4a;
+                background: var(--sidebar-bg);
+                border-right: 1px solid var(--color-border);
             }
             .sidebar-expanded { width: 18rem; }
             .sidebar-collapsed { width: 5rem; }
@@ -193,14 +190,13 @@
             <header class="py-6 px-4 border-b border-gray-100 bg-white">
                 <div class="max-w-7xl mx-auto flex justify-between items-center">
                     <a href="/" class="flex items-center gap-3">
-                        <div class="w-9 h-9 rounded-xl flex items-center justify-center"
-                             style="background: linear-gradient(135deg, #6366f1 0%, #8b5cf6 100%); box-shadow: 0 4px 12px rgba(99, 102, 241, 0.3);">
+                        <div class="w-9 h-9 rounded-md flex items-center justify-center brand-mark">
                             <svg class="w-5 h-5 text-white" fill="none" stroke="currentColor" viewBox="0 0 24 24">
                                 <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M9 12h6m-6 4h6m2 5H7a2 2 0 01-2-2V5a2 2 0 012-2h5.586a1 1 0 01.707.293l5.414 5.414a1 1 0 01.293.707V19a2 2 0 01-2 2z" />
                             </svg>
                         </div>
-                        <span class="text-lg font-bold text-gray-900" style="font-family: 'Plus Jakarta Sans', sans-serif;">
-                            Invoice<span class="text-indigo-600">Pro</span>
+                        <span class="font-display text-lg font-bold tracking-tight text-gray-900">
+                            Invoice<span class="text-teal-700">Pro</span>
                         </span>
                     </a>
                 </div>

@@ -33,7 +33,7 @@
                     <div>
                         <label for="clientId" class="block text-sm font-medium text-gray-700 mb-2">Client <span class="text-red-500">*</span></label>
                         <InputSelect id="clientId" @bind-Value="_model.ClientId"
-                            class="w-full px-4 py-3 text-sm text-gray-900 bg-white border border-gray-200 rounded-xl transition-all duration-200 focus:outline-none focus:border-indigo-400 focus:ring-4 focus:ring-indigo-500/10 hover:border-gray-300 cursor-pointer">
+                            class="w-full px-4 py-3 text-sm text-gray-900 bg-white border border-gray-200 rounded-xl transition-all duration-200 focus:outline-none focus:border-primary-400 focus:ring-4 focus:ring-primary-500/10 hover:border-gray-300 cursor-pointer">
                             <option value="@Guid.Empty">Select a client...</option>
                             @if (_clients != null)
                             {
@@ -49,7 +49,7 @@
                     <div>
                         <label for="name" class="block text-sm font-medium text-gray-700 mb-2">Project Name <span class="text-red-500">*</span></label>
                         <InputText id="name" @bind-Value="_model.Name"
-                            class="w-full px-4 py-3 text-sm text-gray-900 bg-white border border-gray-200 rounded-xl transition-all duration-200 placeholder:text-gray-400 focus:outline-none focus:border-indigo-400 focus:ring-4 focus:ring-indigo-500/10 hover:border-gray-300"
+                            class="w-full px-4 py-3 text-sm text-gray-900 bg-white border border-gray-200 rounded-xl transition-all duration-200 placeholder:text-gray-400 focus:outline-none focus:border-primary-400 focus:ring-4 focus:ring-primary-500/10 hover:border-gray-300"
                             placeholder="Website Redesign" />
                         <ValidationMessage For="@(() => _model.Name)" class="mt-1.5 text-xs text-red-600" />
                     </div>
@@ -57,14 +57,14 @@
                     <div>
                         <label for="description" class="block text-sm font-medium text-gray-700 mb-2">Description</label>
                         <InputTextArea id="description" @bind-Value="_model.Description" rows="3"
-                            class="w-full px-4 py-3 text-sm text-gray-900 bg-white border border-gray-200 rounded-xl transition-all duration-200 placeholder:text-gray-400 focus:outline-none focus:border-indigo-400 focus:ring-4 focus:ring-indigo-500/10 hover:border-gray-300 resize-none"
+                            class="w-full px-4 py-3 text-sm text-gray-900 bg-white border border-gray-200 rounded-xl transition-all duration-200 placeholder:text-gray-400 focus:outline-none focus:border-primary-400 focus:ring-4 focus:ring-primary-500/10 hover:border-gray-300 resize-none"
                             placeholder="Brief description of the project..." />
                     </div>
 
                     <div>
                         <label for="status" class="block text-sm font-medium text-gray-700 mb-2">Status</label>
                         <InputSelect id="status" @bind-Value="_model.Status"
-                            class="w-full px-4 py-3 text-sm text-gray-900 bg-white border border-gray-200 rounded-xl transition-all duration-200 focus:outline-none focus:border-indigo-400 focus:ring-4 focus:ring-indigo-500/10 hover:border-gray-300 cursor-pointer">
+                            class="w-full px-4 py-3 text-sm text-gray-900 bg-white border border-gray-200 rounded-xl transition-all duration-200 focus:outline-none focus:border-primary-400 focus:ring-4 focus:ring-primary-500/10 hover:border-gray-300 cursor-pointer">
                             <option value="Active">Active</option>
                             <option value="OnHold">On Hold</option>
                             <option value="Completed">Completed</option>
@@ -79,13 +79,13 @@
                         <div>
                             <label for="startDate" class="block text-sm font-medium text-gray-700 dark:text-slate-300 mb-2">Start Date</label>
                             <InputDate id="startDate" @bind-Value="_model.StartDate"
-                                class="w-full px-4 py-3 text-sm text-gray-900 dark:text-slate-100 bg-white dark:bg-[#1e1b3a] border border-gray-200 dark:border-[#2d2a4a] rounded-xl transition-all duration-200 focus:outline-none focus:border-indigo-400 dark:focus:border-indigo-500 focus:ring-4 focus:ring-indigo-500/10 hover:border-gray-300 dark:hover:border-[#3d3a5a]" />
+                                class="w-full px-4 py-3 text-sm text-gray-900 dark:text-slate-100 bg-white dark:bg-[#1e1b3a] border border-gray-200 dark:border-[#2d2a4a] rounded-xl transition-all duration-200 focus:outline-none focus:border-primary-400 dark:focus:border-primary-500 focus:ring-4 focus:ring-primary-500/10 hover:border-gray-300 dark:hover:border-[#3d3a5a]" />
                         </div>
 
                         <div>
                             <label for="endDate" class="block text-sm font-medium text-gray-700 dark:text-slate-300 mb-2">End Date</label>
                             <InputDate id="endDate" @bind-Value="_model.EndDate"
-                                class="w-full px-4 py-3 text-sm text-gray-900 dark:text-slate-100 bg-white dark:bg-[#1e1b3a] border border-gray-200 dark:border-[#2d2a4a] rounded-xl transition-all duration-200 focus:outline-none focus:border-indigo-400 dark:focus:border-indigo-500 focus:ring-4 focus:ring-indigo-500/10 hover:border-gray-300 dark:hover:border-[#3d3a5a]" />
+                                class="w-full px-4 py-3 text-sm text-gray-900 dark:text-slate-100 bg-white dark:bg-[#1e1b3a] border border-gray-200 dark:border-[#2d2a4a] rounded-xl transition-all duration-200 focus:outline-none focus:border-primary-400 dark:focus:border-primary-500 focus:ring-4 focus:ring-primary-500/10 hover:border-gray-300 dark:hover:border-[#3d3a5a]" />
                         </div>
                     </div>
 
@@ -98,7 +98,7 @@
                                 <span class="text-gray-500 dark:text-slate-400 text-sm">@CurrencyExtensions.GetSymbol(ClientCurrency)</span>
                             </div>
                             <InputNumber id="hourlyRate" @bind-Value="_model.HourlyRateOverride"
-                                class="w-full pl-8 pr-16 py-3 text-sm text-gray-900 dark:text-slate-100 bg-white dark:bg-[#1e1b3a] border border-gray-200 dark:border-[#2d2a4a] rounded-xl transition-all duration-200 focus:outline-none focus:border-indigo-400 dark:focus:border-indigo-500 focus:ring-4 focus:ring-indigo-500/10 hover:border-gray-300 dark:hover:border-[#3d3a5a]" />
+                                class="w-full pl-8 pr-16 py-3 text-sm text-gray-900 dark:text-slate-100 bg-white dark:bg-[#1e1b3a] border border-gray-200 dark:border-[#2d2a4a] rounded-xl transition-all duration-200 focus:outline-none focus:border-primary-400 dark:focus:border-primary-500 focus:ring-4 focus:ring-primary-500/10 hover:border-gray-300 dark:hover:border-[#3d3a5a]" />
                             <div class="absolute inset-y-0 right-0 pr-4 flex items-center pointer-events-none">
                                 <span class="text-gray-400 dark:text-slate-500 text-sm">/ hour</span>
                             </div>
@@ -123,12 +123,12 @@
                                         <!-- Edit Mode -->
                                         <div class="flex-1 space-y-3">
                                             <input type="text" @bind="_editSectionName" placeholder="Section name"
-                                                class="w-full px-3 py-2 text-sm text-gray-900 dark:text-slate-100 bg-white dark:bg-[#252240] border border-gray-200 dark:border-[#3d3a5a] rounded-lg focus:outline-none focus:border-indigo-400" />
+                                                class="w-full px-3 py-2 text-sm text-gray-900 dark:text-slate-100 bg-white dark:bg-[#252240] border border-gray-200 dark:border-[#3d3a5a] rounded-lg focus:outline-none focus:border-primary-400" />
                                             <input type="text" @bind="_editSectionDescription" placeholder="Description (optional)"
-                                                class="w-full px-3 py-2 text-sm text-gray-900 dark:text-slate-100 bg-white dark:bg-[#252240] border border-gray-200 dark:border-[#3d3a5a] rounded-lg focus:outline-none focus:border-indigo-400" />
+                                                class="w-full px-3 py-2 text-sm text-gray-900 dark:text-slate-100 bg-white dark:bg-[#252240] border border-gray-200 dark:border-[#3d3a5a] rounded-lg focus:outline-none focus:border-primary-400" />
                                             <div class="flex gap-2">
                                                 <button type="button" @onclick="SaveEditSection" disabled="@_isSavingSection"
-                                                    class="px-3 py-1.5 text-xs font-medium text-white bg-indigo-600 rounded-lg hover:bg-indigo-700 disabled:opacity-50">
+                                                    class="px-3 py-1.5 text-xs font-medium text-white bg-primary-600 rounded-lg hover:bg-primary-700 disabled:opacity-50">
                                                     @(_isSavingSection ? "Saving..." : "Save")
                                                 </button>
                                                 <button type="button" @onclick="CancelEditSection"
@@ -153,7 +153,7 @@
                                         </div>
                                         <div class="flex items-center gap-1">
                                             <button type="button" @onclick="() => StartEditSection(sec)"
-                                                class="p-1.5 text-gray-400 hover:text-indigo-600 dark:hover:text-indigo-400 rounded-lg hover:bg-white dark:hover:bg-[#252240] transition-colors">
+                                                class="p-1.5 text-gray-400 hover:text-primary-600 dark:hover:text-primary-400 rounded-lg hover:bg-white dark:hover:bg-[#252240] transition-colors">
                                                 <svg class="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
                                                     <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M11 5H6a2 2 0 00-2 2v11a2 2 0 002 2h11a2 2 0 002-2v-5m-1.414-9.414a2 2 0 112.828 2.828L11.828 15H9v-2.828l8.586-8.586z" />
                                                 </svg>
@@ -181,15 +181,15 @@
                     <!-- Add New Section -->
                     @if (_isAddingSection)
                     {
-                        <div class="@(_sections.Count > 0 ? "mt-4" : "") p-4 bg-indigo-50 dark:bg-indigo-900/20 rounded-xl border border-indigo-100 dark:border-indigo-800">
+                        <div class="@(_sections.Count > 0 ? "mt-4" : "") p-4 bg-primary-50 dark:bg-primary-900/20 rounded-xl border border-primary-100 dark:border-primary-800">
                             <div class="space-y-3">
                                 <input type="text" @bind="_newSectionName" placeholder="Section name"
-                                    class="w-full px-3 py-2 text-sm text-gray-900 dark:text-slate-100 bg-white dark:bg-[#252240] border border-gray-200 dark:border-[#3d3a5a] rounded-lg focus:outline-none focus:border-indigo-400" />
+                                    class="w-full px-3 py-2 text-sm text-gray-900 dark:text-slate-100 bg-white dark:bg-[#252240] border border-gray-200 dark:border-[#3d3a5a] rounded-lg focus:outline-none focus:border-primary-400" />
                                 <input type="text" @bind="_newSectionDescription" placeholder="Description (optional)"
-                                    class="w-full px-3 py-2 text-sm text-gray-900 dark:text-slate-100 bg-white dark:bg-[#252240] border border-gray-200 dark:border-[#3d3a5a] rounded-lg focus:outline-none focus:border-indigo-400" />
+                                    class="w-full px-3 py-2 text-sm text-gray-900 dark:text-slate-100 bg-white dark:bg-[#252240] border border-gray-200 dark:border-[#3d3a5a] rounded-lg focus:outline-none focus:border-primary-400" />
                                 <div class="flex gap-2">
                                     <button type="button" @onclick="AddSection" disabled="@_isSavingSection"
-                                        class="px-3 py-1.5 text-xs font-medium text-white bg-indigo-600 rounded-lg hover:bg-indigo-700 disabled:opacity-50">
+                                        class="px-3 py-1.5 text-xs font-medium text-white bg-primary-600 rounded-lg hover:bg-primary-700 disabled:opacity-50">
                                         @(_isSavingSection ? "Adding..." : "Add Section")
                                     </button>
                                     <button type="button" @onclick="CancelAddSection"
@@ -203,7 +203,7 @@
                     else
                     {
                         <button type="button" @onclick="StartAddSection"
-                            class="@(_sections.Count > 0 ? "mt-4" : "") inline-flex items-center gap-2 px-4 py-2 text-sm font-medium text-indigo-600 dark:text-indigo-400 hover:bg-indigo-50 dark:hover:bg-indigo-900/20 rounded-lg transition-colors">
+                            class="@(_sections.Count > 0 ? "mt-4" : "") inline-flex items-center gap-2 px-4 py-2 text-sm font-medium text-primary-600 dark:text-primary-400 hover:bg-primary-50 dark:hover:bg-primary-900/20 rounded-lg transition-colors">
                             <svg class="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
                                 <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M12 6v6m0 0v6m0-6h6m-6 0H6" />
                             </svg>

@@ -1,475 +1,233 @@
 @page "/"
-@inject ICall<GetDashboardMetrics, DashboardMetricsDto> GetMetricsCall
-@inject ICall<GetInvoiceStatusBreakdown, InvoiceStatusBreakdownDto> GetStatusBreakdownCall
-@inject ICall<GetTopClients, List<TopClientDto>> GetTopClientsCall
-@inject ICall<GetRevenueChart, RevenueChartDataDto> GetRevenueChartCall
-@inject ICall<GetInvoices, PaginatedResponse<InvoiceSummaryDto>> GetInvoicesCall
-@inject ICall<GetEstimates, PaginatedResponse<EstimateSummaryDto>> GetEstimatesCall
+@layout EmptyLayout
+@attribute [AllowAnonymous]
 
-<PageTitle>Dashboard - InvoicePro</PageTitle>
+<PageTitle>InvoicePro - Professional Invoicing for Freelancers & Small Businesses</PageTitle>
 
-<div class="space-y-8">
-    <!-- Header with Breadcrumbs -->
-    <PageHeader Title="@($"Good {GetGreeting()}")"
-                Description="Here's what's happening with your business today."
-                Breadcrumbs="@(new List<PageHeader.BreadcrumbItem> { new("Dashboard") })">
-        <a href="invoices/new" class="btn-primary">
-            <svg class="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M12 6v6m0 0v6m0-6h6m-6 0H6" />
-            </svg>
-            Create Invoice
-        </a>
-    </PageHeader>
+<div class="min-h-screen bg-white dark:bg-[#0f0e1a] text-gray-900 dark:text-slate-100 antialiased overflow-x-hidden">
 
-    <!-- Stats Cards -->
-    @if (_isLoading)
-    {
-        <div class="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-6">
-            @for (int i = 0; i < 4; i++)
-            {
-                <div class="stat-card animate-pulse">
-                    <div class="h-12 w-12 bg-gray-100 dark:bg-slate-700 rounded-xl mb-4"></div>
-                    <div class="h-8 w-16 bg-gray-100 dark:bg-slate-700 rounded mb-2"></div>
-                    <div class="h-4 w-24 bg-gray-100 dark:bg-slate-700 rounded"></div>
-                </div>
-            }
-        </div>
-    }
-    else if (_metrics != null)
-    {
-        <div class="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-6">
-            <!-- Total Revenue -->
-            <div class="group stat-card transition-all duration-200 hover:border-emerald-200 dark:hover:border-emerald-800 hover:shadow-lg hover:shadow-emerald-500/5">
-                <div class="flex items-center justify-between mb-4">
-                    <div class="w-12 h-12 rounded-xl flex items-center justify-center bg-gradient-to-br from-emerald-50 to-emerald-100 dark:from-emerald-950/50 dark:to-emerald-900/50">
-                        <svg class="w-6 h-6 text-emerald-600 dark:text-emerald-400" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                            <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M12 8c-1.657 0-3 .895-3 2s1.343 2 3 2 3 .895 3 2-1.343 2-3 2m0-8c1.11 0 2.08.402 2.599 1M12 8V7m0 1v8m0 0v1m0-1c-1.11 0-2.08-.402-2.599-1M21 12a9 9 0 11-18 0 9 9 0 0118 0z" />
-                        </svg>
-                    </div>
-                    <a href="invoices" class="p-2 rounded-lg text-gray-400 dark:text-slate-500 hover:text-emerald-600 dark:hover:text-emerald-400 hover:bg-emerald-50 dark:hover:bg-emerald-900/50 opacity-0 group-hover:opacity-100 transition-all">
-                        <svg class="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                            <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M9 5l7 7-7 7" />
-                        </svg>
-                    </a>
-                </div>
-                <div class="stat-card-value text-emerald-600 dark:text-emerald-400">@_currency@_metrics.PaidRevenue.ToString("N0")</div>
-                <p class="stat-card-label">Paid This Month</p>
-            </div>
-
-            <!-- Outstanding -->
-            <div class="group stat-card transition-all duration-200 hover:border-amber-200 dark:hover:border-amber-800 hover:shadow-lg hover:shadow-amber-500/5">
-                <div class="flex items-center justify-between mb-4">
-                    <div class="w-12 h-12 rounded-xl flex items-center justify-center bg-gradient-to-br from-amber-50 to-amber-100 dark:from-amber-950/50 dark:to-amber-900/50">
-                        <svg class="w-6 h-6 text-amber-600 dark:text-amber-400" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                            <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M12 8v4l3 3m6-3a9 9 0 11-18 0 9 9 0 0118 0z" />
-                        </svg>
-                    </div>
-                    <a href="invoices?status=Sent" class="p-2 rounded-lg text-gray-400 dark:text-slate-500 hover:text-amber-600 dark:hover:text-amber-400 hover:bg-amber-50 dark:hover:bg-amber-900/50 opacity-0 group-hover:opacity-100 transition-all">
-                        <svg class="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                            <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M9 5l7 7-7 7" />
-                        </svg>
-                    </a>
-                </div>
-                <div class="stat-card-value text-amber-600 dark:text-amber-400">@_currency@_metrics.OutstandingAmount.ToString("N0")</div>
-                <p class="stat-card-label">Awaiting Payment (@_metrics.OutstandingInvoices)</p>
-            </div>
-
-            <!-- Overdue -->
-            <div class="group stat-card transition-all duration-200 hover:border-red-200 dark:hover:border-red-800 hover:shadow-lg hover:shadow-red-500/5">
-                <div class="flex items-center justify-between mb-4">
-                    <div class="w-12 h-12 rounded-xl flex items-center justify-center bg-gradient-to-br from-red-50 to-red-100 dark:from-red-950/50 dark:to-red-900/50">
-                        <svg class="w-6 h-6 text-red-600 dark:text-red-400" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                            <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M12 8v4m0 4h.01M21 12a9 9 0 11-18 0 9 9 0 0118 0z" />
-                        </svg>
-                    </div>
-                </div>
-                <div class="stat-card-value text-red-600 dark:text-red-400">@_currency@_metrics.OverdueAmount.ToString("N0")</div>
-                <p class="stat-card-label">Overdue (@_metrics.OverdueInvoices)</p>
-            </div>
-
-            <!-- Unbilled Hours -->
-            <div class="group stat-card transition-all duration-200 hover:border-violet-200 dark:hover:border-violet-800 hover:shadow-lg hover:shadow-violet-500/5">
-                <div class="flex items-center justify-between mb-4">
-                    <div class="w-12 h-12 rounded-xl flex items-center justify-center bg-gradient-to-br from-violet-50 to-violet-100 dark:from-violet-950/50 dark:to-violet-900/50">
-                        <svg class="w-6 h-6 text-violet-600 dark:text-violet-400" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+    <!-- ===================== NAVBAR ===================== -->
+    <header class="sticky top-0 z-40 backdrop-blur-md bg-white/80 dark:bg-[#0f0e1a]/80 border-b border-gray-100 dark:border-[#2d2a4a]">
+        <div class="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8">
+            <div class="flex items-center justify-between h-16">
+                <!-- Logo -->
+                <a href="" class="flex items-center gap-3">
+                    <div class="w-9 h-9 rounded-xl flex items-center justify-center shrink-0 brand-mark">
+                        <svg class="w-5 h-5 text-white" fill="none" stroke="currentColor" viewBox="0 0 24 24">
                             <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M9 12h6m-6 4h6m2 5H7a2 2 0 01-2-2V5a2 2 0 012-2h5.586a1 1 0 01.707.293l5.414 5.414a1 1 0 01.293.707V19a2 2 0 01-2 2z" />
                         </svg>
                     </div>
-                    <a href="timesheet" class="p-2 rounded-lg text-gray-400 dark:text-slate-500 hover:text-violet-600 dark:hover:text-violet-400 hover:bg-violet-50 dark:hover:bg-violet-900/50 opacity-0 group-hover:opacity-100 transition-all">
-                        <svg class="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                            <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M9 5l7 7-7 7" />
-                        </svg>
-                    </a>
-                </div>
-                <div class="stat-card-value">@_metrics.UnbilledHours.ToString("N1")h</div>
-                <p class="stat-card-label">Unbilled Time (All Time)</p>
-            </div>
-        </div>
-    }
-
-    <!-- Invoice Status & Top Clients -->
-    <div class="grid grid-cols-1 lg:grid-cols-3 gap-6">
-        <!-- Invoice Status Breakdown -->
-        <div class="lg:col-span-2 card overflow-hidden">
-            <div class="card-header flex items-center justify-between">
-                <h2 class="text-lg font-semibold text-gray-900 dark:text-slate-100" style="font-family: 'Plus Jakarta Sans', sans-serif;">Invoice Status</h2>
-                <a href="invoices" class="text-sm font-medium text-indigo-600 dark:text-indigo-400 hover:text-indigo-700 dark:hover:text-indigo-300">View all invoices</a>
-            </div>
-            <div class="p-6">
-                @if (_isLoading || _statusBreakdown == null)
-                {
-                    <div class="grid grid-cols-1 sm:grid-cols-4 gap-6 animate-pulse">
-                        @for (int i = 0; i < 4; i++)
-                        {
-                            <div class="h-24 bg-gray-100 dark:bg-slate-700 rounded-xl"></div>
-                        }
-                    </div>
-                }
-                else
-                {
-                    <div class="grid grid-cols-2 sm:grid-cols-4 gap-4">
-                        <!-- Draft -->
-                        <div class="p-4 rounded-xl bg-gray-50 dark:bg-slate-700/50">
-                            <div class="flex items-center gap-2 mb-2">
-                                <div class="w-3 h-3 rounded-full bg-gray-400"></div>
-                                <span class="text-sm font-medium text-gray-600 dark:text-slate-400">Draft</span>
-                            </div>
-                            <p class="text-2xl font-bold text-gray-900 dark:text-slate-100">@_statusBreakdown.Draft</p>
-                            <p class="text-xs text-gray-500 dark:text-slate-400">@_currency@_statusBreakdown.DraftTotal.ToString("N0")</p>
-                        </div>
-
-                        <!-- Sent -->
-                        <div class="p-4 rounded-xl bg-blue-50 dark:bg-blue-900/30">
-                            <div class="flex items-center gap-2 mb-2">
-                                <div class="w-3 h-3 rounded-full bg-blue-500"></div>
-                                <span class="text-sm font-medium text-blue-600 dark:text-blue-400">Sent</span>
-                            </div>
-                            <p class="text-2xl font-bold text-blue-700 dark:text-blue-300">@_statusBreakdown.Sent</p>
-                            <p class="text-xs text-blue-500 dark:text-blue-400">@_currency@_statusBreakdown.SentTotal.ToString("N0")</p>
-                        </div>
-
-                        <!-- Paid -->
-                        <div class="p-4 rounded-xl bg-emerald-50 dark:bg-emerald-900/30">
-                            <div class="flex items-center gap-2 mb-2">
-                                <div class="w-3 h-3 rounded-full bg-emerald-500"></div>
-                                <span class="text-sm font-medium text-emerald-600 dark:text-emerald-400">Paid</span>
-                            </div>
-                            <p class="text-2xl font-bold text-emerald-700 dark:text-emerald-300">@_statusBreakdown.Paid</p>
-                            <p class="text-xs text-emerald-500 dark:text-emerald-400">@_currency@_statusBreakdown.PaidTotal.ToString("N0")</p>
-                        </div>
-
-                        <!-- Overdue -->
-                        <div class="p-4 rounded-xl bg-red-50 dark:bg-red-900/30">
-                            <div class="flex items-center gap-2 mb-2">
-                                <div class="w-3 h-3 rounded-full bg-red-500"></div>
-                                <span class="text-sm font-medium text-red-600 dark:text-red-400">Overdue</span>
-                            </div>
-                            <p class="text-2xl font-bold text-red-700 dark:text-red-300">@_statusBreakdown.Overdue</p>
-                            <p class="text-xs text-red-500 dark:text-red-400">@_currency@_statusBreakdown.OverdueTotal.ToString("N0")</p>
-                        </div>
-                    </div>
-                }
-            </div>
-        </div>
-
-        <!-- Active Stats -->
-        <div class="card overflow-hidden">
-            <div class="card-header">
-                <h2 class="text-lg font-semibold text-gray-900 dark:text-slate-100" style="font-family: 'Plus Jakarta Sans', sans-serif;">Activity</h2>
-            </div>
-            <div class="p-6 space-y-4">
-                @if (_isLoading || _metrics == null)
-                {
-                    <div class="animate-pulse space-y-4">
-                        @for (int i = 0; i < 3; i++)
-                        {
-                            <div class="h-12 bg-gray-100 dark:bg-slate-700 rounded-xl"></div>
-                        }
-                    </div>
-                }
-                else
-                {
-                    <div class="flex items-center justify-between p-3 rounded-xl bg-indigo-50 dark:bg-indigo-900/30">
-                        <div class="flex items-center gap-3">
-                            <div class="w-10 h-10 rounded-xl bg-indigo-100 dark:bg-indigo-900/50 flex items-center justify-center">
-                                <svg class="w-5 h-5 text-indigo-600 dark:text-indigo-400" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                                    <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M17 20h5v-2a3 3 0 00-5.356-1.857M17 20H7m10 0v-2c0-.656-.126-1.283-.356-1.857M7 20H2v-2a3 3 0 015.356-1.857M7 20v-2c0-.656.126-1.283.356-1.857m0 0a5.002 5.002 0 019.288 0M15 7a3 3 0 11-6 0 3 3 0 016 0z" />
-                                </svg>
-                            </div>
-                            <span class="text-sm font-medium text-gray-700 dark:text-slate-300">Total Clients</span>
-                        </div>
-                        <span class="text-lg font-bold text-indigo-600 dark:text-indigo-400">@_metrics.ActiveClients</span>
-                    </div>
-
-                    <div class="flex items-center justify-between p-3 rounded-xl bg-emerald-50 dark:bg-emerald-900/30">
-                        <div class="flex items-center gap-3">
-                            <div class="w-10 h-10 rounded-xl bg-emerald-100 dark:bg-emerald-900/50 flex items-center justify-center">
-                                <svg class="w-5 h-5 text-emerald-600 dark:text-emerald-400" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                                    <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M3 7v10a2 2 0 002 2h14a2 2 0 002-2V9a2 2 0 00-2-2h-6l-2-2H5a2 2 0 00-2 2z" />
-                                </svg>
-                            </div>
-                            <span class="text-sm font-medium text-gray-700 dark:text-slate-300">Active Projects</span>
-                        </div>
-                        <span class="text-lg font-bold text-emerald-600 dark:text-emerald-400">@_metrics.ActiveProjects</span>
-                    </div>
-
-                    <div class="flex items-center justify-between p-3 rounded-xl bg-amber-50 dark:bg-amber-900/30">
-                        <div class="flex items-center gap-3">
-                            <div class="w-10 h-10 rounded-xl bg-amber-100 dark:bg-amber-900/50 flex items-center justify-center">
-                                <svg class="w-5 h-5 text-amber-600 dark:text-amber-400" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                                    <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M12 8v4l3 3m6-3a9 9 0 11-18 0 9 9 0 0118 0z" />
-                                </svg>
-                            </div>
-                            <span class="text-sm font-medium text-gray-700 dark:text-slate-300">Hours This Month</span>
-                        </div>
-                        <span class="text-lg font-bold text-amber-600 dark:text-amber-400">@_metrics.BillableHours.ToString("N1")h</span>
-                    </div>
-                }
-            </div>
-        </div>
-    </div>
-
-    <!-- Recent Invoices & Top Clients -->
-    <div class="grid grid-cols-1 lg:grid-cols-3 gap-6">
-        <!-- Recent Invoices -->
-        <div class="lg:col-span-2 card overflow-hidden">
-            <div class="card-header flex items-center justify-between">
-                <h2 class="text-lg font-semibold text-gray-900 dark:text-slate-100" style="font-family: 'Plus Jakarta Sans', sans-serif;">Recent Invoices</h2>
-                <a href="invoices/new" class="inline-flex items-center gap-1 text-sm font-medium text-indigo-600 dark:text-indigo-400 hover:text-indigo-700 dark:hover:text-indigo-300">
-                    <svg class="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                        <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M12 6v6m0 0v6m0-6h6m-6 0H6" />
-                    </svg>
-                    New Invoice
+                    <span class="text-lg font-bold tracking-tight">
+                        Invoice<span class="text-primary-600 dark:text-primary-400">Pro</span>
+                    </span>
                 </a>
-            </div>
-            @if (_isLoading)
-            {
-                <div class="p-6 space-y-3 animate-pulse">
-                    @for (int i = 0; i < 4; i++)
-                    {
-                        <div class="h-16 bg-gray-100 dark:bg-slate-700 rounded-xl"></div>
-                    }
+
+                <!-- Desktop nav links -->
+                <nav class="hidden md:flex items-center gap-8 text-sm font-medium text-gray-600 dark:text-slate-300">
+                    <a href="#features" class="hover:text-primary-600 dark:hover:text-primary-400 transition-colors">Features</a>
+                    <a href="#how" class="hover:text-primary-600 dark:hover:text-primary-400 transition-colors">How it works</a>
+                    <a href="#pricing" class="hover:text-primary-600 dark:hover:text-primary-400 transition-colors">Pricing</a>
+                </nav>
+
+                <!-- Actions -->
+                <div class="flex items-center gap-2 sm:gap-3">
+                    <a href="account/login" class="hidden sm:inline-flex btn-secondary">Sign in</a>
+                    <a href="account/register" class="btn-primary">Get started</a>
                 </div>
-            }
-            else if (_recentInvoices.Count == 0)
-            {
-                <div class="p-8 text-center">
-                    <div class="mx-auto w-14 h-14 rounded-2xl flex items-center justify-center mb-4"
-                         style="background: linear-gradient(135deg, #eef2ff 0%, #e0e7ff 100%);">
-                        <svg class="h-7 w-7 text-indigo-500" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                            <path stroke-linecap="round" stroke-linejoin="round" stroke-width="1.5" d="M9 12h6m-6 4h6m2 5H7a2 2 0 01-2-2V5a2 2 0 012-2h5.586a1 1 0 01.707.293l5.414 5.414a1 1 0 01.293.707V19a2 2 0 01-2 2z" />
-                        </svg>
+            </div>
+        </div>
+    </header>
+
+    <!-- ===================== HERO ===================== -->
+    <section class="relative">
+        <!-- Decorative gradient glows -->
+        <div class="pointer-events-none absolute inset-0 overflow-hidden">
+            <div class="absolute -top-24 -left-24 w-96 h-96 rounded-full bg-primary-400/20 dark:bg-primary-600/20 blur-3xl"></div>
+            <div class="absolute top-10 right-0 w-96 h-96 rounded-full bg-primary-400/20 dark:bg-primary-600/20 blur-3xl"></div>
+        </div>
+
+        <div class="relative max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 pt-20 pb-16 sm:pt-28 sm:pb-24 text-center">
+            <!-- Badge -->
+            <span class="inline-flex items-center gap-2 px-4 py-1.5 rounded-full text-sm font-medium bg-primary-50 dark:bg-primary-950/50 text-primary-700 dark:text-primary-300 border border-primary-100 dark:border-primary-900/50">
+                <span class="w-1.5 h-1.5 rounded-full bg-primary-500"></span>
+                Invoicing made effortless
+            </span>
+
+            <h1 class="mt-6 text-4xl sm:text-6xl font-bold tracking-tight leading-[1.1]">
+                Get paid faster with
+                <span class="bg-gradient-to-r from-primary-600 to-primary-600 dark:from-primary-400 dark:to-primary-400 bg-clip-text text-transparent">professional invoices</span>
+            </h1>
+
+            <p class="mt-6 max-w-2xl mx-auto text-lg sm:text-xl text-gray-600 dark:text-slate-300 leading-relaxed">
+                Create polished invoices and estimates, track expenses, and manage clients — all in one place.
+                Everything freelancers and small businesses need to run the money side of things.
+            </p>
+
+            <div class="mt-9 flex flex-col sm:flex-row items-center justify-center gap-3">
+                <a href="account/register" class="btn-primary w-full sm:w-auto text-base px-6 py-3">
+                    Start for free
+                    <svg class="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                        <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M13 7l5 5m0 0l-5 5m5-5H6" />
+                    </svg>
+                </a>
+                <a href="account/login" class="btn-secondary w-full sm:w-auto text-base px-6 py-3">Sign in</a>
+            </div>
+
+            <p class="mt-4 text-sm text-gray-500 dark:text-slate-400">No credit card required · Free to get started</p>
+
+            <!-- Stats band -->
+            <div class="mt-16 grid grid-cols-2 sm:grid-cols-4 gap-6 max-w-3xl mx-auto">
+                <div>
+                    <div class="text-3xl font-bold text-gray-900 dark:text-white">10k+</div>
+                    <div class="mt-1 text-sm text-gray-500 dark:text-slate-400">Invoices sent</div>
+                </div>
+                <div>
+                    <div class="text-3xl font-bold text-gray-900 dark:text-white">2 min</div>
+                    <div class="mt-1 text-sm text-gray-500 dark:text-slate-400">To first invoice</div>
+                </div>
+                <div>
+                    <div class="text-3xl font-bold text-gray-900 dark:text-white">98%</div>
+                    <div class="mt-1 text-sm text-gray-500 dark:text-slate-400">Paid on time</div>
+                </div>
+                <div>
+                    <div class="text-3xl font-bold text-gray-900 dark:text-white">24/7</div>
+                    <div class="mt-1 text-sm text-gray-500 dark:text-slate-400">Access anywhere</div>
+                </div>
+            </div>
+        </div>
+    </section>
+
+    <!-- ===================== FEATURES ===================== -->
+    <section id="features" class="py-20 sm:py-24 bg-gray-50 dark:bg-[#0a0912] border-y border-gray-100 dark:border-[#2d2a4a]">
+        <div class="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8">
+            <div class="max-w-2xl mx-auto text-center">
+                <h2 class="text-3xl sm:text-4xl font-bold tracking-tight">Everything you need to run your business</h2>
+                <p class="mt-4 text-lg text-gray-600 dark:text-slate-300">From the first estimate to the final payment, InvoicePro keeps your finances organized.</p>
+            </div>
+
+            <div class="mt-14 grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 gap-6">
+                @foreach (var feature in Features)
+                {
+                    <div class="card p-6 hover:shadow-lg transition-shadow duration-200">
+                        <div class="w-12 h-12 rounded-xl flex items-center justify-center bg-gradient-to-br @feature.IconBg">
+                            <svg class="w-6 h-6 @feature.IconColor" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                                <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="@feature.IconPath" />
+                            </svg>
+                        </div>
+                        <h3 class="mt-5 text-lg font-semibold">@feature.Title</h3>
+                        <p class="mt-2 text-gray-600 dark:text-slate-400 leading-relaxed">@feature.Description</p>
                     </div>
-                    <p class="text-sm text-gray-500 dark:text-slate-400 mb-3">No invoices yet</p>
-                    <a href="invoices/new" class="text-sm font-medium text-indigo-600 dark:text-indigo-400 hover:text-indigo-700 dark:hover:text-indigo-300">
-                        Create your first invoice
-                    </a>
-                </div>
-            }
-            else
-            {
-                <div class="divide-y divide-gray-100 dark:divide-slate-700">
-                    @foreach (var inv in _recentInvoices.Take(5))
-                    {
-                        var isOverdue = inv.Status != "Paid" && inv.Status != "Void" && inv.DueDate < DateOnly.FromDateTime(DateTime.Today);
-                        <a href="invoices/@inv.Id" class="flex items-center justify-between px-6 py-4 hover:bg-gray-50 dark:hover:bg-[#2d2a4a]/50 transition-colors group">
-                            <div class="flex items-center gap-4 min-w-0">
-                                <div class="w-10 h-10 rounded-xl flex items-center justify-center @(isOverdue ? "bg-red-100 dark:bg-red-900/50" : inv.Status == "Paid" ? "bg-emerald-100 dark:bg-emerald-900/50" : "bg-indigo-100 dark:bg-indigo-900/50")">
-                                    <svg class="w-5 h-5 @(isOverdue ? "text-red-600 dark:text-red-400" : inv.Status == "Paid" ? "text-emerald-600 dark:text-emerald-400" : "text-indigo-600 dark:text-indigo-400")" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                                        @if (isOverdue)
-                                        {
-                                            <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M12 8v4m0 4h.01M21 12a9 9 0 11-18 0 9 9 0 0118 0z" />
-                                        }
-                                        else if (inv.Status == "Paid")
-                                        {
-                                            <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M5 13l4 4L19 7" />
-                                        }
-                                        else
-                                        {
-                                            <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M9 12h6m-6 4h6m2 5H7a2 2 0 01-2-2V5a2 2 0 012-2h5.586a1 1 0 01.707.293l5.414 5.414a1 1 0 01.293.707V19a2 2 0 01-2 2z" />
-                                        }
-                                    </svg>
-                                </div>
-                                <div class="min-w-0">
-                                    <div class="flex items-center gap-2">
-                                        <span class="font-medium text-gray-900 dark:text-slate-100">@inv.InvoiceNumber</span>
-                                        <span class="@(isOverdue ? "badge-danger" : InvoiceStatusExtensions.Parse(inv.Status).GetBadgeClass())">
-                                            @(isOverdue ? "Overdue" : inv.Status)
-                                        </span>
-                                    </div>
-                                    <p class="text-sm text-gray-500 dark:text-slate-400 truncate">@inv.ClientName</p>
-                                </div>
-                            </div>
-                            <div class="flex items-center gap-4">
-                                <div class="text-right">
-                                    <p class="font-semibold text-gray-900 dark:text-slate-100">@CurrencyExtensions.GetSymbol(inv.Currency)@inv.Total.ToString("N2")</p>
-                                    <p class="text-xs text-gray-500 dark:text-slate-400">Due @inv.DueDate.ToString("MMM d")</p>
-                                </div>
-                                <svg class="w-4 h-4 text-gray-400 dark:text-slate-500 opacity-0 group-hover:opacity-100 transition-opacity" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                                    <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M9 5l7 7-7 7" />
-                                </svg>
-                            </div>
-                        </a>
-                    }
-                </div>
-            }
-        </div>
-
-        <!-- Top Clients -->
-        <div class="card overflow-hidden">
-            <div class="card-header flex items-center justify-between">
-                <h2 class="text-lg font-semibold text-gray-900 dark:text-slate-100" style="font-family: 'Plus Jakarta Sans', sans-serif;">Top Clients</h2>
-                <a href="clients" class="text-sm font-medium text-indigo-600 dark:text-indigo-400 hover:text-indigo-700 dark:hover:text-indigo-300">View all</a>
+                }
             </div>
-            @if (_isLoading)
-            {
-                <div class="p-4 space-y-3 animate-pulse">
-                    @for (int i = 0; i < 5; i++)
-                    {
-                        <div class="h-12 bg-gray-100 dark:bg-slate-700 rounded-xl"></div>
-                    }
-                </div>
-            }
-            else if (_topClients.Count == 0)
-            {
-                <div class="p-8 text-center">
-                    <p class="text-sm text-gray-500 dark:text-slate-400">No client data yet</p>
-                </div>
-            }
-            else
-            {
-                <div class="divide-y divide-gray-100 dark:divide-slate-700">
-                    @foreach (var client in _topClients)
-                    {
-                        <a href="clients/@client.ClientId" class="flex items-center justify-between px-4 py-3 hover:bg-gray-50 dark:hover:bg-[#2d2a4a]/50 transition-colors group">
-                            <div class="flex items-center gap-3 min-w-0">
-                                <div class="w-8 h-8 rounded-lg bg-gradient-to-br from-indigo-500 to-purple-500 flex items-center justify-center text-white text-xs font-semibold">
-                                    @client.ClientName[..1].ToUpper()
-                                </div>
-                                <div class="min-w-0">
-                                    <p class="text-sm font-medium text-gray-900 dark:text-slate-100 truncate">@client.ClientName</p>
-                                    <p class="text-xs text-gray-500 dark:text-slate-400">@client.InvoiceCount invoices</p>
-                                </div>
-                            </div>
-                            <div class="text-right">
-                                <p class="text-sm font-semibold text-gray-900 dark:text-slate-100">@CurrencyExtensions.GetSymbol(client.Currency)@client.TotalRevenue.ToString("N0")</p>
-                            </div>
-                        </a>
-                    }
-                </div>
-            }
         </div>
-    </div>
+    </section>
 
-    <!-- Quick Actions -->
-    <div class="card overflow-hidden">
-        <div class="card-header">
-            <h2 class="text-lg font-semibold text-gray-900 dark:text-slate-100" style="font-family: 'Plus Jakarta Sans', sans-serif;">Quick Actions</h2>
+    <!-- ===================== HOW IT WORKS ===================== -->
+    <section id="how" class="py-20 sm:py-24">
+        <div class="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8">
+            <div class="max-w-2xl mx-auto text-center">
+                <h2 class="text-3xl sm:text-4xl font-bold tracking-tight">Up and running in minutes</h2>
+                <p class="mt-4 text-lg text-gray-600 dark:text-slate-300">Three simple steps from sign-up to getting paid.</p>
+            </div>
+
+            <div class="mt-14 grid grid-cols-1 md:grid-cols-3 gap-8">
+                @foreach (var step in Steps)
+                {
+                    <div class="relative text-center">
+                        <div class="mx-auto w-14 h-14 rounded-lg flex items-center justify-center text-white text-xl font-bold brand-mark">
+                            @step.Number
+                        </div>
+                        <h3 class="mt-5 text-lg font-semibold">@step.Title</h3>
+                        <p class="mt-2 text-gray-600 dark:text-slate-400 leading-relaxed">@step.Description</p>
+                    </div>
+                }
+            </div>
         </div>
-        <div class="p-4 grid grid-cols-2 sm:grid-cols-4 lg:grid-cols-6 gap-3">
-            <a href="invoices/new" class="flex flex-col items-center gap-2 p-4 rounded-xl hover:bg-indigo-50 dark:hover:bg-indigo-900/30 transition-colors group">
-                <div class="w-12 h-12 rounded-xl bg-indigo-100 dark:bg-indigo-900/50 flex items-center justify-center group-hover:scale-105 transition-transform">
-                    <svg class="w-6 h-6 text-indigo-600 dark:text-indigo-400" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+    </section>
+
+    <!-- ===================== CTA BAND ===================== -->
+    <section id="pricing" class="py-16 sm:py-20">
+        <div class="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8">
+            <div class="relative overflow-hidden rounded-xl px-6 py-14 sm:px-16 sm:py-20 text-center"
+                 style="background: linear-gradient(135deg, #0a3238 0%, #0c4a53 50%, #0c4a53 100%);">
+                <div class="pointer-events-none absolute -top-16 -right-16 w-72 h-72 rounded-full bg-white/10 blur-3xl"></div>
+                <div class="pointer-events-none absolute -bottom-20 -left-10 w-72 h-72 rounded-full bg-primary-400/20 blur-3xl"></div>
+
+                <div class="relative">
+                    <h2 class="text-3xl sm:text-4xl font-bold tracking-tight text-white">Ready to get paid faster?</h2>
+                    <p class="mt-4 max-w-xl mx-auto text-lg text-primary-100">Join thousands of freelancers and small businesses who invoice smarter with InvoicePro.</p>
+                    <div class="mt-8 flex flex-col sm:flex-row items-center justify-center gap-3">
+                        <a href="account/register"
+                           class="w-full sm:w-auto inline-flex items-center justify-center gap-2 px-6 py-3 rounded-xl text-base font-semibold text-primary-700 bg-white hover:bg-primary-50 transition-colors shadow-lg">
+                            Create your free account
+                            <svg class="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                                <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M13 7l5 5m0 0l-5 5m5-5H6" />
+                            </svg>
+                        </a>
+                        <a href="account/login"
+                           class="w-full sm:w-auto inline-flex items-center justify-center px-6 py-3 rounded-xl text-base font-semibold text-white border border-white/30 hover:bg-white/10 transition-colors">
+                            Sign in
+                        </a>
+                    </div>
+                </div>
+            </div>
+        </div>
+    </section>
+
+    <!-- ===================== FOOTER ===================== -->
+    <footer class="border-t border-gray-100 dark:border-[#2d2a4a]">
+        <div class="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 py-10 flex flex-col sm:flex-row items-center justify-between gap-4">
+            <div class="flex items-center gap-3">
+                <div class="w-8 h-8 rounded-lg flex items-center justify-center shrink-0 bg-primary-600">
+                    <svg class="w-4 h-4 text-white" fill="none" stroke="currentColor" viewBox="0 0 24 24">
                         <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M9 12h6m-6 4h6m2 5H7a2 2 0 01-2-2V5a2 2 0 012-2h5.586a1 1 0 01.707.293l5.414 5.414a1 1 0 01.293.707V19a2 2 0 01-2 2z" />
                     </svg>
                 </div>
-                <span class="text-xs font-medium text-gray-700 dark:text-slate-300">New Invoice</span>
-            </a>
-
-            <a href="estimates/new" class="flex flex-col items-center gap-2 p-4 rounded-xl hover:bg-purple-50 dark:hover:bg-purple-900/30 transition-colors group">
-                <div class="w-12 h-12 rounded-xl bg-purple-100 dark:bg-purple-900/50 flex items-center justify-center group-hover:scale-105 transition-transform">
-                    <svg class="w-6 h-6 text-purple-600 dark:text-purple-400" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                        <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M9 7h6m0 10v-3m-3 3h.01M9 17h.01M9 14h.01M12 14h.01M15 11h.01M12 11h.01M9 11h.01M7 21h10a2 2 0 002-2V5a2 2 0 00-2-2H7a2 2 0 00-2 2v14a2 2 0 002 2z" />
-                    </svg>
-                </div>
-                <span class="text-xs font-medium text-gray-700 dark:text-slate-300">New Estimate</span>
-            </a>
-
-            <a href="clients/new" class="flex flex-col items-center gap-2 p-4 rounded-xl hover:bg-emerald-50 dark:hover:bg-emerald-900/30 transition-colors group">
-                <div class="w-12 h-12 rounded-xl bg-emerald-100 dark:bg-emerald-900/50 flex items-center justify-center group-hover:scale-105 transition-transform">
-                    <svg class="w-6 h-6 text-emerald-600 dark:text-emerald-400" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                        <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M18 9v3m0 0v3m0-3h3m-3 0h-3m-2-5a4 4 0 11-8 0 4 4 0 018 0zM3 20a6 6 0 0112 0v1H3v-1z" />
-                    </svg>
-                </div>
-                <span class="text-xs font-medium text-gray-700 dark:text-slate-300">Add Client</span>
-            </a>
-
-            <a href="projects/new" class="flex flex-col items-center gap-2 p-4 rounded-xl hover:bg-amber-50 dark:hover:bg-amber-900/30 transition-colors group">
-                <div class="w-12 h-12 rounded-xl bg-amber-100 dark:bg-amber-900/50 flex items-center justify-center group-hover:scale-105 transition-transform">
-                    <svg class="w-6 h-6 text-amber-600 dark:text-amber-400" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                        <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M9 13h6m-3-3v6m-9 1V7a2 2 0 012-2h6l2 2h6a2 2 0 012 2v8a2 2 0 01-2 2H5a2 2 0 01-2-2z" />
-                    </svg>
-                </div>
-                <span class="text-xs font-medium text-gray-700 dark:text-slate-300">New Project</span>
-            </a>
-
-            <a href="timesheet" class="flex flex-col items-center gap-2 p-4 rounded-xl hover:bg-blue-50 dark:hover:bg-blue-900/30 transition-colors group">
-                <div class="w-12 h-12 rounded-xl bg-blue-100 dark:bg-blue-900/50 flex items-center justify-center group-hover:scale-105 transition-transform">
-                    <svg class="w-6 h-6 text-blue-600 dark:text-blue-400" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                        <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M12 8v4l3 3m6-3a9 9 0 11-18 0 9 9 0 0118 0z" />
-                    </svg>
-                </div>
-                <span class="text-xs font-medium text-gray-700 dark:text-slate-300">Log Time</span>
-            </a>
-
-            <a href="products/new" class="flex flex-col items-center gap-2 p-4 rounded-xl hover:bg-rose-50 dark:hover:bg-rose-900/30 transition-colors group">
-                <div class="w-12 h-12 rounded-xl bg-rose-100 dark:bg-rose-900/50 flex items-center justify-center group-hover:scale-105 transition-transform">
-                    <svg class="w-6 h-6 text-rose-600 dark:text-rose-400" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                        <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M20 7l-8-4-8 4m16 0l-8 4m8-4v10l-8 4m0-10L4 7m8 4v10M4 7v10l8 4" />
-                    </svg>
-                </div>
-                <span class="text-xs font-medium text-gray-700 dark:text-slate-300">Add Product</span>
-            </a>
+                <span class="text-base font-bold tracking-tight">
+                    Invoice<span class="text-primary-600 dark:text-primary-400">Pro</span>
+                </span>
+            </div>
+            <p class="text-sm text-gray-500 dark:text-slate-400">&copy; @DateTime.Now.Year InvoicePro. All rights reserved.</p>
         </div>
-    </div>
+    </footer>
 </div>
 
 @code {
-    private bool _isLoading = true;
-    private string _currency = "£";
-    private DashboardMetricsDto? _metrics;
-    private InvoiceStatusBreakdownDto? _statusBreakdown;
-    private List<TopClientDto> _topClients = [];
-    private List<InvoiceSummaryDto> _recentInvoices = [];
+    private record Feature(string Title, string Description, string IconPath, string IconBg, string IconColor);
+    private record Step(string Number, string Title, string Description);
 
-    protected override async Task OnInitializedAsync()
+    private static readonly Feature[] Features =
     {
-        try
-        {
-            // Load dashboard data in parallel for faster loading
-            var metricsTask = GetMetricsCall.Call(new GetDashboardMetrics { Period = "month" });
-            var statusTask = GetStatusBreakdownCall.Call(new GetInvoiceStatusBreakdown());
-            var topClientsTask = GetTopClientsCall.Call(new GetTopClients { Count = 5 });
-            var invoicesTask = GetInvoicesCall.Call(new GetInvoices { PageSize = 5 });
+        new("Professional Invoices",
+            "Create and send polished, branded invoices in seconds. Get notified the moment they're viewed and paid.",
+            "M9 12h6m-6 4h6m2 5H7a2 2 0 01-2-2V5a2 2 0 012-2h5.586a1 1 0 01.707.293l5.414 5.414a1 1 0 01.293.707V19a2 2 0 01-2 2z",
+            "from-primary-50 to-primary-100 dark:from-primary-950/50 dark:to-primary-900/50", "text-primary-600 dark:text-primary-400"),
+        new("Estimates & Quotes",
+            "Win more work with clear estimates, then convert them to invoices with a single click when the job is done.",
+            "M9 5H7a2 2 0 00-2 2v12a2 2 0 002 2h10a2 2 0 002-2V7a2 2 0 00-2-2h-2M9 5a2 2 0 002 2h2a2 2 0 002-2M9 5a2 2 0 012-2h2a2 2 0 012 2m-6 9l2 2 4-4",
+            "from-primary-50 to-primary-100 dark:from-primary-950/50 dark:to-primary-900/50", "text-primary-600 dark:text-primary-400"),
+        new("Expense Tracking",
+            "Log expenses, import bank transactions, and keep every receipt organized so tax time is painless.",
+            "M17 9V7a2 2 0 00-2-2H5a2 2 0 00-2 2v6a2 2 0 002 2h2m2 4h10a2 2 0 002-2v-6a2 2 0 00-2-2H9a2 2 0 00-2 2v6a2 2 0 002 2zm7-5a2 2 0 11-4 0 2 2 0 014 0z",
+            "from-emerald-50 to-emerald-100 dark:from-emerald-950/50 dark:to-emerald-900/50", "text-emerald-600 dark:text-emerald-400"),
+        new("Client Management",
+            "Keep all your clients, their details, and their full billing history in one tidy, searchable place.",
+            "M17 20h5v-2a4 4 0 00-3-3.87M9 20H4v-2a4 4 0 013-3.87m6-1.13a4 4 0 10-4-4 4 4 0 004 4zm6 0a4 4 0 10-3-6.65",
+            "from-amber-50 to-amber-100 dark:from-amber-950/50 dark:to-amber-900/50", "text-amber-600 dark:text-amber-400"),
+        new("Recurring Billing",
+            "Set up recurring invoices for retainers and subscriptions, and let InvoicePro send them automatically.",
+            "M4 4v5h.582m15.356 2A8.001 8.001 0 004.582 9m0 0H9m11 11v-5h-.581m0 0a8.003 8.003 0 01-15.357-2m15.357 2H15",
+            "from-sky-50 to-sky-100 dark:from-sky-950/50 dark:to-sky-900/50", "text-sky-600 dark:text-sky-400"),
+        new("Insightful Dashboard",
+            "See revenue, outstanding balances, and top clients at a glance — always know exactly where you stand.",
+            "M9 19v-6a2 2 0 00-2-2H5a2 2 0 00-2 2v6a2 2 0 002 2h2a2 2 0 002-2zm0 0V9a2 2 0 012-2h2a2 2 0 012 2v10m-6 0a2 2 0 002 2h2a2 2 0 002-2m0 0V5a2 2 0 012-2h2a2 2 0 012 2v14a2 2 0 01-2 2h-2a2 2 0 01-2-2z",
+            "from-rose-50 to-rose-100 dark:from-rose-950/50 dark:to-rose-900/50", "text-rose-600 dark:text-rose-400"),
+    };
 
-            await Task.WhenAll(metricsTask, statusTask, topClientsTask, invoicesTask);
-
-            _metrics = await metricsTask;
-            _statusBreakdown = await statusTask;
-            _topClients = await topClientsTask ?? [];
-            var invoicesResponse = await invoicesTask;
-            _recentInvoices = invoicesResponse?.Items?.ToList() ?? [];
-        }
-        catch (Exception ex)
-        {
-            Console.WriteLine($"Error loading dashboard: {ex.Message}");
-        }
-        finally
-        {
-            _isLoading = false;
-        }
-    }
-
-    private static string GetGreeting()
+    private static readonly Step[] Steps =
     {
-        var hour = DateTime.Now.Hour;
-
-        if (hour < 12)
-            return "morning";
-
-        if (hour < 17)
-            return "afternoon";
-
-        return "evening";
-    }
+        new("1", "Create your account", "Sign up in seconds — no credit card needed. Add your business details and you're ready to go."),
+        new("2", "Add clients & items", "Set up your clients and reusable products or services once, then reuse them across every invoice."),
+        new("3", "Send & get paid", "Send professional invoices, track their status, and watch the payments roll in on time."),
+    };
 }

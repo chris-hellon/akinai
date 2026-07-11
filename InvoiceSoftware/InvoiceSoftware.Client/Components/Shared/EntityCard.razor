@@ -1,6 +1,6 @@
 @* Shared card component for entity listings (clients, projects, etc.) *@
 
-<a href="@Href" class="group block bg-white dark:bg-slate-800 rounded-2xl border border-gray-100 dark:border-slate-700 overflow-hidden transition-all duration-200 hover:border-indigo-100 dark:hover:border-indigo-900 hover:shadow-lg hover:shadow-indigo-500/5 dark:hover:shadow-indigo-500/10">
+<a href="@Href" class="group block bg-white dark:bg-slate-800 rounded-lg border border-gray-100 dark:border-slate-700 overflow-hidden transition-all duration-200 hover:border-primary-100 dark:hover:border-primary-900 hover:shadow-lg hover:shadow-primary-500/5 dark:hover:shadow-primary-500/10">
     <div class="p-6">
         <div class="flex items-start justify-between mb-4">
             <div class="flex items-center gap-4 min-w-0 flex-1">
@@ -12,7 +12,7 @@
                     </div>
                 }
                 <div class="min-w-0">
-                    <h3 class="text-base font-semibold text-gray-900 dark:text-slate-100 truncate group-hover:text-indigo-600 dark:group-hover:text-indigo-400 transition-colors">@Title</h3>
+                    <h3 class="text-base font-semibold text-gray-900 dark:text-slate-100 truncate group-hover:text-primary-600 dark:group-hover:text-primary-400 transition-colors">@Title</h3>
                     @if (!string.IsNullOrEmpty(Subtitle))
                     {
                         <p class="text-sm text-gray-500 dark:text-slate-400 truncate">@Subtitle</p>
@@ -48,7 +48,7 @@
                     {
                         @ActionsTemplate
                     }
-                    <span class="p-2 text-gray-400 dark:text-slate-500 hover:text-indigo-600 dark:hover:text-indigo-400 hover:bg-indigo-50 dark:hover:bg-indigo-900/50 rounded-lg transition-colors" title="View">
+                    <span class="p-2 text-gray-400 dark:text-slate-500 hover:text-primary-600 dark:hover:text-primary-400 hover:bg-primary-50 dark:hover:bg-primary-900/50 rounded-lg transition-colors" title="View">
                         <svg class="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
                             <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M9 5l7 7-7 7" />
                         </svg>
@@ -76,13 +76,13 @@
     public string? AvatarText { get; set; }
 
     [Parameter]
-    public string AvatarGradientStart { get; set; } = "#6366f1";
+    public string AvatarGradientStart { get; set; } = "#147d87";
 
     [Parameter]
-    public string AvatarGradientEnd { get; set; } = "#8b5cf6";
+    public string AvatarGradientEnd { get; set; } = "#0e5c66";
 
     [Parameter]
-    public string AvatarShadow { get; set; } = "rgba(99, 102, 241, 0.3)";
+    public string AvatarShadow { get; set; } = "rgba(14, 92, 102, 0.3)";
 
     [Parameter]
     public RenderFragment? BadgeTemplate { get; set; }

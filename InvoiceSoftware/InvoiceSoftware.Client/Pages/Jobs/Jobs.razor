@@ -14,7 +14,7 @@
                 SearchValueChanged="OnSearchChanged"
                 Breadcrumbs="@(new List<PageHeader.BreadcrumbItem> { new("Jobs") })">
     <Filters>
-        <select @bind="_selectedStatus" @bind:after="OnFilterChanged" class="py-3 px-4 text-sm text-gray-700 dark:text-slate-200 bg-gray-50 dark:bg-slate-700 border-0 rounded-xl focus:outline-none focus:ring-2 focus:ring-indigo-500/20 cursor-pointer">
+        <select @bind="_selectedStatus" @bind:after="OnFilterChanged" class="py-3 px-4 text-sm text-gray-700 dark:text-slate-200 bg-gray-50 dark:bg-slate-700 border-0 rounded-xl focus:outline-none focus:ring-2 focus:ring-primary-500/20 cursor-pointer">
             <option value="">All Status</option>
             <option value="Active">Active</option>
             <option value="OnHold">On Hold</option>
@@ -55,7 +55,7 @@
                 <RowTemplate Context="job">
                     <tr class="group hover:bg-gray-50/50 dark:hover:bg-[#2d2a4a]/50 transition-colors">
                         <td class="px-6 py-4">
-                            <a href="jobs/@job.Id" class="text-sm font-medium text-gray-900 dark:text-slate-100 group-hover:text-indigo-600 dark:group-hover:text-indigo-400 transition-colors hover:underline">@job.Name</a>
+                            <a href="jobs/@job.Id" class="text-sm font-medium text-gray-900 dark:text-slate-100 group-hover:text-primary-600 dark:group-hover:text-primary-400 transition-colors hover:underline">@job.Name</a>
                             @if (!string.IsNullOrEmpty(job.Description))
                             {
                                 <div class="text-sm text-gray-500 dark:text-slate-400 truncate max-w-xs">@job.Description</div>
@@ -65,7 +65,7 @@
                             <div class="text-sm font-medium text-gray-900 dark:text-slate-100">@job.ProjectName</div>
                             @if (!string.IsNullOrEmpty(job.SectionName))
                             {
-                                <span class="inline-flex items-center px-2 py-0.5 rounded text-xs font-medium bg-indigo-100 dark:bg-indigo-900/30 text-indigo-700 dark:text-indigo-300">@job.SectionName</span>
+                                <span class="inline-flex items-center px-2 py-0.5 rounded text-xs font-medium bg-primary-100 dark:bg-primary-900/30 text-primary-700 dark:text-primary-300">@job.SectionName</span>
                             }
                         </td>
                         <td class="px-6 py-4">

@@ -58,7 +58,7 @@ else if (Status == "Void")
             }
         </div>
         <div class="text-center">
-            <div class="text-3xl font-bold text-gray-900 dark:text-white" style="font-family: 'Plus Jakarta Sans', sans-serif;">
+            <div class="text-3xl font-bold text-gray-900 dark:text-white">
                 @InvoiceNumber
             </div>
             <div class="text-sm text-gray-500 dark:text-slate-400 mt-1">INVOICE</div>
@@ -84,7 +84,7 @@ else if (Status == "Void")
                     <img src="data:image/png;base64,@Convert.ToBase64String(BusinessLogo)" alt="Business Logo" class="h-10 object-contain" />
                 }
                 <div>
-                    <div class="text-2xl font-bold text-gray-900 dark:text-white" style="font-family: 'Plus Jakarta Sans', sans-serif;">
+                    <div class="text-2xl font-bold text-gray-900 dark:text-white">
                         @InvoiceNumber
                     </div>
                     <div class="text-xs text-gray-500 dark:text-slate-400">
@@ -144,7 +144,7 @@ else if (Status == "Void")
                 }
             </div>
             <div class="text-left lg:text-right">
-                <div class="text-3xl font-bold text-gray-900 dark:text-white" style="font-family: 'Plus Jakarta Sans', sans-serif;">
+                <div class="text-3xl font-bold text-gray-900 dark:text-white">
                     @InvoiceNumber
                 </div>
                 <div class="text-sm text-gray-500 dark:text-slate-400 mt-1">INVOICE</div>
@@ -249,7 +249,7 @@ else if (Status == "Void")
                                     }
                                     @if (!string.IsNullOrEmpty(item.SectionName))
                                     {
-                                        <span class="inline-flex items-center px-1.5 py-0.5 rounded text-xs font-medium bg-indigo-100 dark:bg-indigo-900/30 text-indigo-700 dark:text-indigo-300">@item.SectionName</span>
+                                        <span class="inline-flex items-center px-1.5 py-0.5 rounded text-xs font-medium bg-primary-100 dark:bg-primary-900/30 text-primary-700 dark:text-primary-300">@item.SectionName</span>
                                     }
                                 </div>
                             }
@@ -422,7 +422,7 @@ else if (Status == "Void")
 <!-- Payment Options Section -->
 @if (Status != "Paid" && Status != "Void" && HasPaymentOptions())
 {
-    <div class="px-8 py-6 border-t border-gray-100 dark:border-slate-700 bg-gradient-to-r from-blue-50/50 to-indigo-50/50 dark:from-blue-900/20 dark:to-indigo-900/20">
+    <div class="px-8 py-6 border-t border-gray-100 dark:border-slate-700 bg-gradient-to-r from-blue-50/50 to-primary-50/50 dark:from-blue-900/20 dark:to-primary-900/20">
         <div class="text-xs font-semibold text-gray-500 dark:text-slate-400 uppercase tracking-wider mb-4">Payment Options</div>
 
         @* PayPal, Wise, and Revolut buttons - shown for VND if conversion rate is set *@

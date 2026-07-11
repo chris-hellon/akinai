@@ -17,6 +17,7 @@ namespace InvoiceSoftware.Infrastructure.Data.Migrations
         {
 #pragma warning disable 612, 618
             modelBuilder
+                .HasDefaultSchema("App")
                 .HasAnnotation("ProductVersion", "10.0.0-rc.1.25451.107")
                 .HasAnnotation("Relational:MaxIdentifierLength", 128);
 
@@ -34,7 +35,7 @@ namespace InvoiceSoftware.Infrastructure.Data.Migrations
 
                     b.HasIndex("RecurringInvoiceId");
 
-                    b.ToTable("InvoiceRecurringInvoice");
+                    b.ToTable("InvoiceRecurringInvoice", "App");
                 });
 
             modelBuilder.Entity("InvoiceSoftware.Domain.Entities.Attachment", b =>
@@ -96,7 +97,7 @@ namespace InvoiceSoftware.Infrastructure.Data.Migrations
 
                     b.HasIndex("LinkedEntityType", "LinkedEntityId");
 
-                    b.ToTable("Attachments", (string)null);
+                    b.ToTable("Attachments", "App");
                 });
 
             modelBuilder.Entity("InvoiceSoftware.Domain.Entities.BankTransaction", b =>
@@ -182,7 +183,7 @@ namespace InvoiceSoftware.Infrastructure.Data.Migrations
                     b.HasIndex("SourceFileName", "SourceRowNumber")
                         .IsUnique();
 
-                    b.ToTable("BankTransactions", (string)null);
+                    b.ToTable("BankTransactions", "App");
                 });
 
             modelBuilder.Entity("InvoiceSoftware.Domain.Entities.BusinessProfile", b =>
@@ -309,7 +310,7 @@ namespace InvoiceSoftware.Infrastructure.Data.Migrations
                     b.HasIndex("UserId")
                         .IsUnique();
 
-                    b.ToTable("BusinessProfiles", (string)null);
+                    b.ToTable("BusinessProfiles", "App");
                 });
 
             modelBuilder.Entity("InvoiceSoftware.Domain.Entities.Client", b =>
@@ -369,7 +370,7 @@ namespace InvoiceSoftware.Infrastructure.Data.Migrations
 
                     b.HasIndex("UserId");
 
-                    b.ToTable("Clients", (string)null);
+                    b.ToTable("Clients", "App");
                 });
 
             modelBuilder.Entity("InvoiceSoftware.Domain.Entities.ClientLanguageSetting", b =>
@@ -419,7 +420,7 @@ namespace InvoiceSoftware.Infrastructure.Data.Migrations
                     b.HasIndex("UserId", "ClientId")
                         .IsUnique();
 
-                    b.ToTable("ClientLanguageSettings", (string)null);
+                    b.ToTable("ClientLanguageSettings", "App");
                 });
 
             modelBuilder.Entity("InvoiceSoftware.Domain.Entities.CurrencyPaymentSettings", b =>
@@ -484,7 +485,7 @@ namespace InvoiceSoftware.Infrastructure.Data.Migrations
                     b.HasIndex("UserId", "CurrencyCode")
                         .IsUnique();
 
-                    b.ToTable("CurrencyPaymentSettings");
+                    b.ToTable("CurrencyPaymentSettings", "App");
                 });
 
             modelBuilder.Entity("InvoiceSoftware.Domain.Entities.DigitalSignature", b =>
@@ -548,7 +549,7 @@ namespace InvoiceSoftware.Infrastructure.Data.Migrations
                     b.HasIndex("LinkedEntityType", "LinkedEntityId")
                         .IsUnique();
 
-                    b.ToTable("DigitalSignatures", (string)null);
+                    b.ToTable("DigitalSignatures", "App");
                 });
 
             modelBuilder.Entity("InvoiceSoftware.Domain.Entities.Estimate", b =>
@@ -648,7 +649,7 @@ namespace InvoiceSoftware.Infrastructure.Data.Migrations
 
                     b.HasIndex("UserId");
 
-                    b.ToTable("Estimates", (string)null);
+                    b.ToTable("Estimates", "App");
                 });
 
             modelBuilder.Entity("InvoiceSoftware.Domain.Entities.EstimateLineItem", b =>
@@ -683,7 +684,7 @@ namespace InvoiceSoftware.Infrastructure.Data.Migrations
 
                     b.HasIndex("ProductId");
 
-                    b.ToTable("EstimateLineItems", (string)null);
+                    b.ToTable("EstimateLineItems", "App");
                 });
 
             modelBuilder.Entity("InvoiceSoftware.Domain.Entities.Expense", b =>
@@ -781,7 +782,7 @@ namespace InvoiceSoftware.Infrastructure.Data.Migrations
 
                     b.HasIndex("RecurringExpenseId");
 
-                    b.ToTable("Expenses", (string)null);
+                    b.ToTable("Expenses", "App");
                 });
 
             modelBuilder.Entity("InvoiceSoftware.Domain.Entities.Invoice", b =>
@@ -857,7 +858,7 @@ namespace InvoiceSoftware.Infrastructure.Data.Migrations
 
                     b.HasIndex("TemplateId");
 
-                    b.ToTable("Invoices", (string)null);
+                    b.ToTable("Invoices", "App");
                 });
 
             modelBuilder.Entity("InvoiceSoftware.Domain.Entities.InvoiceLineItem", b =>
@@ -892,7 +893,7 @@ namespace InvoiceSoftware.Infrastructure.Data.Migrations
 
                     b.HasIndex("ProductId");
 
-                    b.ToTable("InvoiceLineItems", (string)null);
+                    b.ToTable("InvoiceLineItems", "App");
                 });
 
             modelBuilder.Entity("InvoiceSoftware.Domain.Entities.InvoiceTemplate", b =>
@@ -1015,7 +1016,7 @@ namespace InvoiceSoftware.Infrastructure.Data.Migrations
 
                     b.HasIndex("UserId");
 
-                    b.ToTable("InvoiceTemplates", (string)null);
+                    b.ToTable("InvoiceTemplates", "App");
                 });
 
             modelBuilder.Entity("InvoiceSoftware.Domain.Entities.Job", b =>
@@ -1079,7 +1080,7 @@ namespace InvoiceSoftware.Infrastructure.Data.Migrations
 
                     b.HasIndex("Status");
 
-                    b.ToTable("Jobs", (string)null);
+                    b.ToTable("Jobs", "App");
                 });
 
             modelBuilder.Entity("InvoiceSoftware.Domain.Entities.JobTask", b =>
@@ -1128,7 +1129,7 @@ namespace InvoiceSoftware.Infrastructure.Data.Migrations
 
                     b.HasIndex("JobId", "Order");
 
-                    b.ToTable("JobTasks", (string)null);
+                    b.ToTable("JobTasks", "App");
                 });
 
             modelBuilder.Entity("InvoiceSoftware.Domain.Entities.Product", b =>
@@ -1197,7 +1198,7 @@ namespace InvoiceSoftware.Infrastructure.Data.Migrations
 
                     b.HasIndex("UserId");
 
-                    b.ToTable("Products", (string)null);
+                    b.ToTable("Products", "App");
                 });
 
             modelBuilder.Entity("InvoiceSoftware.Domain.Entities.Project", b =>
@@ -1248,7 +1249,7 @@ namespace InvoiceSoftware.Infrastructure.Data.Migrations
 
                     b.HasIndex("Status");
 
-                    b.ToTable("Projects", (string)null);
+                    b.ToTable("Projects", "App");
                 });
 
             modelBuilder.Entity("InvoiceSoftware.Domain.Entities.ProjectSection", b =>
@@ -1291,7 +1292,7 @@ namespace InvoiceSoftware.Infrastructure.Data.Migrations
 
                     b.HasIndex("ProjectId");
 
-                    b.ToTable("ProjectSections", (string)null);
+                    b.ToTable("ProjectSections", "App");
                 });
 
             modelBuilder.Entity("InvoiceSoftware.Domain.Entities.RecurringExpense", b =>
@@ -1397,7 +1398,7 @@ namespace InvoiceSoftware.Infrastructure.Data.Migrations
 
                     b.HasIndex("ProjectId");
 
-                    b.ToTable("RecurringExpenses", (string)null);
+                    b.ToTable("RecurringExpenses", "App");
                 });
 
             modelBuilder.Entity("InvoiceSoftware.Domain.Entities.RecurringInvoice", b =>
@@ -1494,7 +1495,7 @@ namespace InvoiceSoftware.Infrastructure.Data.Migrations
 
                     b.HasIndex("UserId");
 
-                    b.ToTable("RecurringInvoices", (string)null);
+                    b.ToTable("RecurringInvoices", "App");
                 });
 
             modelBuilder.Entity("InvoiceSoftware.Domain.Entities.RecurringInvoiceLineItem", b =>
@@ -1529,7 +1530,7 @@ namespace InvoiceSoftware.Infrastructure.Data.Migrations
 
                     b.HasIndex("RecurringInvoiceId");
 
-                    b.ToTable("RecurringInvoiceLineItems", (string)null);
+                    b.ToTable("RecurringInvoiceLineItems", "App");
                 });
 
             modelBuilder.Entity("InvoiceSoftware.Domain.Entities.TimeEntry", b =>
@@ -1581,7 +1582,7 @@ namespace InvoiceSoftware.Infrastructure.Data.Migrations
 
                     b.HasIndex("UserId", "Date");
 
-                    b.ToTable("TimeEntries", (string)null);
+                    b.ToTable("TimeEntries", "App");
                 });
 
             modelBuilder.Entity("InvoiceSoftware.Domain.Entities.UserLanguagePreference", b =>
@@ -1634,7 +1635,7 @@ namespace InvoiceSoftware.Infrastructure.Data.Migrations
                     b.HasIndex("UserId")
                         .IsUnique();
 
-                    b.ToTable("UserLanguagePreferences", (string)null);
+                    b.ToTable("UserLanguagePreferences", "App");
                 });
 
             modelBuilder.Entity("InvoiceSoftware.Infrastructure.Data.ApplicationUser", b =>
@@ -1700,7 +1701,7 @@ namespace InvoiceSoftware.Infrastructure.Data.Migrations
                         .HasDatabaseName("UserNameIndex")
                         .HasFilter("[NormalizedUserName] IS NOT NULL");
 
-                    b.ToTable("AspNetUsers", (string)null);
+                    b.ToTable("Users", "Identity");
                 });
 
             modelBuilder.Entity("Microsoft.AspNetCore.Identity.IdentityRole", b =>
@@ -1727,7 +1728,7 @@ namespace InvoiceSoftware.Infrastructure.Data.Migrations
                         .HasDatabaseName("RoleNameIndex")
                         .HasFilter("[NormalizedName] IS NOT NULL");
 
-                    b.ToTable("AspNetRoles", (string)null);
+                    b.ToTable("Roles", "Identity");
                 });
 
             modelBuilder.Entity("Microsoft.AspNetCore.Identity.IdentityRoleClaim<string>", b =>
@@ -1752,7 +1753,7 @@ namespace InvoiceSoftware.Infrastructure.Data.Migrations
 
                     b.HasIndex("RoleId");
 
-                    b.ToTable("AspNetRoleClaims", (string)null);
+                    b.ToTable("RoleClaims", "Identity");
                 });
 
             modelBuilder.Entity("Microsoft.AspNetCore.Identity.IdentityUserClaim<string>", b =>
@@ -1777,7 +1778,7 @@ namespace InvoiceSoftware.Infrastructure.Data.Migrations
 
                     b.HasIndex("UserId");
 
-                    b.ToTable("AspNetUserClaims", (string)null);
+                    b.ToTable("UserClaims", "Identity");
                 });
 
             modelBuilder.Entity("Microsoft.AspNetCore.Identity.IdentityUserLogin<string>", b =>
@@ -1801,7 +1802,7 @@ namespace InvoiceSoftware.Infrastructure.Data.Migrations
 
                     b.HasIndex("UserId");
 
-                    b.ToTable("AspNetUserLogins", (string)null);
+                    b.ToTable("UserLogins", "Identity");
                 });
 
             modelBuilder.Entity("Microsoft.AspNetCore.Identity.IdentityUserPasskey<string>", b =>
@@ -1818,7 +1819,7 @@ namespace InvoiceSoftware.Infrastructure.Data.Migrations
 
                     b.HasIndex("UserId");
 
-                    b.ToTable("AspNetUserPasskeys", (string)null);
+                    b.ToTable("UserPasskeys", "Identity");
                 });
 
             modelBuilder.Entity("Microsoft.AspNetCore.Identity.IdentityUserRole<string>", b =>
@@ -1833,7 +1834,7 @@ namespace InvoiceSoftware.Infrastructure.Data.Migrations
 
                     b.HasIndex("RoleId");
 
-                    b.ToTable("AspNetUserRoles", (string)null);
+                    b.ToTable("UserRoles", "Identity");
                 });
 
             modelBuilder.Entity("Microsoft.AspNetCore.Identity.IdentityUserToken<string>", b =>
@@ -1854,7 +1855,7 @@ namespace InvoiceSoftware.Infrastructure.Data.Migrations
 
                     b.HasKey("UserId", "LoginProvider", "Name");
 
-                    b.ToTable("AspNetUserTokens", (string)null);
+                    b.ToTable("UserTokens", "Identity");
                 });
 
             modelBuilder.Entity("InvoiceRecurringInvoice", b =>
@@ -1897,7 +1898,7 @@ namespace InvoiceSoftware.Infrastructure.Data.Migrations
 
                             b1.HasKey("BankTransactionId");
 
-                            b1.ToTable("BankTransactions");
+                            b1.ToTable("BankTransactions", "App");
 
                             b1.WithOwner()
                                 .HasForeignKey("BankTransactionId");
@@ -1953,7 +1954,7 @@ namespace InvoiceSoftware.Infrastructure.Data.Migrations
 
                             b1.HasKey("BusinessProfileId");
 
-                            b1.ToTable("BusinessProfiles");
+                            b1.ToTable("BusinessProfiles", "App");
 
                             b1.WithOwner()
                                 .HasForeignKey("BusinessProfileId");
@@ -1972,7 +1973,7 @@ namespace InvoiceSoftware.Infrastructure.Data.Migrations
 
                             b1.HasKey("BusinessProfileId");
 
-                            b1.ToTable("BusinessProfiles");
+                            b1.ToTable("BusinessProfiles", "App");
 
                             b1.WithOwner()
                                 .HasForeignKey("BusinessProfileId");
@@ -1991,7 +1992,7 @@ namespace InvoiceSoftware.Infrastructure.Data.Migrations
 
                             b1.HasKey("BusinessProfileId");
 
-                            b1.ToTable("BusinessProfiles");
+                            b1.ToTable("BusinessProfiles", "App");
 
                             b1.WithOwner()
                                 .HasForeignKey("BusinessProfileId");
@@ -2049,7 +2050,7 @@ namespace InvoiceSoftware.Infrastructure.Data.Migrations
 
                             b1.HasKey("ClientId");
 
-                            b1.ToTable("Clients");
+                            b1.ToTable("Clients", "App");
 
                             b1.WithOwner()
                                 .HasForeignKey("ClientId");
@@ -2067,7 +2068,7 @@ namespace InvoiceSoftware.Infrastructure.Data.Migrations
 
                             b1.HasKey("ClientId");
 
-                            b1.ToTable("Clients");
+                            b1.ToTable("Clients", "App");
 
                             b1.WithOwner()
                                 .HasForeignKey("ClientId");
@@ -2086,7 +2087,7 @@ namespace InvoiceSoftware.Infrastructure.Data.Migrations
 
                             b1.HasKey("ClientId");
 
-                            b1.ToTable("Clients");
+                            b1.ToTable("Clients", "App");
 
                             b1.WithOwner()
                                 .HasForeignKey("ClientId");
@@ -2105,7 +2106,7 @@ namespace InvoiceSoftware.Infrastructure.Data.Migrations
 
                             b1.HasKey("ClientId");
 
-                            b1.ToTable("Clients");
+                            b1.ToTable("Clients", "App");
 
                             b1.WithOwner()
                                 .HasForeignKey("ClientId");
@@ -2188,7 +2189,7 @@ namespace InvoiceSoftware.Infrastructure.Data.Migrations
 
                             b1.HasKey("EstimateLineItemId");
 
-                            b1.ToTable("EstimateLineItems");
+                            b1.ToTable("EstimateLineItems", "App");
 
                             b1.WithOwner()
                                 .HasForeignKey("EstimateLineItemId");
@@ -2242,7 +2243,7 @@ namespace InvoiceSoftware.Infrastructure.Data.Migrations
 
                             b1.HasKey("ExpenseId");
 
-                            b1.ToTable("Expenses");
+                            b1.ToTable("Expenses", "App");
 
                             b1.WithOwner()
                                 .HasForeignKey("ExpenseId");
@@ -2308,7 +2309,7 @@ namespace InvoiceSoftware.Infrastructure.Data.Migrations
 
                             b1.HasKey("InvoiceLineItemId");
 
-                            b1.ToTable("InvoiceLineItems");
+                            b1.ToTable("InvoiceLineItems", "App");
 
                             b1.WithOwner()
                                 .HasForeignKey("InvoiceLineItemId");
@@ -2347,7 +2348,7 @@ namespace InvoiceSoftware.Infrastructure.Data.Migrations
 
                             b1.HasKey("JobId");
 
-                            b1.ToTable("Jobs");
+                            b1.ToTable("Jobs", "App");
 
                             b1.WithOwner()
                                 .HasForeignKey("JobId");
@@ -2365,7 +2366,7 @@ namespace InvoiceSoftware.Infrastructure.Data.Migrations
 
                             b1.HasKey("JobId");
 
-                            b1.ToTable("Jobs");
+                            b1.ToTable("Jobs", "App");
 
                             b1.WithOwner()
                                 .HasForeignKey("JobId");
@@ -2411,7 +2412,7 @@ namespace InvoiceSoftware.Infrastructure.Data.Migrations
 
                             b1.HasKey("ProductId");
 
-                            b1.ToTable("Products");
+                            b1.ToTable("Products", "App");
 
                             b1.WithOwner()
                                 .HasForeignKey("ProductId");
@@ -2441,7 +2442,7 @@ namespace InvoiceSoftware.Infrastructure.Data.Migrations
 
                             b1.HasKey("ProjectId");
 
-                            b1.ToTable("Projects");
+                            b1.ToTable("Projects", "App");
 
                             b1.WithOwner()
                                 .HasForeignKey("ProjectId");
@@ -2493,7 +2494,7 @@ namespace InvoiceSoftware.Infrastructure.Data.Migrations
 
                             b1.HasKey("RecurringExpenseId");
 
-                            b1.ToTable("RecurringExpenses");
+                            b1.ToTable("RecurringExpenses", "App");
 
                             b1.WithOwner()
                                 .HasForeignKey("RecurringExpenseId");
@@ -2549,7 +2550,7 @@ namespace InvoiceSoftware.Infrastructure.Data.Migrations
 
                             b1.HasKey("RecurringInvoiceLineItemId");
 
-                            b1.ToTable("RecurringInvoiceLineItems");
+                            b1.ToTable("RecurringInvoiceLineItems", "App");
 
                             b1.WithOwner()
                                 .HasForeignKey("RecurringInvoiceLineItemId");
@@ -2588,7 +2589,7 @@ namespace InvoiceSoftware.Infrastructure.Data.Migrations
 
                             b1.HasKey("TimeEntryId");
 
-                            b1.ToTable("TimeEntries");
+                            b1.ToTable("TimeEntries", "App");
 
                             b1.WithOwner()
                                 .HasForeignKey("TimeEntryId");
@@ -2666,7 +2667,7 @@ namespace InvoiceSoftware.Infrastructure.Data.Migrations
 
                             b1.HasKey("IdentityUserPasskeyCredentialId");
 
-                            b1.ToTable("AspNetUserPasskeys");
+                            b1.ToTable("UserPasskeys", "Identity");
 
                             b1.ToJson("Data");
 

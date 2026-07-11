@@ -202,3 +202,5 @@ _NCrunch_*
 # Claude Code
 .claude/
 CLAUDE.md
+
+.fake

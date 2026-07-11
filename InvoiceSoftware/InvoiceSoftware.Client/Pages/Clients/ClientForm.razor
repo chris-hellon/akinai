@@ -29,7 +29,7 @@
                     <div>
                         <label for="name" class="block text-sm font-medium text-gray-700 mb-2">Client Name <span class="text-red-500">*</span></label>
                         <InputText id="name" @bind-Value="_model.Name"
-                            class="w-full px-4 py-3 text-sm text-gray-900 bg-white border border-gray-200 rounded-xl transition-all duration-200 placeholder:text-gray-400 focus:outline-none focus:border-indigo-400 focus:ring-4 focus:ring-indigo-500/10 hover:border-gray-300"
+                            class="w-full px-4 py-3 text-sm text-gray-900 bg-white border border-gray-200 rounded-xl transition-all duration-200 placeholder:text-gray-400 focus:outline-none focus:border-primary-400 focus:ring-4 focus:ring-primary-500/10 hover:border-gray-300"
                             placeholder="John Smith" />
                         <ValidationMessage For="@(() => _model.Name)" class="mt-1.5 text-xs text-red-600" />
                     </div>
@@ -37,7 +37,7 @@
                     <div>
                         <label for="companyName" class="block text-sm font-medium text-gray-700 mb-2">Company Name</label>
                         <InputText id="companyName" @bind-Value="_model.CompanyName"
-                            class="w-full px-4 py-3 text-sm text-gray-900 bg-white border border-gray-200 rounded-xl transition-all duration-200 placeholder:text-gray-400 focus:outline-none focus:border-indigo-400 focus:ring-4 focus:ring-indigo-500/10 hover:border-gray-300"
+                            class="w-full px-4 py-3 text-sm text-gray-900 bg-white border border-gray-200 rounded-xl transition-all duration-200 placeholder:text-gray-400 focus:outline-none focus:border-primary-400 focus:ring-4 focus:ring-primary-500/10 hover:border-gray-300"
                             placeholder="Acme Inc." />
                     </div>
 
@@ -45,7 +45,7 @@
                         <div>
                             <label for="email" class="block text-sm font-medium text-gray-700 mb-2">Email <span class="text-red-500">*</span></label>
                             <InputText id="email" @bind-Value="_model.Email" type="email"
-                                class="w-full px-4 py-3 text-sm text-gray-900 bg-white border border-gray-200 rounded-xl transition-all duration-200 placeholder:text-gray-400 focus:outline-none focus:border-indigo-400 focus:ring-4 focus:ring-indigo-500/10 hover:border-gray-300"
+                                class="w-full px-4 py-3 text-sm text-gray-900 bg-white border border-gray-200 rounded-xl transition-all duration-200 placeholder:text-gray-400 focus:outline-none focus:border-primary-400 focus:ring-4 focus:ring-primary-500/10 hover:border-gray-300"
                                 placeholder="john@example.com" />
                             <ValidationMessage For="@(() => _model.Email)" class="mt-1.5 text-xs text-red-600" />
                         </div>
@@ -53,7 +53,7 @@
                         <div>
                             <label for="phone" class="block text-sm font-medium text-gray-700 mb-2">Phone</label>
                             <InputText id="phone" @bind-Value="_model.Phone"
-                                class="w-full px-4 py-3 text-sm text-gray-900 bg-white border border-gray-200 rounded-xl transition-all duration-200 placeholder:text-gray-400 focus:outline-none focus:border-indigo-400 focus:ring-4 focus:ring-indigo-500/10 hover:border-gray-300"
+                                class="w-full px-4 py-3 text-sm text-gray-900 bg-white border border-gray-200 rounded-xl transition-all duration-200 placeholder:text-gray-400 focus:outline-none focus:border-primary-400 focus:ring-4 focus:ring-primary-500/10 hover:border-gray-300"
                                 placeholder="+1 (555) 000-0000" />
                         </div>
                     </div>
@@ -65,7 +65,7 @@
                         <div>
                             <label for="currency" class="block text-sm font-medium text-gray-700 mb-2">Currency <span class="text-red-500">*</span></label>
                             <InputSelect id="currency" @bind-Value="_model.Currency"
-                                class="w-full px-4 py-3 text-sm text-gray-900 bg-white border border-gray-200 rounded-xl transition-all duration-200 focus:outline-none focus:border-indigo-400 focus:ring-4 focus:ring-indigo-500/10 hover:border-gray-300 cursor-pointer">
+                                class="w-full px-4 py-3 text-sm text-gray-900 bg-white border border-gray-200 rounded-xl transition-all duration-200 focus:outline-none focus:border-primary-400 focus:ring-4 focus:ring-primary-500/10 hover:border-gray-300 cursor-pointer">
                                 @foreach (var currency in Enum.GetValues<Currency>())
                                 {
                                     <option value="@currency.ToString()">@currency.ToString() (@currency.GetSymbol())</option>
@@ -80,7 +80,7 @@
                                     <span class="text-gray-500 text-sm">@CurrencyExtensions.GetSymbol(_model.Currency)</span>
                                 </div>
                                 <InputNumber id="hourlyRate" @bind-Value="_model.DefaultHourlyRate"
-                                    class="w-full pl-8 pr-16 py-3 text-sm text-gray-900 bg-white border border-gray-200 rounded-xl transition-all duration-200 focus:outline-none focus:border-indigo-400 focus:ring-4 focus:ring-indigo-500/10 hover:border-gray-300" />
+                                    class="w-full pl-8 pr-16 py-3 text-sm text-gray-900 bg-white border border-gray-200 rounded-xl transition-all duration-200 focus:outline-none focus:border-primary-400 focus:ring-4 focus:ring-primary-500/10 hover:border-gray-300" />
                                 <div class="absolute inset-y-0 right-0 pr-4 flex items-center pointer-events-none">
                                     <span class="text-gray-400 text-sm">/ hour</span>
                                 </div>
@@ -92,7 +92,7 @@
                             <label class="relative flex items-center gap-3 cursor-pointer group">
                                 <div class="relative">
                                     <InputCheckbox id="isActive" @bind-Value="_model.IsActive" class="sr-only peer" />
-                                    <div class="w-11 h-6 bg-gray-200 peer-focus:outline-none rounded-full peer peer-checked:after:translate-x-full peer-checked:after:border-white after:content-[''] after:absolute after:top-[2px] after:left-[2px] after:bg-white after:border-gray-300 after:border after:rounded-full after:h-5 after:w-5 after:transition-all after:shadow-sm peer-checked:bg-indigo-600"></div>
+                                    <div class="w-11 h-6 bg-gray-200 peer-focus:outline-none rounded-full peer peer-checked:after:translate-x-full peer-checked:after:border-white after:content-[''] after:absolute after:top-[2px] after:left-[2px] after:bg-white after:border-gray-300 after:border after:rounded-full after:h-5 after:w-5 after:transition-all after:shadow-sm peer-checked:bg-primary-600"></div>
                                 </div>
                                 <span class="text-sm font-medium text-gray-700 group-hover:text-gray-900">Active Client</span>
                             </label>
@@ -104,7 +104,7 @@
                     <div>
                         <label for="street" class="block text-sm font-medium text-gray-700 mb-2">Street Address</label>
                         <InputText id="street" @bind-Value="_model.Street"
-                            class="w-full px-4 py-3 text-sm text-gray-900 bg-white border border-gray-200 rounded-xl transition-all duration-200 placeholder:text-gray-400 focus:outline-none focus:border-indigo-400 focus:ring-4 focus:ring-indigo-500/10 hover:border-gray-300"
+                            class="w-full px-4 py-3 text-sm text-gray-900 bg-white border border-gray-200 rounded-xl transition-all duration-200 placeholder:text-gray-400 focus:outline-none focus:border-primary-400 focus:ring-4 focus:ring-primary-500/10 hover:border-gray-300"
                             placeholder="123 Main Street" />
                     </div>
 
@@ -112,25 +112,25 @@
                         <div class="col-span-2 sm:col-span-1">
                             <label for="city" class="block text-sm font-medium text-gray-700 mb-2">City</label>
                             <InputText id="city" @bind-Value="_model.City"
-                                class="w-full px-4 py-3 text-sm text-gray-900 bg-white border border-gray-200 rounded-xl transition-all duration-200 focus:outline-none focus:border-indigo-400 focus:ring-4 focus:ring-indigo-500/10 hover:border-gray-300" />
+                                class="w-full px-4 py-3 text-sm text-gray-900 bg-white border border-gray-200 rounded-xl transition-all duration-200 focus:outline-none focus:border-primary-400 focus:ring-4 focus:ring-primary-500/10 hover:border-gray-300" />
                         </div>
 
                         <div>
                             <label for="state" class="block text-sm font-medium text-gray-700 mb-2">State</label>
                             <InputText id="state" @bind-Value="_model.State"
-                                class="w-full px-4 py-3 text-sm text-gray-900 bg-white border border-gray-200 rounded-xl transition-all duration-200 focus:outline-none focus:border-indigo-400 focus:ring-4 focus:ring-indigo-500/10 hover:border-gray-300" />
+                                class="w-full px-4 py-3 text-sm text-gray-900 bg-white border border-gray-200 rounded-xl transition-all duration-200 focus:outline-none focus:border-primary-400 focus:ring-4 focus:ring-primary-500/10 hover:border-gray-300" />
                         </div>
 
                         <div>
                             <label for="postalCode" class="block text-sm font-medium text-gray-700 mb-2">Postal Code</label>
                             <InputText id="postalCode" @bind-Value="_model.PostalCode"
-                                class="w-full px-4 py-3 text-sm text-gray-900 bg-white border border-gray-200 rounded-xl transition-all duration-200 focus:outline-none focus:border-indigo-400 focus:ring-4 focus:ring-indigo-500/10 hover:border-gray-300" />
+                                class="w-full px-4 py-3 text-sm text-gray-900 bg-white border border-gray-200 rounded-xl transition-all duration-200 focus:outline-none focus:border-primary-400 focus:ring-4 focus:ring-primary-500/10 hover:border-gray-300" />
                         </div>
 
                         <div class="col-span-2 sm:col-span-1">
                             <label for="country" class="block text-sm font-medium text-gray-700 mb-2">Country</label>
                             <InputText id="country" @bind-Value="_model.Country"
-                                class="w-full px-4 py-3 text-sm text-gray-900 bg-white border border-gray-200 rounded-xl transition-all duration-200 focus:outline-none focus:border-indigo-400 focus:ring-4 focus:ring-indigo-500/10 hover:border-gray-300" />
+                                class="w-full px-4 py-3 text-sm text-gray-900 bg-white border border-gray-200 rounded-xl transition-all duration-200 focus:outline-none focus:border-primary-400 focus:ring-4 focus:ring-primary-500/10 hover:border-gray-300" />
                         </div>
                     </div>
             </Card>

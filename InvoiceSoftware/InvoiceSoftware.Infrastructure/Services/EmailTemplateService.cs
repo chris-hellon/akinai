@@ -55,7 +55,10 @@ Thank you for your business.";
 
     private static string GenerateInvoiceDetailsHtml(string currencySymbol, decimal total, DateOnly dueDate, string? publicViewUrl)
     {
-        var hasViewLink = !string.IsNullOrEmpty(publicViewUrl);
+        // Hidden for now: there is no public invoice-viewing website yet, so the
+        // "View Invoice Online" button would lead nowhere. Re-enable by restoring
+        // `!string.IsNullOrEmpty(publicViewUrl)` once a public site exists.
+        var hasViewLink = false;
 
         var viewButtonHtml = hasViewLink
             ? $@"<table role=""presentation"" width=""100%"" cellspacing=""0"" cellpadding=""0"" style=""margin-top: 20px;"">

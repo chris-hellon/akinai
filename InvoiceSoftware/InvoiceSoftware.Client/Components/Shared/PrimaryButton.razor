@@ -2,8 +2,7 @@
 
 @if (!string.IsNullOrEmpty(Href))
 {
-    <a href="@Href" class="inline-flex items-center justify-center gap-2 px-5 py-2.5 text-sm font-medium text-white rounded-xl shadow-md transition-all duration-200 hover:shadow-lg active:scale-[0.98]"
-       style="background: linear-gradient(135deg, #6366f1 0%, #4f46e5 100%); box-shadow: 0 4px 14px rgba(99, 102, 241, 0.35);">
+    <a href="@Href" class="inline-flex items-center justify-center gap-2 px-5 py-2.5 text-sm font-medium text-white rounded-xl shadow-md transition-all duration-200 hover:shadow-lg active:scale-[0.98] brand-mark">
         @if (ShowIcon && IconType == ButtonIcon.Plus)
         {
             <svg class="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
@@ -23,8 +22,7 @@ else
 {
     <button type="@ButtonType" disabled="@IsLoading"
             @onclick="OnClick"
-            class="inline-flex items-center justify-center gap-2 px-5 py-2.5 text-sm font-medium text-white rounded-xl shadow-md transition-all duration-200 hover:shadow-lg active:scale-[0.98] disabled:opacity-50 disabled:cursor-not-allowed disabled:hover:shadow-md disabled:active:scale-100"
-            style="background: linear-gradient(135deg, #6366f1 0%, #4f46e5 100%); box-shadow: 0 4px 14px rgba(99, 102, 241, 0.35);">
+            class="inline-flex items-center justify-center gap-2 px-5 py-2.5 text-sm font-medium text-white rounded-xl shadow-md transition-all duration-200 hover:shadow-lg active:scale-[0.98] disabled:opacity-50 disabled:cursor-not-allowed disabled:hover:shadow-md disabled:active:scale-100 brand-mark">
         @if (IsLoading)
         {
             <div class="w-4 h-4 border-2 border-white/30 border-t-white rounded-full animate-spin"></div>

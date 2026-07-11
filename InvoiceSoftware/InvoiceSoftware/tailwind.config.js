@@ -9,18 +9,32 @@ module.exports = {
   theme: {
     extend: {
       colors: {
+        // Financial Premium accent — deep teal
         primary: {
-          50: '#eff6ff',
-          100: '#dbeafe',
-          200: '#bfdbfe',
-          300: '#93c5fd',
-          400: '#60a5fa',
-          500: '#3b82f6',
-          600: '#2563eb',
-          700: '#1d4ed8',
-          800: '#1e40af',
-          900: '#1e3a8a',
+          50: '#e7f2f3',
+          100: '#c9e4e6',
+          200: '#9fd0d4',
+          300: '#66b3ba',
+          400: '#33969f',
+          500: '#147d87',
+          600: '#0e5c66',
+          700: '#0c4a53',
+          800: '#0b3c44',
+          900: '#0a3238',
         },
+        // Design tokens (CSS-var backed) so they can be used as utilities
+        line: { DEFAULT: 'var(--color-border)', subtle: 'var(--color-border-subtle)' },
+        surface: { DEFAULT: 'var(--color-surface)', sunken: 'var(--color-surface-sunken)' },
+        ink: 'var(--color-text-primary)',
+        success: 'var(--color-success)',
+        danger: 'var(--color-danger)',
+        warning: 'var(--color-warning)',
+        info: 'var(--color-info)',
+      },
+      fontFamily: {
+        sans: ['Inter', 'system-ui', 'sans-serif'],
+        display: ['"Sora"', 'Inter', 'system-ui', 'sans-serif'],
+        mono: ['"IBM Plex Mono"', 'ui-monospace', 'SFMono-Regular', 'Menlo', 'monospace'],
       },
     },
   },

@@ -37,15 +37,14 @@
     @if (_isLoading)
     {
         <div class="flex justify-center py-20">
-            <div class="w-8 h-8 border-2 border-gray-200 border-t-indigo-600 rounded-full animate-spin"></div>
+            <div class="w-8 h-8 border-2 border-gray-200 border-t-primary-600 rounded-full animate-spin"></div>
         </div>
     }
     else if (_expense == null)
     {
         <div class="card">
             <div class="text-center py-16 px-6">
-                <div class="mx-auto w-16 h-16 rounded-2xl flex items-center justify-center mb-4"
-                     style="background: linear-gradient(135deg, #fef2f2 0%, #fee2e2 100%);">
+                <div class="mx-auto w-16 h-16 rounded-lg flex items-center justify-center mb-4 bg-red-50">
                     <svg class="h-8 w-8 text-red-400" fill="none" stroke="currentColor" viewBox="0 0 24 24">
                         <path stroke-linecap="round" stroke-linejoin="round" stroke-width="1.5" d="M12 8v4m0 4h.01M21 12a9 9 0 11-18 0 9 9 0 0118 0z" />
                     </svg>
@@ -61,14 +60,14 @@
     else
     {
         <!-- Amount Banner -->
-        <div class="bg-gradient-to-r from-indigo-500 to-indigo-600 rounded-2xl px-6 py-5 text-white">
+        <div class="bg-gradient-to-r from-primary-500 to-primary-600 rounded-lg px-6 py-5 text-white">
             <div class="flex items-center justify-between">
                 <div>
-                    <div class="text-sm text-indigo-100 uppercase tracking-wide font-medium">Total Amount</div>
+                    <div class="text-sm text-primary-100 uppercase tracking-wide font-medium">Total Amount</div>
                     <div class="text-3xl font-bold mt-1">@CurrencyExtensions.GetSymbol(_expense.Currency)@((_expense.IsTaxInclusive ? _expense.Amount : _expense.Amount + _expense.TaxAmount).ToString("N2"))</div>
                     @if (_expense.TaxAmount > 0)
                     {
-                        <div class="text-sm text-indigo-200 mt-1">
+                        <div class="text-sm text-primary-200 mt-1">
                             @CurrencyExtensions.GetSymbol(_expense.Currency)@_expense.Amount.ToString("N2") + @CurrencyExtensions.GetSymbol(_expense.Currency)@_expense.TaxAmount.ToString("N2") tax
                             @if (_expense.IsTaxInclusive)
                             {
@@ -124,7 +123,7 @@
                         @if (_expense.RecurringExpenseId.HasValue)
                         {
                             <DetailRow Label="Source">
-                                <a href="recurring-expenses/@_expense.RecurringExpenseId" class="text-indigo-600 dark:text-indigo-400 hover:underline">View Recurring Expense</a>
+                                <a href="recurring-expenses/@_expense.RecurringExpenseId" class="text-primary-600 dark:text-primary-400 hover:underline">View Recurring Expense</a>
                             </DetailRow>
                         }
                     </div>
@@ -182,7 +181,7 @@
                         @if (_expense.InvoiceNumber != null)
                         {
                             <DetailRow Label="Invoice">
-                                <a href="invoices/@_expense.InvoiceId" class="text-indigo-600 dark:text-indigo-400 hover:underline">@_expense.InvoiceNumber</a>
+                                <a href="invoices/@_expense.InvoiceId" class="text-primary-600 dark:text-primary-400 hover:underline">@_expense.InvoiceNumber</a>
                             </DetailRow>
                         }
                     </div>

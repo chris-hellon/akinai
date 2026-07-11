@@ -1,15 +1,19 @@
 using Microsoft.AspNetCore.Components.Authorization;
 using Microsoft.AspNetCore.Identity;
+using Microsoft.AspNetCore.Identity.UI.Services;
+using Microsoft.EntityFrameworkCore;
 using BlazorUtils.EasyApi;
 using BlazorUtils.EasyApi.Server;
 using InvoiceSoftware.Components;
 using InvoiceSoftware.Components.Account;
 using InvoiceSoftware.Infrastructure;
 using InvoiceSoftware.Infrastructure.Data;
+using InvoiceSoftware.Infrastructure.Services;
 using InvoiceSoftware.Infrastructure.Handlers.Clients;
 using InvoiceSoftware.Shared.Api.Clients;
 using InvoiceSoftware.Client.Services;
 using InvoiceSoftware.Shared.Services.Modal;
+using InvoiceSoftware.Services;
 
 namespace InvoiceSoftware;
 
@@ -50,7 +54,12 @@ public class Program
             .AddSignInManager()
             .AddDefaultTokenProviders();
 
-        builder.Services.AddSingleton<IEmailSender<ApplicationUser>, IdentityNoOpEmailSender>();
+        // Configure SMTP email sender
+        builder.Services.Configure<SmtpSettings>(builder.Configuration.GetSection("Smtp"));
+        builder.Services.AddTransient<SmtpEmailSender>();
+        builder.Services.AddTransient<IEmailSender<ApplicationUser>>(sp => sp.GetRequiredService<SmtpEmailSender>());
+        builder.Services.AddTransient<IEmailSender>(sp => sp.GetRequiredService<SmtpEmailSender>());
+        builder.Services.AddTransient<IInvoiceEmailSender>(sp => sp.GetRequiredService<SmtpEmailSender>());
 
         // Add HttpContextAccessor for CurrentUserService
         builder.Services.AddHttpContextAccessor();
@@ -71,6 +80,24 @@ public class Program
         builder.Services.AddScoped<ILayoutService, LayoutService>();
 
         var app = builder.Build();
+
+        // Apply the database schema at startup.
+        // SQLite builds its schema from the model (EnsureCreated); SQL Server applies EF migrations.
+        using (var scope = app.Services.CreateScope())
+        {
+            var databaseProvider = app.Configuration.GetValue<string>("DatabaseProvider") ?? "SqlServer";
+            var dbFactory = scope.ServiceProvider.GetRequiredService<IDbContextFactory<ApplicationDbContext>>();
+            using var db = dbFactory.CreateDbContext();
+
+            if (string.Equals(databaseProvider, "Sqlite", StringComparison.OrdinalIgnoreCase))
+            {
+                db.Database.EnsureCreated();
+            }
+            else
+            {
+                db.Database.Migrate();
+            }
+        }
 
         // Configure the HTTP request pipeline.
         if (app.Environment.IsDevelopment())
