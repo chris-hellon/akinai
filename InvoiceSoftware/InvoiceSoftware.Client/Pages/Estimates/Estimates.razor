@@ -14,15 +14,17 @@
                 SearchValueChanged="OnSearchChanged"
                 Breadcrumbs="@(new List<PageHeader.BreadcrumbItem> { new("Estimates") })">
     <Filters>
-        <select @bind="_statusFilter" @bind:after="OnFilterChanged" class="py-3 px-4 text-sm text-gray-700 dark:text-slate-200 bg-gray-50 dark:bg-slate-700 border-0 rounded-xl focus:outline-none focus:ring-2 focus:ring-primary-500/20 cursor-pointer">
-            <option value="">All statuses</option>
-            <option value="Draft">Draft</option>
-            <option value="Sent">Sent</option>
-            <option value="Accepted">Accepted</option>
-            <option value="Rejected">Rejected</option>
-            <option value="Expired">Expired</option>
-            <option value="Converted">Converted</option>
-        </select>
+        <Select TValue="string" Value="_statusFilter" ValueChanged="OnStatusFilterChanged" Searchable="false" Class="w-full sm:w-44"
+                Options="@(new List<SelectOption<string>>
+                {
+                    new("", "All statuses"),
+                    new("Draft", "Draft"),
+                    new("Sent", "Sent"),
+                    new("Accepted", "Accepted"),
+                    new("Rejected", "Rejected"),
+                    new("Expired", "Expired"),
+                    new("Converted", "Converted")
+                })" />
     </Filters>
     <ChildContent>
         @if (_isLoading)
@@ -102,7 +104,8 @@
                         TotalItems="_response.TotalCount"
                         PageSize="_response.PageSize"
                         ItemName="estimates"
-                        OnPageChanged="OnPageChanged" />
+                        OnPageChanged="OnPageChanged"
+                        OnPageSizeChanged="OnPageSizeChanged" />
         }
     </ChildContent>
 </ListPageLayout>
@@ -113,7 +116,7 @@
     private string _searchTerm = "";
     private string _statusFilter = "";
     private int _currentPage = 1;
-    private const int PageSize = 15;
+    private int PageSize = 50;
 
     private bool HasActiveFilters => !string.IsNullOrEmpty(_searchTerm) || !string.IsNullOrEmpty(_statusFilter);
 
@@ -152,9 +155,22 @@
         await LoadEstimates();
     }
 
+    private async Task OnStatusFilterChanged(string value)
+    {
+        _statusFilter = value;
+        await OnFilterChanged();
+    }
+
     private async Task OnPageChanged(int page)
     {
         _currentPage = page;
+        await LoadEstimates();
+    }
+
+    private async Task OnPageSizeChanged(int size)
+    {
+        PageSize = size;
+        _currentPage = 1;
         await LoadEstimates();
     }
 

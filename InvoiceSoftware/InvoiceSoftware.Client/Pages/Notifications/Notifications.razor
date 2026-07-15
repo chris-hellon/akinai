@@ -1,0 +1,103 @@
+@page "/notifications"
+@attribute [Authorize]
+@implements IDisposable
+@inject NotificationState State
+@inject NavigationManager Nav
+
+<PageTitle>Notifications - InvoicePro</PageTitle>
+
+<div class="max-w-3xl mx-auto">
+    <div class="flex items-end justify-between mb-6">
+        <div>
+            <p class="text-xs font-semibold uppercase tracking-wider text-gray-400 dark:text-slate-500" style="font-family:'IBM Plex Mono',monospace">Activity</p>
+            <h1 class="mt-1 text-2xl font-semibold text-gray-900 dark:text-slate-100 tracking-tight" style="font-family:'Sora',sans-serif">Notifications</h1>
+        </div>
+        @if (State.UnreadCount > 0)
+        {
+            <button type="button" class="btn-secondary" @onclick="MarkAllRead">Mark all as read</button>
+        }
+    </div>
+
+    <div class="card overflow-hidden">
+        @if (State.Items.Count == 0)
+        {
+            <div class="text-center py-20 px-6">
+                <div class="mx-auto w-14 h-14 rounded-xl flex items-center justify-center bg-gray-100 dark:bg-slate-800 text-gray-400">
+                    <svg class="w-7 h-7" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="1.8" d="M15 17h5l-1.405-1.405A2.032 2.032 0 0118 14.158V11a6.002 6.002 0 00-4-5.659V5a2 2 0 10-4 0v.341C7.67 6.165 6 8.388 6 11v3.159c0 .538-.214 1.055-.595 1.436L4 17h5" /></svg>
+                </div>
+                <h3 class="mt-4 text-base font-semibold text-gray-900 dark:text-slate-100">Nothing here yet</h3>
+                <p class="mt-1 text-sm text-gray-500 dark:text-slate-400">Payments, sent invoices and estimate activity will show up here.</p>
+            </div>
+        }
+        else
+        {
+            @foreach (var n in State.Items)
+            {
+                var (bg, fg, icon) = Visual(n.Type);
+                <button type="button"
+                        class="w-full flex items-start gap-4 px-5 py-4 text-left border-b border-gray-50 dark:border-[#1d232b] last:border-b-0 hover:bg-gray-50 dark:hover:bg-[#1a1f27] transition-colors @(n.IsRead ? "" : "bg-primary-50/40 dark:bg-primary-900/10")"
+                        @onclick="() => Open(n)">
+                    <span class="mt-0.5 w-9 h-9 rounded-lg flex items-center justify-center shrink-0" style="background:@bg;color:@fg">
+                        @((MarkupString)icon)
+                    </span>
+                    <span class="flex-1 min-w-0">
+                        <span class="block text-sm font-medium text-gray-900 dark:text-slate-100">@n.Title</span>
+                        <span class="block text-[13px] text-gray-500 dark:text-slate-400">@n.Message</span>
+                    </span>
+                    <span class="text-[11px] text-gray-400 dark:text-slate-500 whitespace-nowrap mt-1" style="font-family:'IBM Plex Mono',monospace">@TimeAgo(n.CreatedAt)</span>
+                    @if (!n.IsRead)
+                    {
+                        <span class="mt-1.5 w-2 h-2 rounded-full bg-primary-500 shrink-0"></span>
+                    }
+                </button>
+            }
+        }
+    </div>
+</div>
+
+@code {
+    protected override async Task OnInitializedAsync()
+    {
+        State.OnChange += OnChanged;
+        await State.InitializeAsync();
+        await State.LoadAsync();
+    }
+
+    private void OnChanged() => InvokeAsync(StateHasChanged);
+
+    private async Task MarkAllRead() => await State.MarkAllAsReadAsync();
+
+    private async Task Open(NotificationDto n)
+    {
+        await State.MarkAsReadAsync(n.Id);
+        if (!string.IsNullOrEmpty(n.Link))
+            Nav.NavigateTo(n.Link);
+    }
+
+    private static string TimeAgo(DateTime utc)
+    {
+        var span = DateTime.UtcNow - DateTime.SpecifyKind(utc, DateTimeKind.Utc);
+        if (span.TotalSeconds < 60) return "just now";
+        if (span.TotalMinutes < 60) return $"{(int)span.TotalMinutes}m ago";
+        if (span.TotalHours < 24) return $"{(int)span.TotalHours}h ago";
+        if (span.TotalDays < 7) return $"{(int)span.TotalDays}d ago";
+        return DateTime.SpecifyKind(utc, DateTimeKind.Utc).ToLocalTime().ToString("d MMM yyyy");
+    }
+
+    private static (string bg, string fg, string icon) Visual(string type) => type switch
+    {
+        "PaymentReceived" or "InvoicePaid" or "EstimateAccepted" => ("#e2efe9", "#0f7a5a", CheckIcon),
+        "InvoiceSent" or "EstimateSent" => ("#e7f2f3", "#2b6d7d", SendIcon),
+        "InvoiceOverdue" or "ReminderSent" or "EstimateDeclined" => ("#f7e4e2", "#b23b30", BellIcon),
+        "EstimateViewed" => ("#ecebf6", "#5b53a8", EyeIcon),
+        _ => ("#e7f2f3", "#0e5c66", DotIcon),
+    };
+
+    private const string CheckIcon = "<svg width=\"16\" height=\"16\" fill=\"none\" stroke=\"currentColor\" viewBox=\"0 0 24 24\"><path stroke-linecap=\"round\" stroke-linejoin=\"round\" stroke-width=\"2.4\" d=\"M5 13l4 4L19 7\"/></svg>";
+    private const string SendIcon = "<svg width=\"16\" height=\"16\" fill=\"none\" stroke=\"currentColor\" viewBox=\"0 0 24 24\"><path stroke-linecap=\"round\" stroke-linejoin=\"round\" stroke-width=\"2\" d=\"M22 2L11 13M22 2l-7 20-4-9-9-4 20-7z\"/></svg>";
+    private const string BellIcon = "<svg width=\"16\" height=\"16\" fill=\"none\" stroke=\"currentColor\" viewBox=\"0 0 24 24\"><path stroke-linecap=\"round\" stroke-linejoin=\"round\" stroke-width=\"2\" d=\"M18 8A6 6 0 006 8c0 7-3 9-3 9h18s-3-2-3-9M13.7 21a2 2 0 01-3.4 0\"/></svg>";
+    private const string EyeIcon = "<svg width=\"16\" height=\"16\" fill=\"none\" stroke=\"currentColor\" viewBox=\"0 0 24 24\"><path stroke-linecap=\"round\" stroke-linejoin=\"round\" stroke-width=\"2\" d=\"M15 12a3 3 0 11-6 0 3 3 0 016 0z\"/><path stroke-linecap=\"round\" stroke-linejoin=\"round\" stroke-width=\"2\" d=\"M2.5 12S6 5 12 5s9.5 7 9.5 7-3.5 7-9.5 7-9.5-7-9.5-7z\"/></svg>";
+    private const string DotIcon = "<svg width=\"16\" height=\"16\" fill=\"currentColor\" viewBox=\"0 0 24 24\"><circle cx=\"12\" cy=\"12\" r=\"5\"/></svg>";
+
+    public void Dispose() => State.OnChange -= OnChanged;
+}

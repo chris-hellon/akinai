@@ -6,6 +6,7 @@
 @inject ICall<GetExpense, ExpenseDetailDto> GetExpenseCall
 @inject ICall<CreateExpense, Guid> CreateExpenseCall
 @inject ICall<UpdateExpense> UpdateExpenseCall
+@inject ICall<DeleteExpense> DeleteExpenseCall
 @inject ICall<GetBusinessProfile, BusinessProfileDto?> GetBusinessProfileCall
 
 <PageTitle>@(Id.HasValue ? "Edit Expense" : "New Expense") - InvoicePro</PageTitle>
@@ -38,19 +39,13 @@
                     <div class="grid grid-cols-1 sm:grid-cols-2 gap-5">
                         <div>
                             <label for="category" class="block text-sm font-medium text-gray-700 dark:text-slate-300 mb-2">Category <span class="text-red-500">*</span></label>
-                            <InputSelect id="category" @bind-Value="_model.Category"
-                                class="w-full px-4 py-3 text-sm text-gray-900 dark:text-slate-100 bg-white dark:bg-slate-800 border border-gray-200 dark:border-slate-600 rounded-xl transition-all duration-200 focus:outline-none focus:border-primary-400 focus:ring-4 focus:ring-primary-500/10 hover:border-gray-300 dark:hover:border-slate-500 cursor-pointer">
-                                @foreach (var category in Enum.GetValues<ExpenseCategory>())
-                                {
-                                    <option value="@category.ToString()">@category.GetDisplayName()</option>
-                                }
-                            </InputSelect>
+                            <Select TValue="string" @bind-Value="_model.Category"
+                                    Options="@(Enum.GetValues<ExpenseCategory>().Select(c => new SelectOption<string>(c.ToString(), c.GetDisplayName())).ToList())" />
                         </div>
 
                         <div>
                             <label for="expenseDate" class="block text-sm font-medium text-gray-700 dark:text-slate-300 mb-2">Date <span class="text-red-500">*</span></label>
-                            <InputDate id="expenseDate" @bind-Value="_model.ExpenseDate"
-                                class="w-full px-4 py-3 text-sm text-gray-900 dark:text-slate-100 bg-white dark:bg-slate-800 border border-gray-200 dark:border-slate-600 rounded-xl transition-all duration-200 focus:outline-none focus:border-primary-400 focus:ring-4 focus:ring-primary-500/10 hover:border-gray-300 dark:hover:border-slate-500" />
+                            <DatePicker TValue="DateOnly" @bind-Value="_model.ExpenseDate" Clearable="false" />
                             <ValidationMessage For="@(() => _model.ExpenseDate)" class="mt-1.5 text-xs text-red-600" />
                         </div>
                     </div>
@@ -58,26 +53,21 @@
                     <div>
                         <label for="merchantName" class="block text-sm font-medium text-gray-700 dark:text-slate-300 mb-2">Merchant Name <span class="text-red-500">*</span></label>
                         <InputText id="merchantName" @bind-Value="_model.MerchantName"
-                            class="w-full px-4 py-3 text-sm text-gray-900 dark:text-slate-100 bg-white dark:bg-slate-800 border border-gray-200 dark:border-slate-600 rounded-xl transition-all duration-200 placeholder:text-gray-400 dark:placeholder:text-slate-500 focus:outline-none focus:border-primary-400 focus:ring-4 focus:ring-primary-500/10 hover:border-gray-300 dark:hover:border-slate-500"
+                            class="form-control"
                             placeholder="e.g., Amazon, Starbucks" />
                         <ValidationMessage For="@(() => _model.MerchantName)" class="mt-1.5 text-xs text-red-600" />
                     </div>
 
                     <div>
                         <label for="paymentMethod" class="block text-sm font-medium text-gray-700 dark:text-slate-300 mb-2">Payment Method <span class="text-red-500">*</span></label>
-                        <InputSelect id="paymentMethod" @bind-Value="_model.PaymentMethod"
-                            class="w-full px-4 py-3 text-sm text-gray-900 dark:text-slate-100 bg-white dark:bg-slate-800 border border-gray-200 dark:border-slate-600 rounded-xl transition-all duration-200 focus:outline-none focus:border-primary-400 focus:ring-4 focus:ring-primary-500/10 hover:border-gray-300 dark:hover:border-slate-500 cursor-pointer">
-                            @foreach (var method in Enum.GetValues<PaymentMethod>())
-                            {
-                                <option value="@method.ToString()">@method.GetDisplayName()</option>
-                            }
-                        </InputSelect>
+                        <Select TValue="string" @bind-Value="_model.PaymentMethod" Searchable="false"
+                                Options="@(Enum.GetValues<PaymentMethod>().Select(m => new SelectOption<string>(m.ToString(), m.GetDisplayName())).ToList())" />
                     </div>
 
                     <div>
                         <label for="groupName" class="block text-sm font-medium text-gray-700 dark:text-slate-300 mb-2">Group / Tag</label>
                         <InputText id="groupName" @bind-Value="_model.GroupName"
-                            class="w-full px-4 py-3 text-sm text-gray-900 dark:text-slate-100 bg-white dark:bg-slate-800 border border-gray-200 dark:border-slate-600 rounded-xl transition-all duration-200 placeholder:text-gray-400 dark:placeholder:text-slate-500 focus:outline-none focus:border-primary-400 focus:ring-4 focus:ring-primary-500/10 hover:border-gray-300 dark:hover:border-slate-500"
+                            class="form-control"
                             placeholder="e.g., Q1 Travel, Conference" />
                         <p class="mt-1.5 text-xs text-gray-500 dark:text-slate-400">Group related expenses together for easier tracking.</p>
                     </div>
@@ -99,20 +89,15 @@
                                     <span class="text-gray-500 dark:text-slate-400 text-sm">@CurrencyExtensions.GetSymbol(_model.Currency)</span>
                                 </div>
                                 <InputNumber id="amount" @bind-Value="_model.Amount"
-                                    class="w-full pl-8 pr-4 py-3 text-sm text-gray-900 dark:text-slate-100 bg-white dark:bg-slate-800 border border-gray-200 dark:border-slate-600 rounded-xl transition-all duration-200 focus:outline-none focus:border-primary-400 focus:ring-4 focus:ring-primary-500/10 hover:border-gray-300 dark:hover:border-slate-500" />
+                                    class="form-control pl-8" />
                             </div>
                             <ValidationMessage For="@(() => _model.Amount)" class="mt-1.5 text-xs text-red-600" />
                         </div>
 
                         <div>
                             <label for="currency" class="block text-sm font-medium text-gray-700 dark:text-slate-300 mb-2">Currency</label>
-                            <InputSelect id="currency" @bind-Value="_model.Currency"
-                                class="w-full px-4 py-3 text-sm text-gray-900 dark:text-slate-100 bg-white dark:bg-slate-800 border border-gray-200 dark:border-slate-600 rounded-xl transition-all duration-200 focus:outline-none focus:border-primary-400 focus:ring-4 focus:ring-primary-500/10 hover:border-gray-300 dark:hover:border-slate-500 cursor-pointer">
-                                @foreach (var currency in Enum.GetValues<Currency>())
-                                {
-                                    <option value="@currency.ToString()">@currency.GetDisplayName()</option>
-                                }
-                            </InputSelect>
+                            <Select TValue="string" @bind-Value="_model.Currency" Searchable="false"
+                                    Options="@(Enum.GetValues<Currency>().Select(c => new SelectOption<string>(c.ToString(), c.GetDisplayName())).ToList())" />
                         </div>
                     </div>
 
@@ -124,7 +109,7 @@
                                     <span class="text-gray-500 dark:text-slate-400 text-sm">@CurrencyExtensions.GetSymbol(_model.Currency)</span>
                                 </div>
                                 <InputNumber id="taxAmount" @bind-Value="_model.TaxAmount"
-                                    class="w-full pl-8 pr-4 py-3 text-sm text-gray-900 dark:text-slate-100 bg-white dark:bg-slate-800 border border-gray-200 dark:border-slate-600 rounded-xl transition-all duration-200 focus:outline-none focus:border-primary-400 focus:ring-4 focus:ring-primary-500/10 hover:border-gray-300 dark:hover:border-slate-500" />
+                                    class="form-control pl-8" />
                             </div>
                         </div>
 
@@ -138,7 +123,7 @@
                     <div>
                         <label for="merchantTaxNumber" class="block text-sm font-medium text-gray-700 dark:text-slate-300 mb-2">Merchant Tax Number</label>
                         <InputText id="merchantTaxNumber" @bind-Value="_model.MerchantTaxNumber"
-                            class="w-full px-4 py-3 text-sm text-gray-900 dark:text-slate-100 bg-white dark:bg-slate-800 border border-gray-200 dark:border-slate-600 rounded-xl transition-all duration-200 placeholder:text-gray-400 dark:placeholder:text-slate-500 focus:outline-none focus:border-primary-400 focus:ring-4 focus:ring-primary-500/10 hover:border-gray-300 dark:hover:border-slate-500"
+                            class="form-control"
                             placeholder="e.g., VAT number, GST number" />
                     </div>
                 </div>
@@ -169,32 +154,15 @@
                         <div class="grid grid-cols-1 sm:grid-cols-2 gap-5">
                             <div>
                                 <label for="clientId" class="block text-sm font-medium text-gray-700 dark:text-slate-300 mb-2">Client <span class="text-red-500">*</span></label>
-                                <InputSelect id="clientId" @bind-Value="_model.ClientId" @bind-Value:after="OnClientChanged"
-                                    class="w-full px-4 py-3 text-sm text-gray-900 dark:text-slate-100 bg-white dark:bg-slate-800 border border-gray-200 dark:border-slate-600 rounded-xl transition-all duration-200 focus:outline-none focus:border-primary-400 focus:ring-4 focus:ring-primary-500/10 hover:border-gray-300 dark:hover:border-slate-500 cursor-pointer">
-                                    <option value="">Select a client...</option>
-                                    @if (_clients != null)
-                                    {
-                                        @foreach (var client in _clients)
-                                        {
-                                            <option value="@client.Id">@client.Name</option>
-                                        }
-                                    }
-                                </InputSelect>
+                                <Select TValue="Guid?" Value="_model.ClientId" ValueChanged="OnClientChanged" ValueExpression="@(() => _model.ClientId)"
+                                        Placeholder="Select a client..."
+                                        Options="@(_clients?.Select(c => new SelectOption<Guid?>(c.Id, c.Name)).ToList() ?? new())" />
                             </div>
 
                             <div>
                                 <label for="projectId" class="block text-sm font-medium text-gray-700 dark:text-slate-300 mb-2">Project</label>
-                                <InputSelect id="projectId" @bind-Value="_model.ProjectId"
-                                    class="w-full px-4 py-3 text-sm text-gray-900 dark:text-slate-100 bg-white dark:bg-slate-800 border border-gray-200 dark:border-slate-600 rounded-xl transition-all duration-200 focus:outline-none focus:border-primary-400 focus:ring-4 focus:ring-primary-500/10 hover:border-gray-300 dark:hover:border-slate-500 cursor-pointer">
-                                    <option value="">Select a project...</option>
-                                    @if (_filteredProjects != null)
-                                    {
-                                        @foreach (var project in _filteredProjects)
-                                        {
-                                            <option value="@project.Id">@project.Name</option>
-                                        }
-                                    }
-                                </InputSelect>
+                                <Select TValue="Guid?" @bind-Value="_model.ProjectId" Placeholder="Select a project..."
+                                        Options="@(_filteredProjects?.Select(p => new SelectOption<Guid?>(p.Id, p.Name)).ToList() ?? new())" />
                             </div>
                         </div>
                     }
@@ -209,7 +177,7 @@
                 </div>
                 <div class="p-6">
                     <InputTextArea id="notes" @bind-Value="_model.Notes" rows="4"
-                        class="w-full px-4 py-3 text-sm text-gray-900 dark:text-slate-100 bg-white dark:bg-slate-800 border border-gray-200 dark:border-slate-600 rounded-xl transition-all duration-200 placeholder:text-gray-400 dark:placeholder:text-slate-500 focus:outline-none focus:border-primary-400 focus:ring-4 focus:ring-primary-500/10 hover:border-gray-300 dark:hover:border-slate-500 resize-none"
+                        class="form-control resize-none"
                         placeholder="Any additional notes about this expense..." />
                 </div>
             </div>
@@ -245,6 +213,13 @@
                 </button>
             </div>
         </EditForm>
+
+        @if (Id.HasValue)
+        {
+            <DangerZone EntityLabel="Expense" ItemName="@_model.MerchantName"
+                        WarningMessage="This permanently deletes this expense. This cannot be undone."
+                        OnConfirmed="DeleteAsync" />
+        }
     }
 </div>
 
@@ -336,8 +311,9 @@
         }
     }
 
-    private void OnClientChanged()
+    private void OnClientChanged(Guid? clientId)
     {
+        _model.ClientId = clientId;
         _model.ProjectId = null;
         UpdateFilteredProjects();
     }
@@ -351,6 +327,20 @@
         else
         {
             _filteredProjects = null;
+        }
+    }
+
+    private async Task DeleteAsync()
+    {
+        _errorMessage = null;
+        try
+        {
+            await DeleteExpenseCall.Call(new DeleteExpense { Id = Id!.Value });
+            NavigationManager.NavigateTo("expenses");
+        }
+        catch (Exception ex)
+        {
+            _errorMessage = $"Failed to delete expense: {ex.Message}";
         }
     }
 

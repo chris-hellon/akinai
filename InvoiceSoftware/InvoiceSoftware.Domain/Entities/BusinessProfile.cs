@@ -46,6 +46,11 @@ public class BusinessProfile : AggregateRoot, IAuditableEntity
     // Currency Conversion for VND invoices
     public decimal? VndToDefaultCurrencyRate { get; private set; }
 
+    // Cash position anchor for the cash-flow forecast. The forecast rolls this
+    // forward using bank transactions imported after CashBalanceAsOf.
+    public decimal? CashBalance { get; private set; }
+    public DateOnly? CashBalanceAsOf { get; private set; }
+
     public DateTime CreatedAt { get; set; }
     public string CreatedBy { get; set; } = null!;
     public DateTime? ModifiedAt { get; set; }
@@ -118,6 +123,12 @@ public class BusinessProfile : AggregateRoot, IAuditableEntity
         RevolutUsername = revolutUsername;
         VietQrBankCode = vietQrBankCode;
         VndToDefaultCurrencyRate = vndToDefaultCurrencyRate;
+    }
+
+    public void SetCashBalance(decimal balance, DateOnly asOf)
+    {
+        CashBalance = balance;
+        CashBalanceAsOf = asOf;
     }
 
     public void UpdateLogo(byte[]? logo, string? contentType)

@@ -2,6 +2,7 @@ using BlazorUtils.EasyApi;
 using BlazorUtils.EasyApi.Server;
 using InvoiceSoftware.Domain.Enums;
 using InvoiceSoftware.Infrastructure.Data;
+using InvoiceSoftware.Infrastructure.Services;
 using InvoiceSoftware.Shared.Api.Dashboard;
 using InvoiceSoftware.Shared.Dtos.Dashboard;
 using InvoiceSoftware.Shared.Services;
@@ -9,7 +10,10 @@ using Microsoft.EntityFrameworkCore;
 
 namespace InvoiceSoftware.Infrastructure.Handlers.Dashboard;
 
-public class GetCashFlowForecastHandler(IDbContextFactory<ApplicationDbContext> dbFactory, ICurrentUserService currentUserService)
+public class GetCashFlowForecastHandler(
+    IDbContextFactory<ApplicationDbContext> dbFactory,
+    ICurrentUserService currentUserService,
+    IExchangeRateService exchangeRates)
     : IHandle<GetCashFlowForecast, CashFlowForecastDto?>
 {
     public async Task<HttpResult<CashFlowForecastDto?>> Handle(
@@ -20,34 +24,54 @@ public class GetCashFlowForecastHandler(IDbContextFactory<ApplicationDbContext> 
             return HttpResult<CashFlowForecastDto?>.Unauthorized();
 
         await using var db = await dbFactory.CreateDbContextAsync(cancellationToken);
-        var months = request.Months > 0 ? request.Months : 3;
-        months = Math.Min(months, 12);
-
+        var months = Math.Clamp(request.Months > 0 ? request.Months : 3, 1, 12);
         var now = DateOnly.FromDateTime(DateTime.UtcNow);
 
-        // Get outstanding invoices (expected income)
+        var businessProfile = await db.BusinessProfiles
+            .FirstOrDefaultAsync(bp => bp.UserId == userId, cancellationToken);
+        var reporting = !string.IsNullOrWhiteSpace(request.ReportingCurrency)
+            ? request.ReportingCurrency!
+            : businessProfile?.DefaultCurrency ?? "USD";
+
+        // Outstanding invoices — amounts taken from the currency snapshot in the reporting currency.
         var outstandingInvoices = await db.Invoices
+            .Include(i => i.CurrencyTotals)
+            .Include(i => i.LineItems)
             .Include(i => i.TimeEntries)
                 .ThenInclude(te => te.Job)
+                    .ThenInclude(j => j.Project)
+                        .ThenInclude(p => p.Client)
             .Include(i => i.Client)
             .Where(i => (i.Status == InvoiceStatus.Sent || i.Status == InvoiceStatus.Overdue) &&
                         i.Client.UserId == userId)
             .ToListAsync(cancellationToken);
 
-        // Get recurring invoices (future expected income)
         var recurringInvoices = await db.RecurringInvoices
             .Include(r => r.LineItems)
             .Where(r => r.UserId == userId && r.IsActive)
             .ToListAsync(cancellationToken);
 
-        // Get recurring expenses (expected outgoing) - filter by CreatedBy since RecurringExpense doesn't have UserId
         var recurringExpenses = await db.RecurringExpenses
             .Where(e => e.CreatedBy == userId && e.IsActive)
             .ToListAsync(cancellationToken);
 
+        // Pre-convert each recurring item's per-occurrence amount into the reporting currency.
+        var riAmounts = new Dictionary<Guid, decimal>();
+        foreach (var ri in recurringInvoices)
+        {
+            var subtotal = ri.LineItems.Sum(li => li.LineTotal.Amount);
+            var total = subtotal + (subtotal * ri.TaxRate / 100);
+            riAmounts[ri.Id] = (await exchangeRates.ConvertAsync(total, ri.Currency, reporting, cancellationToken)) ?? total;
+        }
+
+        var reAmounts = new Dictionary<Guid, decimal>();
+        foreach (var re in recurringExpenses)
+        {
+            reAmounts[re.Id] = (await exchangeRates.ConvertAsync(re.Amount.Amount, re.Amount.Currency, reporting, cancellationToken)) ?? re.Amount.Amount;
+        }
+
         var dataPoints = new List<CashFlowPointDto>();
         var currentMonth = new DateOnly(now.Year, now.Month, 1);
-
         var cumulativeBalance = 0m;
 
         for (var i = 0; i < months; i++)
@@ -55,35 +79,21 @@ public class GetCashFlowForecastHandler(IDbContextFactory<ApplicationDbContext> 
             var monthStart = currentMonth.AddMonths(i);
             var monthEnd = monthStart.AddMonths(1).AddDays(-1);
 
-            // Expected income from outstanding invoices due this month
             var expectedIncome = outstandingInvoices
                 .Where(inv => inv.DueDate >= monthStart && inv.DueDate <= monthEnd)
-                .Sum(inv =>
-                {
-                    decimal subtotal = 0;
-                    foreach (var te in inv.TimeEntries)
-                    {
-                        subtotal += te.Hours.Value * te.Job.GetEffectiveHourlyRate();
-                    }
-                    return subtotal + (subtotal * inv.TaxRate / 100);
-                });
+                .Sum(inv => InvoiceTotals.InReporting(inv, reporting));
 
-            // Expected income from recurring invoices
             foreach (var ri in recurringInvoices)
             {
                 var nextDate = ri.NextInvoiceDate;
                 while (nextDate <= monthEnd)
                 {
                     if (nextDate >= monthStart)
-                    {
-                        var subtotal = ri.LineItems.Sum(li => li.LineTotal.Amount);
-                        expectedIncome += subtotal + (subtotal * ri.TaxRate / 100);
-                    }
+                        expectedIncome += riAmounts[ri.Id];
                     nextDate = CalculateNextDate(nextDate, ri.FrequencyInterval, ri.Frequency);
                 }
             }
 
-            // Expected expenses from recurring expenses
             var expectedExpenses = 0m;
             foreach (var re in recurringExpenses)
             {
@@ -91,24 +101,16 @@ public class GetCashFlowForecastHandler(IDbContextFactory<ApplicationDbContext> 
                 while (nextDate <= monthEnd)
                 {
                     if (nextDate >= monthStart)
-                    {
-                        expectedExpenses += re.Amount.Amount;
-                    }
+                        expectedExpenses += reAmounts[re.Id];
                     nextDate = CalculateNextDate(nextDate, re.FrequencyInterval, re.Frequency);
                 }
             }
 
             cumulativeBalance += expectedIncome - expectedExpenses;
-
-            dataPoints.Add(new CashFlowPointDto(
-                monthStart,
-                expectedIncome,
-                expectedExpenses,
-                cumulativeBalance));
+            dataPoints.Add(new CashFlowPointDto(monthStart, expectedIncome, expectedExpenses, cumulativeBalance));
         }
 
-        var dto = new CashFlowForecastDto(dataPoints, "USD");
-        return HttpResult<CashFlowForecastDto?>.Ok(dto);
+        return HttpResult<CashFlowForecastDto?>.Ok(new CashFlowForecastDto(dataPoints, reporting));
     }
 
     private static DateOnly CalculateNextDate(DateOnly current, int interval, RecurrenceFrequency frequency)

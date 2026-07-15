@@ -1,28 +1,21 @@
 <!-- Filters -->
-<div class="px-6 py-4 border-b border-gray-100 dark:border-[#2d2a4a] bg-gray-50/30 dark:bg-[#1a1827]/50">
-    <div class="flex flex-wrap gap-4 items-end">
-        <div class="flex-1 min-w-[200px]">
+<div class="px-4 sm:px-6 py-4 border-b border-gray-100 dark:border-[#2d2a4a] bg-gray-50/30 dark:bg-[#1a1827]/50">
+    <div class="flex flex-col sm:flex-row sm:flex-wrap gap-3 sm:gap-4 sm:items-end">
+        <div class="w-full sm:flex-1 sm:min-w-[240px]">
             <label class="block text-xs font-medium text-gray-500 dark:text-slate-400 mb-1.5">Date Range</label>
             <div class="flex items-center gap-2">
-                <input type="date" @bind="filterStartDate" @bind:after="ApplyFilters"
-                       class="flex-1 px-3 py-2 text-sm text-gray-900 dark:text-slate-100 bg-white dark:bg-[#1a1827] border border-gray-200 dark:border-[#3d3a5c] rounded-lg focus:outline-none focus:border-primary-400 dark:focus:border-primary-500 focus:ring-2 focus:ring-primary-500/10" />
+                <DatePicker TValue="DateOnly" Value="filterStartDate" ValueChanged="@((DateOnly d) => { filterStartDate = d; ApplyFilters(); })" Clearable="false" Class="flex-1" />
                 <span class="text-gray-400 dark:text-slate-500 text-sm">to</span>
-                <input type="date" @bind="filterEndDate" @bind:after="ApplyFilters"
-                       class="flex-1 px-3 py-2 text-sm text-gray-900 dark:text-slate-100 bg-white dark:bg-[#1a1827] border border-gray-200 dark:border-[#3d3a5c] rounded-lg focus:outline-none focus:border-primary-400 dark:focus:border-primary-500 focus:ring-2 focus:ring-primary-500/10" />
+                <DatePicker TValue="DateOnly" Value="filterEndDate" ValueChanged="@((DateOnly d) => { filterEndDate = d; ApplyFilters(); })" Clearable="false" Class="flex-1" />
             </div>
         </div>
-        <div class="min-w-[180px]">
+        <div class="w-full sm:w-auto sm:min-w-[180px]">
             <label class="block text-xs font-medium text-gray-500 dark:text-slate-400 mb-1.5">Category</label>
-            <select @bind="filterCategory" @bind:after="ApplyFilters"
-                    class="w-full px-3 py-2 text-sm text-gray-900 dark:text-slate-100 bg-white dark:bg-[#1a1827] border border-gray-200 dark:border-[#3d3a5c] rounded-lg focus:outline-none focus:border-primary-400 dark:focus:border-primary-500 focus:ring-2 focus:ring-primary-500/10">
-                <option value="">All Categories</option>
-                @foreach (var category in AvailableCategories)
-                {
-                    <option value="@category">@ExpenseCategoryExtensions.Parse(category).GetDisplayName()</option>
-                }
-            </select>
+            <Select TValue="string" Value="filterCategory" ValueChanged="@((string v) => { filterCategory = v; ApplyFilters(); })"
+                    Options="@(new List<SelectOption<string>> { new("", "All Categories") }
+                        .Concat(AvailableCategories.Select(c => new SelectOption<string>(c, ExpenseCategoryExtensions.Parse(c).GetDisplayName()))).ToList())" />
         </div>
-        <button @onclick="ClearFilters" class="px-3 py-2 text-sm text-gray-500 dark:text-slate-400 hover:text-gray-700 dark:hover:text-slate-200 hover:bg-gray-100 dark:hover:bg-[#2d2a4a] rounded-lg transition-colors">
+        <button @onclick="ClearFilters" class="w-full sm:w-auto px-3 py-2 text-sm text-gray-500 dark:text-slate-400 hover:text-gray-700 dark:hover:text-slate-200 hover:bg-gray-100 dark:hover:bg-[#2d2a4a] rounded-lg transition-colors">
             Clear filters
         </button>
     </div>
@@ -63,7 +56,7 @@ else
 
         <div class="border-b border-gray-100 dark:border-[#2d2a4a] last:border-b-0">
             <!-- Category Header -->
-            <div class="px-6 py-3 bg-gray-50/50 dark:bg-[#1a1827]/50 flex items-center gap-4 cursor-pointer hover:bg-gray-100/50 dark:hover:bg-[#2d2a4a]/50 transition-colors"
+            <div class="px-4 sm:px-6 py-3 bg-gray-50/50 dark:bg-[#1a1827]/50 flex items-center gap-3 sm:gap-4 cursor-pointer hover:bg-gray-100/50 dark:hover:bg-[#2d2a4a]/50 transition-colors"
                  @onclick="() => ToggleCategoryExpand(categoryGroup.Key)">
                 <button type="button" class="text-gray-400 dark:text-slate-500">
                     <svg class="w-4 h-4 transition-transform @(isExpanded ? "rotate-90" : "")" fill="none" stroke="currentColor" viewBox="0 0 24 24">
@@ -91,22 +84,25 @@ else
                     {
                         var isSelected = SelectedExpenseIds.Contains(expense.Id);
                         var expenseTotal = expense.Amount + expense.TaxAmount;
-                        <div class="px-6 py-3 flex items-center gap-4 hover:bg-gray-50/50 dark:hover:bg-[#2d2a4a]/50 transition-colors cursor-pointer @(isSelected ? "bg-emerald-50/50 dark:bg-emerald-900/20" : "")"
+                        <div class="px-4 sm:px-6 py-3 flex items-start sm:items-center gap-3 sm:gap-4 hover:bg-gray-50/50 dark:hover:bg-[#2d2a4a]/50 transition-colors cursor-pointer @(isSelected ? "bg-emerald-50/50 dark:bg-emerald-900/20" : "")"
                              @onclick="() => ToggleExpense(expense)">
-                            <div class="w-4"></div>
+                            <div class="hidden sm:block w-4"></div>
                             <input type="checkbox" checked="@isSelected"
                                    @onclick:stopPropagation="true"
                                    @onchange="() => ToggleExpense(expense)"
-                                   class="h-4 w-4 text-emerald-600 focus:ring-emerald-500 border-gray-300 dark:border-slate-600 rounded cursor-pointer" />
-                            <div class="w-24 text-sm text-gray-500 dark:text-slate-400">@expense.ExpenseDate.ToString("MMM d")</div>
-                            <div class="flex-1">
+                                   class="h-4 w-4 mt-0.5 sm:mt-0 shrink-0 text-emerald-600 focus:ring-emerald-500 border-gray-300 dark:border-slate-600 rounded cursor-pointer" />
+                            <div class="hidden sm:block w-24 text-sm text-gray-500 dark:text-slate-400">@expense.ExpenseDate.ToString("MMM d")</div>
+                            <div class="flex-1 min-w-0">
                                 <div class="text-sm text-gray-900 dark:text-slate-100">@expense.MerchantName</div>
-                                @if (!string.IsNullOrEmpty(expense.ProjectName))
-                                {
-                                    <div class="text-xs text-gray-500 dark:text-slate-400">@expense.ProjectName</div>
-                                }
+                                <div class="mt-0.5 flex flex-wrap items-center gap-x-3 gap-y-0.5 text-xs text-gray-500 dark:text-slate-400">
+                                    <span class="sm:hidden">@expense.ExpenseDate.ToString("MMM d")</span>
+                                    @if (!string.IsNullOrEmpty(expense.ProjectName))
+                                    {
+                                        <span>@expense.ProjectName</span>
+                                    }
+                                </div>
                             </div>
-                            <div class="w-28 text-right text-sm font-medium text-gray-900 dark:text-slate-100">@CurrencyExtensions.GetSymbol(expense.Currency)@expenseTotal.ToString("N2")</div>
+                            <div class="shrink-0 text-right text-sm font-medium text-gray-900 dark:text-slate-100 w-auto sm:w-28">@CurrencyExtensions.GetSymbol(expense.Currency)@expenseTotal.ToString("N2")</div>
                         </div>
                     }
                 </div>

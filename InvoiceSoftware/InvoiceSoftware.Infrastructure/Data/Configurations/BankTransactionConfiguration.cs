@@ -23,17 +23,15 @@ public class BankTransactionConfiguration : IEntityTypeConfiguration<BankTransac
             .HasMaxLength(500)
             .IsRequired();
 
-        builder.OwnsOne(bt => bt.Amount, money =>
-        {
-            money.Property(m => m.Amount)
-                .HasColumnName("Amount")
-                .HasPrecision(18, 2)
-                .IsRequired();
-            money.Property(m => m.Currency)
-                .HasColumnName("Currency")
-                .HasMaxLength(3)
-                .IsRequired();
-        });
+        builder.Property(bt => bt.Amount)
+            .HasColumnName("Amount")
+            .HasPrecision(18, 2)
+            .IsRequired();
+
+        builder.Property(bt => bt.Currency)
+            .HasColumnName("Currency")
+            .HasMaxLength(3)
+            .IsRequired();
 
         builder.Property(bt => bt.Reference)
             .HasMaxLength(100);
@@ -55,6 +53,9 @@ public class BankTransactionConfiguration : IEntityTypeConfiguration<BankTransac
         builder.Property(bt => bt.IgnoreReason)
             .HasMaxLength(500);
 
+        builder.Property(bt => bt.ExternalId)
+            .HasMaxLength(255);
+
         builder.HasOne(bt => bt.MatchedInvoice)
             .WithMany()
             .HasForeignKey(bt => bt.MatchedInvoiceId)
@@ -63,8 +64,8 @@ public class BankTransactionConfiguration : IEntityTypeConfiguration<BankTransac
         builder.HasIndex(bt => bt.UserId);
         builder.HasIndex(bt => bt.TransactionDate);
         builder.HasIndex(bt => bt.MatchedInvoiceId);
+        builder.HasIndex(bt => bt.ExpenseId);
         builder.HasIndex(bt => bt.IsIgnored);
-        builder.HasIndex(bt => new { bt.SourceFileName, bt.SourceRowNumber })
-            .IsUnique();
+        builder.HasIndex(bt => bt.ExternalId);
     }
 }

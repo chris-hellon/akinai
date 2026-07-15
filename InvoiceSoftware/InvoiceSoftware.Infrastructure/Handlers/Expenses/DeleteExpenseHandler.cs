@@ -16,6 +16,14 @@ public class DeleteExpenseHandler(IDbContextFactory<ApplicationDbContext> dbFact
         if (expense is null)
             return HttpResult.NotFound();
 
+        // Release any imported bank transaction linked to this expense so it doesn't
+        // point at a now-deleted record — it returns to "Needs review".
+        var linkedTransactions = await db.BankTransactions
+            .Where(bt => bt.ExpenseId == request.Id)
+            .ToListAsync(cancellationToken);
+        foreach (var transaction in linkedTransactions)
+            transaction.UnlinkExpense();
+
         db.Expenses.Remove(expense);
         await db.SaveChangesAsync(cancellationToken);
 

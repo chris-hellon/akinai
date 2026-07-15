@@ -29,11 +29,11 @@ public class InvoiceTemplateConfiguration : IEntityTypeConfiguration<InvoiceTemp
 
         builder.Property(it => it.PrimaryColor)
             .HasMaxLength(7)
-            .HasDefaultValue("#4F46E5");
+            .HasDefaultValue("#0e5c66");
 
         builder.Property(it => it.AccentColor)
             .HasMaxLength(7)
-            .HasDefaultValue("#6366F1");
+            .HasDefaultValue("#059669");
 
         builder.Property(it => it.TextColor)
             .HasMaxLength(7)

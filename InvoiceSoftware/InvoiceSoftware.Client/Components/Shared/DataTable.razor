@@ -1,7 +1,8 @@
 @typeparam TItem
 
 <div class="bg-white dark:bg-[#1a1827] rounded-lg border border-gray-100 dark:border-[#2d2a4a] overflow-hidden">
-    <div class="overflow-x-auto">
+    <!-- Table view (always shown when no CardTemplate; desktop-only when a CardTemplate is supplied) -->
+    <div class="overflow-x-auto overscroll-x-contain @(CardTemplate != null ? "hidden md:block" : "")">
         <table class="min-w-full">
             <thead>
                 <tr class="bg-gray-50/80 dark:bg-[#1a1827]/80">
@@ -19,15 +20,31 @@
             </tbody>
         </table>
     </div>
+
+    <!-- Card view (mobile only) -->
+    @if (CardTemplate != null)
+    {
+        <div class="md:hidden divide-y divide-gray-100 dark:divide-[#2d2a4a]">
+            @if (Items != null)
+            {
+                @foreach (var item in Items)
+                {
+                    @CardTemplate(item)
+                }
+            }
+        </div>
+    }
 </div>
 
-@if (TotalCount > PageSize)
+@if (TotalCount > PageSize || OnPageSizeChanged.HasDelegate)
 {
     <Pagination CurrentPage="CurrentPage"
                 TotalItems="TotalCount"
                 PageSize="PageSize"
                 ItemName="@ItemName"
-                OnPageChanged="OnPageChanged" />
+                OnPageChanged="OnPageChanged"
+                OnPageSizeChanged="OnPageSizeChanged"
+                PageSizeOptions="PageSizeOptions" />
 }
 
 @code {
@@ -39,6 +56,10 @@
 
     [Parameter, EditorRequired]
     public RenderFragment<TItem> RowTemplate { get; set; } = default!;
+
+    /// <summary>Optional per-item card rendered on small screens instead of the table.</summary>
+    [Parameter]
+    public RenderFragment<TItem>? CardTemplate { get; set; }
 
     [Parameter]
     public int CurrentPage { get; set; } = 1;
@@ -54,4 +75,10 @@
 
     [Parameter]
     public EventCallback<int> OnPageChanged { get; set; }
+
+    [Parameter]
+    public EventCallback<int> OnPageSizeChanged { get; set; }
+
+    [Parameter]
+    public int[]? PageSizeOptions { get; set; }
 }

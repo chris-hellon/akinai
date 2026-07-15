@@ -2,12 +2,15 @@ using BlazorUtils.EasyApi;
 using BlazorUtils.EasyApi.Server;
 using InvoiceSoftware.Domain.Entities;
 using InvoiceSoftware.Infrastructure.Data;
+using InvoiceSoftware.Infrastructure.Services;
 using InvoiceSoftware.Shared.Api.Invoices;
 using Microsoft.EntityFrameworkCore;
 
 namespace InvoiceSoftware.Infrastructure.Handlers.Invoices;
 
-public class CreateInvoiceHandler(IDbContextFactory<ApplicationDbContext> dbFactory) : IHandle<CreateInvoice, Guid>
+public class CreateInvoiceHandler(
+    IDbContextFactory<ApplicationDbContext> dbFactory,
+    IInvoiceTotalService totalService) : IHandle<CreateInvoice, Guid>
 {
     public async Task<HttpResult<Guid>> Handle(CreateInvoice request, CancellationToken cancellationToken)
     {
@@ -87,6 +90,15 @@ public class CreateInvoiceHandler(IDbContextFactory<ApplicationDbContext> dbFact
         }
 
         await db.SaveChangesAsync(cancellationToken);
+
+        // Snapshot totals (own currency + conversions) now that time entries, expenses
+        // and line items are persisted and linked.
+        if (client is not null)
+        {
+            await totalService.RecalculateAsync(db, invoice.Id, client.UserId, cancellationToken);
+            await db.SaveChangesAsync(cancellationToken);
+        }
+
         return HttpResult<Guid>.Created(invoice.Id);
     }
 }

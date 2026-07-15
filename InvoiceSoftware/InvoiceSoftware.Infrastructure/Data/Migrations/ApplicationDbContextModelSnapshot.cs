@@ -100,11 +100,102 @@ namespace InvoiceSoftware.Infrastructure.Data.Migrations
                     b.ToTable("Attachments", "App");
                 });
 
+            modelBuilder.Entity("InvoiceSoftware.Domain.Entities.BankConnection", b =>
+                {
+                    b.Property<Guid>("Id")
+                        .ValueGeneratedOnAdd()
+                        .HasColumnType("uniqueidentifier");
+
+                    b.Property<string>("AccessToken")
+                        .HasColumnType("nvarchar(max)");
+
+                    b.Property<DateOnly?>("ConsentExpiresAt")
+                        .HasColumnType("date");
+
+                    b.Property<DateTime>("CreatedAt")
+                        .HasColumnType("datetime2");
+
+                    b.Property<string>("CreatedBy")
+                        .IsRequired()
+                        .HasColumnType("nvarchar(max)");
+
+                    b.Property<string>("ExternalAccountId")
+                        .HasMaxLength(200)
+                        .HasColumnType("nvarchar(200)");
+
+                    b.Property<string>("InstitutionId")
+                        .IsRequired()
+                        .HasMaxLength(200)
+                        .HasColumnType("nvarchar(200)");
+
+                    b.Property<string>("InstitutionName")
+                        .IsRequired()
+                        .HasMaxLength(200)
+                        .HasColumnType("nvarchar(200)");
+
+                    b.Property<string>("LastError")
+                        .HasMaxLength(1000)
+                        .HasColumnType("nvarchar(1000)");
+
+                    b.Property<DateTime?>("LastSyncedAt")
+                        .HasColumnType("datetime2");
+
+                    b.Property<DateTime?>("ModifiedAt")
+                        .HasColumnType("datetime2");
+
+                    b.Property<string>("ModifiedBy")
+                        .HasColumnType("nvarchar(max)");
+
+                    b.Property<string>("Provider")
+                        .IsRequired()
+                        .HasMaxLength(50)
+                        .HasColumnType("nvarchar(50)");
+
+                    b.Property<string>("Reference")
+                        .IsRequired()
+                        .HasMaxLength(100)
+                        .HasColumnType("nvarchar(100)");
+
+                    b.Property<string>("RefreshToken")
+                        .HasColumnType("nvarchar(max)");
+
+                    b.Property<string>("RequisitionId")
+                        .IsRequired()
+                        .HasMaxLength(200)
+                        .HasColumnType("nvarchar(200)");
+
+                    b.Property<string>("Status")
+                        .IsRequired()
+                        .HasMaxLength(20)
+                        .HasColumnType("nvarchar(20)");
+
+                    b.Property<DateTime?>("TokenExpiresAt")
+                        .HasColumnType("datetime2");
+
+                    b.Property<string>("UserId")
+                        .IsRequired()
+                        .HasMaxLength(450)
+                        .HasColumnType("nvarchar(450)");
+
+                    b.HasKey("Id");
+
+                    b.HasIndex("Reference");
+
+                    b.HasIndex("UserId");
+
+                    b.ToTable("BankConnections", "App");
+                });
+
             modelBuilder.Entity("InvoiceSoftware.Domain.Entities.BankTransaction", b =>
                 {
                     b.Property<Guid>("Id")
                         .ValueGeneratedOnAdd()
                         .HasColumnType("uniqueidentifier");
+
+                    b.Property<decimal>("Amount")
+                        .HasPrecision(18, 2)
+                        .HasColumnType("decimal(18,2)")
+                        .HasColumnName("Amount");
 
                     b.Property<string>("BankAccountName")
                         .HasMaxLength(200)
@@ -117,10 +208,23 @@ namespace InvoiceSoftware.Infrastructure.Data.Migrations
                         .IsRequired()
                         .HasColumnType("nvarchar(max)");
 
+                    b.Property<string>("Currency")
+                        .IsRequired()
+                        .HasMaxLength(3)
+                        .HasColumnType("nvarchar(3)")
+                        .HasColumnName("Currency");
+
                     b.Property<string>("Description")
                         .IsRequired()
                         .HasMaxLength(500)
                         .HasColumnType("nvarchar(500)");
+
+                    b.Property<Guid?>("ExpenseId")
+                        .HasColumnType("uniqueidentifier");
+
+                    b.Property<string>("ExternalId")
+                        .HasMaxLength(255)
+                        .HasColumnType("nvarchar(255)");
 
                     b.Property<string>("IgnoreReason")
                         .HasMaxLength(500)
@@ -172,6 +276,10 @@ namespace InvoiceSoftware.Infrastructure.Data.Migrations
 
                     b.HasKey("Id");
 
+                    b.HasIndex("ExpenseId");
+
+                    b.HasIndex("ExternalId");
+
                     b.HasIndex("IsIgnored");
 
                     b.HasIndex("MatchedInvoiceId");
@@ -179,9 +287,6 @@ namespace InvoiceSoftware.Infrastructure.Data.Migrations
                     b.HasIndex("TransactionDate");
 
                     b.HasIndex("UserId");
-
-                    b.HasIndex("SourceFileName", "SourceRowNumber")
-                        .IsUnique();
 
                     b.ToTable("BankTransactions", "App");
                 });
@@ -215,6 +320,13 @@ namespace InvoiceSoftware.Infrastructure.Data.Migrations
                     b.Property<string>("BankSwift")
                         .HasMaxLength(20)
                         .HasColumnType("nvarchar(20)");
+
+                    b.Property<decimal?>("CashBalance")
+                        .HasPrecision(18, 2)
+                        .HasColumnType("decimal(18,2)");
+
+                    b.Property<DateOnly?>("CashBalanceAsOf")
+                        .HasColumnType("date");
 
                     b.Property<string>("CompanyName")
                         .IsRequired()
@@ -840,12 +952,24 @@ namespace InvoiceSoftware.Infrastructure.Data.Migrations
                         .HasMaxLength(20)
                         .HasColumnType("nvarchar(20)");
 
+                    b.Property<decimal>("Subtotal")
+                        .HasPrecision(18, 2)
+                        .HasColumnType("decimal(18,2)");
+
+                    b.Property<decimal>("TaxAmount")
+                        .HasPrecision(18, 2)
+                        .HasColumnType("decimal(18,2)");
+
                     b.Property<decimal>("TaxRate")
                         .HasPrecision(5, 2)
                         .HasColumnType("decimal(5,2)");
 
                     b.Property<Guid?>("TemplateId")
                         .HasColumnType("uniqueidentifier");
+
+                    b.Property<decimal>("Total")
+                        .HasPrecision(18, 2)
+                        .HasColumnType("decimal(18,2)");
 
                     b.HasKey("Id");
 
@@ -859,6 +983,34 @@ namespace InvoiceSoftware.Infrastructure.Data.Migrations
                     b.HasIndex("TemplateId");
 
                     b.ToTable("Invoices", "App");
+                });
+
+            modelBuilder.Entity("InvoiceSoftware.Domain.Entities.InvoiceCurrencyTotal", b =>
+                {
+                    b.Property<Guid>("Id")
+                        .ValueGeneratedOnAdd()
+                        .HasColumnType("uniqueidentifier");
+
+                    b.Property<decimal>("Amount")
+                        .HasPrecision(18, 2)
+                        .HasColumnType("decimal(18,2)");
+
+                    b.Property<string>("Currency")
+                        .IsRequired()
+                        .HasMaxLength(3)
+                        .HasColumnType("nvarchar(3)");
+
+                    b.Property<Guid>("InvoiceId")
+                        .HasColumnType("uniqueidentifier");
+
+                    b.HasKey("Id");
+
+                    b.HasIndex("Currency");
+
+                    b.HasIndex("InvoiceId", "Currency")
+                        .IsUnique();
+
+                    b.ToTable("InvoiceCurrencyTotals", "App");
                 });
 
             modelBuilder.Entity("InvoiceSoftware.Domain.Entities.InvoiceLineItem", b =>
@@ -907,7 +1059,7 @@ namespace InvoiceSoftware.Infrastructure.Data.Migrations
                         .ValueGeneratedOnAdd()
                         .HasMaxLength(7)
                         .HasColumnType("nvarchar(7)")
-                        .HasDefaultValue("#6366F1");
+                        .HasDefaultValue("#059669");
 
                     b.Property<string>("BackgroundColor")
                         .IsRequired()
@@ -978,7 +1130,7 @@ namespace InvoiceSoftware.Infrastructure.Data.Migrations
                         .ValueGeneratedOnAdd()
                         .HasMaxLength(7)
                         .HasColumnType("nvarchar(7)")
-                        .HasDefaultValue("#4F46E5");
+                        .HasDefaultValue("#0e5c66");
 
                     b.Property<bool>("ShowBankDetails")
                         .HasColumnType("bit");
@@ -1130,6 +1282,71 @@ namespace InvoiceSoftware.Infrastructure.Data.Migrations
                     b.HasIndex("JobId", "Order");
 
                     b.ToTable("JobTasks", "App");
+                });
+
+            modelBuilder.Entity("InvoiceSoftware.Domain.Entities.Notification", b =>
+                {
+                    b.Property<Guid>("Id")
+                        .ValueGeneratedOnAdd()
+                        .HasColumnType("uniqueidentifier");
+
+                    b.Property<DateTime>("CreatedAt")
+                        .HasColumnType("datetime2");
+
+                    b.Property<string>("CreatedBy")
+                        .IsRequired()
+                        .HasColumnType("nvarchar(max)");
+
+                    b.Property<bool>("IsRead")
+                        .HasColumnType("bit");
+
+                    b.Property<string>("Link")
+                        .HasMaxLength(400)
+                        .HasColumnType("nvarchar(400)");
+
+                    b.Property<string>("Message")
+                        .IsRequired()
+                        .HasMaxLength(1000)
+                        .HasColumnType("nvarchar(1000)");
+
+                    b.Property<DateTime?>("ModifiedAt")
+                        .HasColumnType("datetime2");
+
+                    b.Property<string>("ModifiedBy")
+                        .HasColumnType("nvarchar(max)");
+
+                    b.Property<DateTime?>("ReadAt")
+                        .HasColumnType("datetime2");
+
+                    b.Property<Guid?>("RelatedEntityId")
+                        .HasColumnType("uniqueidentifier");
+
+                    b.Property<string>("RelatedEntityType")
+                        .HasMaxLength(30)
+                        .HasColumnType("nvarchar(30)");
+
+                    b.Property<string>("Title")
+                        .IsRequired()
+                        .HasMaxLength(200)
+                        .HasColumnType("nvarchar(200)");
+
+                    b.Property<string>("Type")
+                        .IsRequired()
+                        .HasMaxLength(40)
+                        .HasColumnType("nvarchar(40)");
+
+                    b.Property<string>("UserId")
+                        .IsRequired()
+                        .HasMaxLength(450)
+                        .HasColumnType("nvarchar(450)");
+
+                    b.HasKey("Id");
+
+                    b.HasIndex("CreatedAt");
+
+                    b.HasIndex("UserId", "IsRead");
+
+                    b.ToTable("Notifications", "App");
                 });
 
             modelBuilder.Entity("InvoiceSoftware.Domain.Entities.Product", b =>
@@ -1880,33 +2097,6 @@ namespace InvoiceSoftware.Infrastructure.Data.Migrations
                         .HasForeignKey("MatchedInvoiceId")
                         .OnDelete(DeleteBehavior.SetNull);
 
-                    b.OwnsOne("InvoiceSoftware.Domain.ValueObjects.Money", "Amount", b1 =>
-                        {
-                            b1.Property<Guid>("BankTransactionId")
-                                .HasColumnType("uniqueidentifier");
-
-                            b1.Property<decimal>("Amount")
-                                .HasPrecision(18, 2)
-                                .HasColumnType("decimal(18,2)")
-                                .HasColumnName("Amount");
-
-                            b1.Property<string>("Currency")
-                                .IsRequired()
-                                .HasMaxLength(3)
-                                .HasColumnType("nvarchar(3)")
-                                .HasColumnName("Currency");
-
-                            b1.HasKey("BankTransactionId");
-
-                            b1.ToTable("BankTransactions", "App");
-
-                            b1.WithOwner()
-                                .HasForeignKey("BankTransactionId");
-                        });
-
-                    b.Navigation("Amount")
-                        .IsRequired();
-
                     b.Navigation("MatchedInvoice");
                 });
 
@@ -2276,6 +2466,17 @@ namespace InvoiceSoftware.Infrastructure.Data.Migrations
                     b.Navigation("Client");
 
                     b.Navigation("Template");
+                });
+
+            modelBuilder.Entity("InvoiceSoftware.Domain.Entities.InvoiceCurrencyTotal", b =>
+                {
+                    b.HasOne("InvoiceSoftware.Domain.Entities.Invoice", "Invoice")
+                        .WithMany("CurrencyTotals")
+                        .HasForeignKey("InvoiceId")
+                        .OnDelete(DeleteBehavior.Cascade)
+                        .IsRequired();
+
+                    b.Navigation("Invoice");
                 });
 
             modelBuilder.Entity("InvoiceSoftware.Domain.Entities.InvoiceLineItem", b =>
@@ -2715,6 +2916,8 @@ namespace InvoiceSoftware.Infrastructure.Data.Migrations
 
             modelBuilder.Entity("InvoiceSoftware.Domain.Entities.Invoice", b =>
                 {
+                    b.Navigation("CurrencyTotals");
+
                     b.Navigation("LineItems");
 
                     b.Navigation("TimeEntries");

@@ -1,8 +1,11 @@
 @page "/invoices"
 
 @inject ICall<GetInvoices, PaginatedResponse<InvoiceSummaryDto>> GetInvoicesCall
+@inject ICall<GetInvoice, InvoiceDetailDto> GetInvoiceCall
 @inject ICall<GetInvoicePdf, byte[]> GetInvoicePdfCall
 @inject ICall<DeleteInvoice> DeleteInvoiceCall
+@inject ICall<MarkInvoicePaid> MarkInvoicePaidCall
+@inject ICall<SendInvoice> SendInvoiceCall
 @inject NavigationManager Navigation
 
 <PageTitle>Invoices - InvoicePro</PageTitle>
@@ -16,14 +19,16 @@
                 SearchValueChanged="OnSearchChanged"
                 Breadcrumbs="@(new List<PageHeader.BreadcrumbItem> { new("Invoices") })">
     <Filters>
-        <select @bind="_selectedStatus" @bind:after="OnFilterChanged" class="py-3 px-4 text-sm text-gray-700 dark:text-slate-200 bg-gray-50 dark:bg-slate-700 border-0 rounded-xl focus:outline-none focus:ring-2 focus:ring-primary-500/20 cursor-pointer">
-            <option value="">All Status</option>
-            <option value="Draft">Draft</option>
-            <option value="Sent">Sent</option>
-            <option value="Paid">Paid</option>
-            <option value="Overdue">Overdue</option>
-            <option value="Void">Void</option>
-        </select>
+        <Select TValue="string" Value="_selectedStatus" ValueChanged="OnStatusChanged" Searchable="false" Class="w-full sm:w-44"
+                Options="@(new List<SelectOption<string>>
+                {
+                    new("", "All Status"),
+                    new("Draft", "Draft"),
+                    new("Sent", "Sent"),
+                    new("Paid", "Paid"),
+                    new("Overdue", "Overdue"),
+                    new("Void", "Void")
+                })" />
     </Filters>
     <ChildContent>
         @if (_isLoading)
@@ -46,7 +51,8 @@
                        TotalCount="_response.TotalCount"
                        PageSize="_response.PageSize"
                        ItemName="invoices"
-                       OnPageChanged="OnPageChanged">
+                       OnPageChanged="OnPageChanged"
+                       OnPageSizeChanged="OnPageSizeChanged">
                 <HeaderTemplate>
                     <th scope="col" class="px-6 py-4 text-left text-xs font-semibold text-gray-500 dark:text-slate-400 uppercase tracking-wider">Invoice</th>
                     <th scope="col" class="px-6 py-4 text-left text-xs font-semibold text-gray-500 dark:text-slate-400 uppercase tracking-wider">Client</th>
@@ -57,7 +63,7 @@
                     <th scope="col" class="relative px-6 py-4"><span class="sr-only">Actions</span></th>
                 </HeaderTemplate>
                 <RowTemplate Context="invoice">
-                    @{ var isOverdue = invoice.Status != "Paid" && invoice.Status != "Void" && invoice.DueDate < DateOnly.FromDateTime(DateTime.Today); }
+                    @{ var isOverdue = invoice.Status is "Sent" or "Overdue" && invoice.DueDate < DateOnly.FromDateTime(DateTime.Today); }
                     <tr class="group hover:bg-gray-50/50 dark:hover:bg-[#2d2a4a]/50 transition-colors">
                         <td class="px-6 py-4 whitespace-nowrap">
                             <div class="text-sm font-medium text-gray-900 dark:text-slate-100">@invoice.InvoiceNumber</div>
@@ -80,35 +86,119 @@
                             <span class="@InvoiceStatusExtensions.Parse(invoice.Status).GetBadgeClass()">@invoice.Status</span>
                         </td>
                         <td class="px-6 py-4 whitespace-nowrap text-right">
-                            <div class="flex items-center justify-end gap-1">
-                                <a href="invoices/@invoice.Id" class="p-2 text-gray-400 dark:text-slate-500 hover:text-primary-600 dark:hover:text-primary-400 hover:bg-primary-50 dark:hover:bg-primary-900/50 rounded-lg transition-colors" title="View">
-                                    <svg class="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                                        <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M15 12a3 3 0 11-6 0 3 3 0 016 0z" />
-                                        <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M2.458 12C3.732 7.943 7.523 5 12 5c4.478 0 8.268 2.943 9.542 7-1.274 4.057-5.064 7-9.542 7-4.477 0-8.268-2.943-9.542-7z" />
-                                    </svg>
-                                </a>
+                            <div class="flex items-center justify-end gap-2" @onclick:stopPropagation="true">
+                                <IconButton Href="@($"invoices/{invoice.Id}")" Title="View">
+                                    <ViewIcon />
+                                </IconButton>
                                 @if (invoice.Status == "Draft")
                                 {
-                                    <a href="invoices/@invoice.Id/edit" class="p-2 text-gray-400 dark:text-slate-500 hover:text-amber-600 dark:hover:text-amber-400 hover:bg-amber-50 dark:hover:bg-amber-900/50 rounded-lg transition-colors" title="Edit">
-                                        <svg class="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                                            <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M11 5H6a2 2 0 00-2 2v11a2 2 0 002 2h11a2 2 0 002-2v-5m-1.414-9.414a2 2 0 112.828 2.828L11.828 15H9v-2.828l8.586-8.586z" />
-                                        </svg>
-                                    </a>
-                                    <button @onclick="() => DeleteInvoice(invoice.Id, invoice.InvoiceNumber)" @onclick:stopPropagation="true" class="p-2 text-gray-400 dark:text-slate-500 hover:text-red-600 dark:hover:text-red-400 hover:bg-red-50 dark:hover:bg-red-900/50 rounded-lg transition-colors" title="Delete">
-                                        <svg class="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                                            <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M19 7l-.867 12.142A2 2 0 0116.138 21H7.862a2 2 0 01-1.995-1.858L5 7m5 4v6m4-6v6m1-10V4a1 1 0 00-1-1h-4a1 1 0 00-1 1v3M4 7h16" />
-                                        </svg>
-                                    </button>
+                                    <IconButton Href="@($"invoices/{invoice.Id}/edit")" Title="Edit">
+                                        <EditIcon />
+                                    </IconButton>
+                                    <IconButton OnClick="() => SendInvoiceAsync(invoice.Id)" Disabled="@(_sendingId == invoice.Id)" Title="Send invoice">
+                                        @if (_sendingId == invoice.Id)
+                                        {
+                                            <div class="w-4 h-4 border-2 border-gray-300 border-t-primary-600 rounded-full animate-spin"></div>
+                                        }
+                                        else
+                                        {
+                                            <svg class="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                                                <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M22 2L11 13M22 2l-7 20-4-9-9-4 20-7z" />
+                                            </svg>
+                                        }
+                                    </IconButton>
                                 }
-                                <button @onclick="() => DownloadPdf(invoice.Id, invoice.InvoiceNumber)" class="p-2 text-gray-400 dark:text-slate-500 hover:text-emerald-600 dark:hover:text-emerald-400 hover:bg-emerald-50 dark:hover:bg-emerald-900/50 rounded-lg transition-colors" title="Download PDF">
+                                @if (invoice.Status != "Paid" && invoice.Status != "Void")
+                                {
+                                    <IconButton OnClick="() => MarkPaid(invoice.Id, invoice.InvoiceNumber)" Disabled="@(_markingPaidId == invoice.Id)" Title="Mark as paid">
+                                        @if (_markingPaidId == invoice.Id)
+                                        {
+                                            <div class="w-4 h-4 border-2 border-gray-300 border-t-primary-600 rounded-full animate-spin"></div>
+                                        }
+                                        else
+                                        {
+                                            <svg class="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                                                <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M9 12l2 2 4-4m6 2a9 9 0 11-18 0 9 9 0 0118 0z" />
+                                            </svg>
+                                        }
+                                    </IconButton>
+                                }
+                                <IconButton OnClick="() => DownloadPdf(invoice.Id, invoice.InvoiceNumber)" Title="Download PDF">
                                     <svg class="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
                                         <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M12 10v6m0 0l-3-3m3 3l3-3m2 8H7a2 2 0 01-2-2V5a2 2 0 012-2h5.586a1 1 0 01.707.293l5.414 5.414a1 1 0 01.293.707V19a2 2 0 01-2 2z" />
                                     </svg>
-                                </button>
+                                </IconButton>
+                                <IconButton OnClick="() => DeleteInvoice(invoice.Id, invoice.InvoiceNumber)" Variant="IconButton.IconButtonVariant.Danger" Title="Delete">
+                                    <DeleteIcon />
+                                </IconButton>
                             </div>
                         </td>
                     </tr>
                 </RowTemplate>
+                <CardTemplate Context="invoice">
+                    @{ var cardOverdue = invoice.Status is "Sent" or "Overdue" && invoice.DueDate < DateOnly.FromDateTime(DateTime.Today); }
+                    <div class="p-4">
+                        <div class="flex items-start justify-between gap-3">
+                            <div class="min-w-0">
+                                <div class="flex items-center gap-2 flex-wrap">
+                                    <a href="invoices/@invoice.Id" class="text-sm font-semibold text-gray-900 dark:text-slate-100 hover:underline">@invoice.InvoiceNumber</a>
+                                    <span class="@InvoiceStatusExtensions.Parse(invoice.Status).GetBadgeClass()">@invoice.Status</span>
+                                </div>
+                                <div class="mt-1 text-sm text-gray-500 dark:text-slate-400 truncate">@invoice.ClientName</div>
+                            </div>
+                            <div class="text-right shrink-0">
+                                <div class="text-base font-semibold text-gray-900 dark:text-slate-100">@CurrencyExtensions.GetSymbol(invoice.Currency)@invoice.Total.ToString("N2")</div>
+                                <div class="mt-1 text-xs @(cardOverdue ? "text-red-600 dark:text-red-400 font-medium" : "text-gray-500 dark:text-slate-400")">Due @invoice.DueDate.ToString("MMM d, yyyy")</div>
+                            </div>
+                        </div>
+                        <div class="mt-3 pt-3 border-t border-gray-50 dark:border-[#2d2a4a] flex items-center justify-end gap-1">
+                            <IconButton Href="@($"invoices/{invoice.Id}")" Title="View">
+                                <ViewIcon />
+                            </IconButton>
+                            @if (invoice.Status == "Draft")
+                            {
+                                <IconButton Href="@($"invoices/{invoice.Id}/edit")" Title="Edit">
+                                    <EditIcon />
+                                </IconButton>
+                                <IconButton OnClick="() => SendInvoiceAsync(invoice.Id)" Disabled="@(_sendingId == invoice.Id)" Title="Send invoice">
+                                    @if (_sendingId == invoice.Id)
+                                    {
+                                        <div class="w-4 h-4 border-2 border-gray-300 border-t-primary-600 rounded-full animate-spin"></div>
+                                    }
+                                    else
+                                    {
+                                        <svg class="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                                            <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M22 2L11 13M22 2l-7 20-4-9-9-4 20-7z" />
+                                        </svg>
+                                    }
+                                </IconButton>
+                            }
+                            @if (invoice.Status != "Paid" && invoice.Status != "Void")
+                            {
+                                <IconButton OnClick="() => MarkPaid(invoice.Id, invoice.InvoiceNumber)" Disabled="@(_markingPaidId == invoice.Id)" Title="Mark as paid">
+                                    @if (_markingPaidId == invoice.Id)
+                                    {
+                                        <div class="w-4 h-4 border-2 border-gray-300 border-t-primary-600 rounded-full animate-spin"></div>
+                                    }
+                                    else
+                                    {
+                                        <svg class="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                                            <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M9 12l2 2 4-4m6 2a9 9 0 11-18 0 9 9 0 0118 0z" />
+                                        </svg>
+                                    }
+                                </IconButton>
+                            }
+                            <IconButton OnClick="() => DownloadPdf(invoice.Id, invoice.InvoiceNumber)" Title="Download PDF">
+                                <svg class="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                                    <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M12 10v6m0 0l-3-3m3 3l3-3m2 8H7a2 2 0 01-2-2V5a2 2 0 012-2h5.586a1 1 0 01.707.293l5.414 5.414a1 1 0 01.293.707V19a2 2 0 01-2 2z" />
+                                </svg>
+                            </IconButton>
+                            <IconButton OnClick="() => DeleteInvoice(invoice.Id, invoice.InvoiceNumber)" Variant="IconButton.IconButtonVariant.Danger" Title="Delete">
+                                <DeleteIcon />
+                            </IconButton>
+                        </div>
+                    </div>
+                </CardTemplate>
             </DataTable>
         }
     </ChildContent>
@@ -120,13 +210,28 @@
     private string _searchTerm = "";
     private string _selectedStatus = "";
     private int _currentPage = 1;
-    private const int PageSize = 15;
+    private int PageSize = 50;
+    private Guid? _markingPaidId;
+    private Guid? _sendingId;
+
+    private bool _loadedOnce;
+
+    [SupplyParameterFromQuery(Name = "search")]
+    public string? SearchQuery { get; set; }
 
     private bool HasActiveFilters => !string.IsNullOrEmpty(_searchTerm) || !string.IsNullOrEmpty(_selectedStatus);
 
-    protected override async Task OnInitializedAsync()
+    // Runs on first render and whenever the ?search= query changes (e.g. from the header search).
+    protected override async Task OnParametersSetAsync()
     {
-        await LoadInvoices();
+        var incoming = SearchQuery ?? "";
+        if (!_loadedOnce || incoming != _searchTerm)
+        {
+            _loadedOnce = true;
+            _searchTerm = incoming;
+            _currentPage = 1;
+            await LoadInvoices();
+        }
     }
 
     private async Task LoadInvoices()
@@ -159,6 +264,12 @@
         await LoadInvoices();
     }
 
+    private async Task OnStatusChanged(string value)
+    {
+        _selectedStatus = value;
+        await OnFilterChanged();
+    }
+
     private async Task OnSearchChanged(string value)
     {
         _searchTerm = value;
@@ -169,6 +280,13 @@
     private async Task OnPageChanged(int page)
     {
         _currentPage = page;
+        await LoadInvoices();
+    }
+
+    private async Task OnPageSizeChanged(int size)
+    {
+        PageSize = size;
+        _currentPage = 1;
         await LoadInvoices();
     }
 
@@ -190,6 +308,73 @@
         }
     }
 
+    private async Task SendInvoiceAsync(Guid invoiceId)
+    {
+        _sendingId = invoiceId;
+        try
+        {
+            // Fetch the full invoice for the client email + public link the send modal needs.
+            var invoice = await GetInvoiceCall.Call(new GetInvoice { Id = invoiceId });
+            if (invoice == null) return;
+
+            var modalParams = new Dictionary<string, object>
+            {
+                { "InvoiceId", invoice.Id },
+                { "InvoiceNumber", invoice.InvoiceNumber },
+                { "ClientName", invoice.ClientName },
+                { "ClientEmail", invoice.ClientEmail ?? "" },
+                { "Currency", invoice.Currency },
+                { "Amount", invoice.Total },
+                { "DueDate", invoice.DueDate }
+            };
+            if (invoice.PublicAccessToken.HasValue)
+                modalParams.Add("PublicAccessToken", invoice.PublicAccessToken.Value);
+
+            var result = await ModalService.ShowAsync<SendInvoiceResult?>(
+                typeof(SendInvoiceModal),
+                "Send Invoice",
+                modalParams,
+                new ModalOptions { Size = ModalSize.Medium });
+
+            if (result == null) return; // cancelled
+
+            await SendInvoiceCall.Call(new SendInvoice
+            {
+                Id = invoiceId,
+                Email = result.Email,
+                Subject = result.Subject,
+                Body = result.Body
+            });
+            await LoadInvoices();
+        }
+        catch (Exception ex)
+        {
+            Console.WriteLine($"Error sending invoice: {ex.Message}");
+        }
+        finally
+        {
+            _sendingId = null;
+        }
+    }
+
+    private async Task MarkPaid(Guid invoiceId, string invoiceNumber)
+    {
+        _markingPaidId = invoiceId;
+        try
+        {
+            await MarkInvoicePaidCall.Call(new MarkInvoicePaid { Id = invoiceId, PaidDate = DateOnly.FromDateTime(DateTime.Today) });
+            await LoadInvoices();
+        }
+        catch (Exception ex)
+        {
+            Console.WriteLine($"Error marking invoice as paid: {ex.Message}");
+        }
+        finally
+        {
+            _markingPaidId = null;
+        }
+    }
+
     private async Task DeleteInvoice(Guid invoiceId, string invoiceNumber)
     {
         var confirmed = await ModalService.ShowAsync<bool>(
@@ -197,18 +382,21 @@
             "Delete Invoice",
             new Dictionary<string, object>
             {
-                ["ItemName"] = $"Invoice {invoiceNumber}",
-                ["WarningMessage"] = "This action cannot be undone. The invoice will be permanently removed.",
-                ["OnDelete"] = new Func<Task>(async () =>
-                {
-                    await DeleteInvoiceCall.Call(new DeleteInvoice { Id = invoiceId });
-                })
+                { "ItemName", $"Invoice {invoiceNumber}" },
+                { "WarningMessage", "This will permanently delete this invoice. This action cannot be undone." }
             },
             new ModalOptions { Size = ModalSize.Small });
 
-        if (confirmed)
+        if (!confirmed) return;
+
+        try
         {
+            await DeleteInvoiceCall.Call(new DeleteInvoice { Id = invoiceId });
             await LoadInvoices();
+        }
+        catch (Exception ex)
+        {
+            Console.WriteLine($"Error deleting invoice: {ex.Message}");
         }
     }
 }

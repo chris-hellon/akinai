@@ -14,4 +14,8 @@ public class GetDashboardMetrics : IGet<DashboardMetricsDto>
 
     [QueryStringParam]
     public DateOnly? ToDate { get; init; }
+
+    /// <summary>Currency to report all figures in. Defaults to the business default currency.</summary>
+    [QueryStringParam]
+    public string? ReportingCurrency { get; init; }
 }

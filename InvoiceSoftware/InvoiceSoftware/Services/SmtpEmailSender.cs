@@ -116,7 +116,7 @@ public sealed class SmtpEmailSender : IEmailSender<ApplicationUser>, IEmailSende
                         <td align="center">
                             <table role="presentation" width="100%" cellspacing="0" cellpadding="0" style="max-width: 500px; background-color: #ffffff; border-radius: 12px; overflow: hidden; box-shadow: 0 4px 6px rgba(0, 0, 0, 0.05);">
                                 <tr>
-                                    <td style="background: linear-gradient(135deg, #4f46e5 0%, #7c3aed 100%); padding: 32px; text-align: center;">
+                                    <td style="background: linear-gradient(135deg, #0e5c66 0%, #147d87 100%); padding: 32px; text-align: center;">
                                         <h1 style="margin: 0; color: #ffffff; font-size: 24px; font-weight: 700;">InvoicePro</h1>
                                     </td>
                                 </tr>
@@ -126,7 +126,7 @@ public sealed class SmtpEmailSender : IEmailSender<ApplicationUser>, IEmailSende
                                         <p style="margin: 0 0 8px; color: #4b5563; font-size: 15px; line-height: 1.6;">Hi {user.UserName ?? "there"},</p>
                                         <p style="margin: 0 0 24px; color: #4b5563; font-size: 15px; line-height: 1.6;">Use the following code to reset your password:</p>
                                         <div style="background-color: #f3f4f6; border-radius: 8px; padding: 20px; text-align: center; margin-bottom: 24px;">
-                                            <span style="font-size: 32px; font-weight: 700; letter-spacing: 4px; color: #4f46e5;">{resetCode}</span>
+                                            <span style="font-size: 32px; font-weight: 700; letter-spacing: 4px; color: #0e5c66;">{resetCode}</span>
                                         </div>
                                         <p style="margin: 0; color: #6b7280; font-size: 13px; line-height: 1.6;">This code will expire in 15 minutes. If you didn't request this, you can safely ignore this email.</p>
                                     </td>
@@ -162,7 +162,7 @@ public sealed class SmtpEmailSender : IEmailSender<ApplicationUser>, IEmailSende
                         <td align="center">
                             <table role="presentation" width="100%" cellspacing="0" cellpadding="0" style="max-width: 500px; background-color: #ffffff; border-radius: 12px; overflow: hidden; box-shadow: 0 4px 6px rgba(0, 0, 0, 0.05);">
                                 <tr>
-                                    <td style="background: linear-gradient(135deg, #4f46e5 0%, #7c3aed 100%); padding: 32px; text-align: center;">
+                                    <td style="background: linear-gradient(135deg, #0e5c66 0%, #147d87 100%); padding: 32px; text-align: center;">
                                         <h1 style="margin: 0; color: #ffffff; font-size: 24px; font-weight: 700;">InvoicePro</h1>
                                     </td>
                                 </tr>
@@ -173,13 +173,13 @@ public sealed class SmtpEmailSender : IEmailSender<ApplicationUser>, IEmailSende
                                         <p style="margin: 0 0 24px; color: #4b5563; font-size: 15px; line-height: 1.6;">{message}</p>
                                         <table role="presentation" cellspacing="0" cellpadding="0" style="margin: 0 auto;">
                                             <tr>
-                                                <td style="border-radius: 8px; background: linear-gradient(135deg, #4f46e5 0%, #7c3aed 100%);">
+                                                <td style="border-radius: 8px; background: linear-gradient(135deg, #0e5c66 0%, #147d87 100%);">
                                                     <a href="{buttonUrl}" style="display: inline-block; padding: 14px 32px; color: #ffffff; text-decoration: none; font-size: 15px; font-weight: 600;">{buttonText}</a>
                                                 </td>
                                             </tr>
                                         </table>
                                         <p style="margin: 24px 0 0; color: #6b7280; font-size: 13px; line-height: 1.6;">If the button doesn't work, copy and paste this link into your browser:</p>
-                                        <p style="margin: 8px 0 0; word-break: break-all;"><a href="{buttonUrl}" style="color: #4f46e5; font-size: 13px;">{buttonUrl}</a></p>
+                                        <p style="margin: 8px 0 0; word-break: break-all;"><a href="{buttonUrl}" style="color: #0e5c66; font-size: 13px;">{buttonUrl}</a></p>
                                     </td>
                                 </tr>
                                 <tr>

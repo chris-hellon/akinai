@@ -1,0 +1,16 @@
+@* Wraps any content and shows a styled tooltip on hover/focus (driven by wwwroot/js/tooltip.js).
+   Usage: <Tooltip Text="Delete invoice"><IconButton ...>…</IconButton></Tooltip> *@
+
+<span class="inline-flex" data-tooltip="@Text" data-tooltip-placement="@Placement">
+    @ChildContent
+</span>
+
+@code {
+    /// <summary>The tooltip label.</summary>
+    [Parameter, EditorRequired] public string Text { get; set; } = "";
+
+    /// <summary>Preferred side: "top" (default), "bottom", "left", or "right". Auto-flips near edges.</summary>
+    [Parameter] public string Placement { get; set; } = "top";
+
+    [Parameter] public RenderFragment? ChildContent { get; set; }
+}

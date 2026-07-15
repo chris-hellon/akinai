@@ -1,0 +1,132 @@
+/* ============================================================
+   Dashboard — merged from Dashboard Redesign 1a + 1b.
+   Design token names aliased onto the app's real tokens on .dash
+   so it tracks light/dark. Class names prefixed / chosen to avoid
+   colliding with the global .card / .link utilities.
+   ============================================================ */
+
+.dash {
+    --elev: var(--color-surface-elevated);
+    --surf: var(--color-surface);
+    --sunk: var(--color-surface-sunken);
+    --bd: var(--color-border);
+    --bds: var(--color-border-subtle);
+    --tp: var(--color-text-primary);
+    --ts: var(--color-text-secondary);
+    --tt: var(--color-text-tertiary);
+    --acc: var(--color-primary-600);
+    --acc2: var(--color-primary-700);
+    --acc50: var(--color-primary-50);
+    --acc100: var(--color-primary-100);
+    --ok: var(--color-success);
+    --info: var(--color-info);
+    --bad: var(--color-danger);
+    --draft: #9a917f;
+    --violet: #5b53a8;
+    --violet50: #ecebf6;
+
+    display: flex;
+    flex-direction: column;
+    gap: 16px;
+    color: var(--tp);
+}
+:global(html.dark) .dash { --violet: #a29be0; --violet50: #211f38; }
+
+.fx { display: flex; } .ac { align-items: center; } .jb { justify-content: space-between; }
+.f1 { flex: 1; min-width: 0; } .gap8 { gap: 8px; } .gap12 { gap: 12px; } .gap16 { gap: 16px; } .gap24 { gap: 24px; }
+
+.eyb { font: 600 10px 'IBM Plex Mono', monospace; letter-spacing: .14em; text-transform: uppercase; color: var(--tt); }
+.h1 { font: 600 27px/1 Sora, sans-serif; letter-spacing: -.02em; margin-top: 7px; color: var(--tp); }
+
+.btnp { display: inline-flex; align-items: center; gap: 8px; font: 600 13.5px Inter, sans-serif; color: #fff; background: var(--acc); border: none; border-radius: 8px; padding: 10px 16px; text-decoration: none; cursor: pointer; transition: background .15s ease; }
+.btnp:hover { background: var(--acc2); }
+.btng { display: inline-flex; align-items: center; gap: 8px; font: 600 13.5px Inter, sans-serif; color: var(--tp); background: var(--elev); border: 1px solid var(--bd); border-radius: 8px; padding: 10px 16px; text-decoration: none; cursor: pointer; }
+.btnp svg, .btng svg { width: 15px; height: 15px; }
+
+.dcard { background: var(--elev); border: 1px solid var(--bd); border-radius: 12px; transition: transform .16s ease, box-shadow .16s ease; }
+.dcard.lift:hover { transform: translateY(-2px); box-shadow: 0 12px 26px -12px rgba(0,0,0,.16); }
+.chd { display: flex; align-items: center; justify-content: space-between; padding: 14px 18px; border-bottom: 1px solid var(--bds); }
+.ctitle { font: 600 14.5px Sora, sans-serif; color: var(--tp); }
+.dlink { font: 500 12.5px Inter, sans-serif; color: var(--acc); text-decoration: none; }
+.dlink:hover { color: var(--acc2); }
+
+.strip { display: flex; background: var(--elev); border: 1px solid var(--bd); border-radius: 12px; overflow: hidden; }
+.cell { flex: 1; padding: 16px 18px; }
+.cell + .cell { border-left: 1px solid var(--bds); }
+.clab { font: 500 9.5px 'IBM Plex Mono', monospace; letter-spacing: .08em; text-transform: uppercase; color: var(--tt); }
+.cnum { font: 600 25px/1 Sora, sans-serif; letter-spacing: -.01em; margin-top: 10px; color: var(--tp); }
+.cnote { font: 400 11px Inter, sans-serif; color: var(--tt); margin-top: 8px; }
+.trend { display: inline-flex; align-items: center; gap: 3px; font: 600 11px Inter, sans-serif; }
+.tup { color: var(--ok); } .tdn { color: var(--bad); }
+.tnum { font-variant-numeric: tabular-nums; }
+
+.grid16 { display: grid; grid-template-columns: 1.6fr 1fr; gap: 16px; }
+
+.pill { display: inline-flex; align-items: center; gap: 6px; font: 600 10.5px Inter, sans-serif; padding: 3px 9px; border-radius: 20px; }
+.dot { width: 7px; height: 7px; border-radius: 50%; flex: none; }
+.badge { display: inline-flex; align-items: center; gap: 6px; font: 600 11px Inter, sans-serif; }
+
+/* rows */
+.mrow { display: flex; align-items: center; padding: 11px 18px; text-decoration: none; color: var(--tp); }
+.mrow + .mrow { border-top: 1px solid var(--bds); }
+.mrow:hover { background: var(--surf); }
+.mono { font-family: 'IBM Plex Mono', monospace; }
+
+.chaserow { display: flex; align-items: center; gap: 13px; padding: 12px 18px; }
+.chaserow + .chaserow { border-top: 1px solid var(--bds); }
+.cav { width: 34px; height: 34px; border-radius: 9px; display: flex; align-items: center; justify-content: center; font: 600 13px Sora, sans-serif; flex: none; }
+.remind { font: 600 11.5px Inter, sans-serif; color: var(--acc); background: var(--acc50); border: none; border-radius: 7px; padding: 7px 12px; cursor: pointer; white-space: nowrap; text-decoration: none; }
+.remind:hover { background: var(--acc100); }
+.od { font: 600 10.5px 'IBM Plex Mono', monospace; color: var(--bad); background: #f7e4e2; border-radius: 5px; padding: 3px 7px; letter-spacing: .02em; }
+:global(html.dark) .od { background: #3a1a17; }
+
+.estrow { display: flex; align-items: center; gap: 12px; padding: 12px 18px; }
+.estrow + .estrow { border-top: 1px solid var(--bds); }
+
+.actrow { display: flex; gap: 12px; padding: 12px 18px; }
+.actrow + .actrow { border-top: 1px solid var(--bds); }
+.actico { width: 30px; height: 30px; border-radius: 8px; display: flex; align-items: center; justify-content: center; flex: none; }
+.actt { font: 500 13px Inter, sans-serif; color: var(--tp); }
+.actm { font: 400 11.5px 'IBM Plex Mono', monospace; color: var(--tt); margin-top: 2px; letter-spacing: .01em; text-transform: uppercase; }
+
+.qrtile { width: 104px; height: 104px; flex: none; background: #fff; border: 1px solid var(--bds); border-radius: 11px; display: flex; align-items: center; justify-content: center; padding: 9px; }
+.chip { display: inline-flex; align-items: center; gap: 6px; font: 500 11.5px Inter, sans-serif; color: var(--ts); background: var(--surf); border: 1px solid var(--bds); border-radius: 20px; padding: 5px 11px; }
+
+.chmonths { display: flex; margin-top: 8px; }
+.chmonths span { flex: 1; text-align: center; font: 500 10px 'IBM Plex Mono', monospace; color: var(--tt); }
+
+.rev-svg { width: 100%; height: 200px; display: block; }
+
+/* segmented Trend / Cash flow toggle */
+.seg { display: flex; background: var(--surf); border: 1px solid var(--bd); border-radius: 9px; padding: 2px; gap: 2px; }
+.segb { font: 600 11.5px Inter, sans-serif; color: var(--ts); padding: 6px 12px; border-radius: 7px; border: none; background: transparent; cursor: pointer; }
+.segb.on { background: var(--elev); color: var(--acc); box-shadow: 0 1px 2px rgba(16,24,40,.08); }
+.leg { display: inline-flex; align-items: center; gap: 6px; font: 500 11.5px Inter, sans-serif; color: var(--ts); }
+.legsq { width: 10px; height: 10px; border-radius: 3px; }
+
+/* top clients */
+.clientrow { display: flex; align-items: center; gap: 12px; padding: 11px 18px; text-decoration: none; color: var(--tp); }
+.clientrow + .clientrow { border-top: 1px solid var(--bds); }
+.clientrow:hover { background: var(--surf); }
+.cbar { height: 4px; border-radius: 3px; background: var(--acc); margin-top: 6px; }
+
+/* set-up-payments empty state for the collect card */
+.setup { padding: 18px; }
+.setup-ico { width: 40px; height: 40px; border-radius: 11px; background: var(--acc50); color: var(--acc); display: flex; align-items: center; justify-content: center; }
+
+@keyframes dgrow { from { transform: scaleY(0); } to { transform: scaleY(1); } }
+
+@keyframes dfu { from { opacity: 0; transform: translateY(14px); } to { opacity: 1; transform: translateY(0); } }
+.fu { animation: dfu .5s cubic-bezier(.2,.7,.2,1) both; }
+@keyframes ddraw { to { stroke-dashoffset: 0; } }
+
+@media (prefers-reduced-motion: reduce) {
+    .fu { animation: none; }
+    .rev-svg path { animation: none !important; stroke-dashoffset: 0 !important; }
+}
+
+@media (max-width: 900px) {
+    .grid16 { grid-template-columns: 1fr; }
+    .strip { flex-direction: column; }
+    .cell + .cell { border-left: none; border-top: 1px solid var(--bds); }
+}

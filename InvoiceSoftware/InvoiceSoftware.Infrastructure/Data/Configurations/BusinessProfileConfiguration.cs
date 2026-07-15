@@ -12,6 +12,8 @@ public class BusinessProfileConfiguration : IEntityTypeConfiguration<BusinessPro
 
         builder.HasKey(bp => bp.Id);
 
+        builder.Property(bp => bp.CashBalance).HasPrecision(18, 2);
+
         builder.Property(bp => bp.UserId)
             .HasMaxLength(450)
             .IsRequired();

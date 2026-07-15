@@ -1,0 +1,342 @@
+@page "/cash-flow"
+@attribute [Authorize]
+@implements IDisposable
+@inject ICall<GetCashFlowProjection, CashFlowProjectionDto> GetProjectionCall
+@inject ICall<UpdateCashBalance> UpdateBalanceCall
+@inject ReportingCurrencyState Reporting
+
+<PageTitle>Cash flow - InvoicePro</PageTitle>
+
+<div class="space-y-6">
+    <PageHeader Title="Cash flow"
+                Description="Your runway, forecast and who's about to pay — predicted from your own history."
+                Breadcrumbs="@_breadcrumbs" />
+
+    @if (_isLoading)
+    {
+        <div class="flex justify-center py-24"><LoadingSpinner /></div>
+    }
+    else if (_data is null)
+    {
+        <div class="card p-16 text-center text-gray-500 dark:text-slate-400">Couldn't load the forecast. Try again.</div>
+    }
+    else
+    {
+        <!-- KPI row -->
+        <div class="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-4">
+            <!-- Runway -->
+            <div class="card p-6 bg-gradient-to-br from-primary-500 to-primary-600 text-white">
+                <div class="text-xs font-medium text-primary-100 uppercase tracking-wide">Runway</div>
+                <div class="mt-2 text-3xl font-bold">@RunwayHeadline()</div>
+                <div class="mt-1 text-sm text-primary-100">@RunwaySub()</div>
+            </div>
+
+            <!-- Current balance (editable) -->
+            <div class="card p-5">
+                <div class="flex items-center justify-between">
+                    <div class="text-xs font-medium text-gray-500 dark:text-slate-400 uppercase tracking-wide">Cash balance</div>
+                    @if (!_editingBalance)
+                    {
+                        <button @onclick="StartEditBalance" class="text-xs text-primary-600 dark:text-primary-400 hover:underline">Edit</button>
+                    }
+                </div>
+                @if (_editingBalance)
+                {
+                    <div class="mt-2 flex items-center gap-2">
+                        <input type="number" step="0.01" @bind="_balanceInput" @bind:event="oninput"
+                               class="form-control w-full py-1.5 text-lg font-semibold" placeholder="0.00" />
+                    </div>
+                    <div class="mt-2 flex items-center gap-2">
+                        <button @onclick="SaveBalanceAsync" disabled="@_savingBalance"
+                                class="px-3 py-1.5 text-xs font-medium text-white bg-primary-600 hover:bg-primary-700 rounded-lg disabled:opacity-50">Save</button>
+                        <button @onclick="() => _editingBalance = false" class="px-3 py-1.5 text-xs font-medium text-gray-600 dark:text-slate-300 hover:underline">Cancel</button>
+                    </div>
+                }
+                else
+                {
+                    <div class="mt-2 text-2xl font-bold text-gray-900 dark:text-slate-100">@(_data.HasBalance ? Money(_data.CurrentBalance) : "—")</div>
+                    <div class="mt-1 text-xs text-gray-500 dark:text-slate-400">
+                        @if (_data.HasBalance && _data.BalanceAsOf is { } asOf)
+                        {
+                            <span>Set @asOf.ToString("d MMM"), rolled forward</span>
+                        }
+                        else
+                        {
+                            <span>Set your balance for runway</span>
+                        }
+                    </div>
+                }
+            </div>
+
+            <!-- Monthly burn -->
+            <div class="card p-5">
+                <div class="text-xs font-medium text-gray-500 dark:text-slate-400 uppercase tracking-wide">Monthly spend</div>
+                <div class="mt-2 text-2xl font-bold text-red-600 dark:text-red-400">@Money(_data.MonthlyOutflow)</div>
+                <div class="mt-1 text-xs text-gray-500 dark:text-slate-400">Avg of last 90 days</div>
+            </div>
+
+            <!-- Expected in 30d -->
+            <div class="card p-5">
+                <div class="text-xs font-medium text-gray-500 dark:text-slate-400 uppercase tracking-wide">Expected in · 30 days</div>
+                <div class="mt-2 text-2xl font-bold text-emerald-600 dark:text-emerald-400">@Money(_data.ExpectedInflow30)</div>
+                <div class="mt-1 text-xs text-gray-500 dark:text-slate-400">Predicted payments</div>
+            </div>
+        </div>
+
+        @if (!_data.HasBalance)
+        {
+            <div class="card p-4 flex flex-col sm:flex-row sm:items-center gap-3 justify-between bg-primary-50/60 dark:bg-primary-900/20 border-primary-100 dark:border-primary-900/40">
+                <div class="text-sm text-gray-700 dark:text-slate-300">
+                    <span class="font-medium">Add your current bank balance</span> to unlock the runway forecast — the projection below assumes a £0 starting point until you do.
+                </div>
+                <button @onclick="StartEditBalance" class="shrink-0 px-4 py-2 text-sm font-medium text-white bg-primary-600 hover:bg-primary-700 rounded-xl">Set balance</button>
+            </div>
+        }
+
+        <!-- Forecast chart -->
+        <Card Title="@($"{_data.Projection.Count - 1}-day forecast")" Description="Projected balance: predicted payments in, average spending out.">
+            <div style="padding:4px 4px 0">
+                <ApexChart TItem="CashProjectionPointDto" @key="_renderKey" Options="_chartOptions" Height="300">
+                    <ApexPointSeries TItem="CashProjectionPointDto" Items="_data.Projection" Name="Projected balance" SeriesType="SeriesType.Area"
+                                     XValue="@(p => p.Date.ToString("yyyy-MM-dd"))" YValue="@(p => p.Balance)" />
+                </ApexChart>
+            </div>
+        </Card>
+
+        <!-- Expected payments -->
+        <Card Title="Expected payments" Description="When each unpaid invoice is likely to actually land, based on the client's track record.">
+            @if (_data.ExpectedPayments.Any())
+            {
+                <div class="overflow-x-auto -mx-1">
+                    <table class="w-full text-sm">
+                        <thead>
+                            <tr class="text-left text-xs font-semibold text-gray-500 dark:text-slate-400 uppercase tracking-wide border-b border-gray-100 dark:border-slate-700">
+                                <th class="py-2 pr-3">Invoice</th>
+                                <th class="py-2 px-3">Client</th>
+                                <th class="py-2 px-3 text-right">Amount</th>
+                                <th class="py-2 px-3">Due</th>
+                                <th class="py-2 px-3">Predicted</th>
+                                <th class="py-2 pl-3 text-right">Action</th>
+                            </tr>
+                        </thead>
+                        <tbody>
+                            @foreach (var p in _data.ExpectedPayments)
+                            {
+                                <tr class="border-b border-gray-50 dark:border-slate-700/50 last:border-0">
+                                    <td class="py-2.5 pr-3">
+                                        <a href="invoices/@p.InvoiceId" class="font-medium text-gray-900 dark:text-slate-100 hover:text-primary-600">@p.InvoiceNumber</a>
+                                    </td>
+                                    <td class="py-2.5 px-3">
+                                        <div class="flex items-center gap-2">
+                                            <span class="truncate max-w-[140px] text-gray-700 dark:text-slate-300">@p.ClientName</span>
+                                            <span class="px-1.5 py-0.5 text-[10px] font-semibold rounded-full @ScoreClass(p.ClientScore)">@p.ClientScore</span>
+                                        </div>
+                                    </td>
+                                    <td class="py-2.5 px-3 text-right tabular-nums font-medium text-gray-900 dark:text-slate-100">@Money(p.Amount)</td>
+                                    <td class="py-2.5 px-3 tabular-nums @(p.IsOverdue ? "text-red-600 dark:text-red-400" : "text-gray-500 dark:text-slate-400")">@p.DueDate.ToString("d MMM")</td>
+                                    <td class="py-2.5 px-3">
+                                        <div class="flex items-center gap-2">
+                                            <span class="tabular-nums text-gray-800 dark:text-slate-200">@p.PredictedDate.ToString("d MMM")</span>
+                                            @if (p.DaysLatePredicted > 0)
+                                            {
+                                                <span class="text-[11px] text-amber-600 dark:text-amber-400">+@p.DaysLatePredicted d</span>
+                                            }
+                                            <span class="px-1.5 py-0.5 text-[10px] font-medium rounded-full @ConfidenceClass(p.Confidence)" title="Prediction confidence">@p.Confidence</span>
+                                        </div>
+                                    </td>
+                                    <td class="py-2.5 pl-3 text-right">
+                                        @if (p.IsOverdue || p.DaysLatePredicted > 0)
+                                        {
+                                            <a href="invoices/@p.InvoiceId" class="text-xs font-medium text-primary-600 dark:text-primary-400 hover:underline">Chase</a>
+                                        }
+                                    </td>
+                                </tr>
+                            }
+                        </tbody>
+                    </table>
+                </div>
+            }
+            else
+            {
+                <div class="flex items-center justify-center h-28 text-sm text-gray-500 dark:text-slate-400">No unpaid invoices — nothing to forecast.</div>
+            }
+        </Card>
+
+        <!-- Client reliability -->
+        <Card Title="Client payment reliability" Description="Who pays on time and who drags — learned from every invoice you've been paid.">
+            @if (_data.ClientReliability.Any())
+            {
+                <div class="grid grid-cols-1 md:grid-cols-2 gap-x-8 gap-y-1">
+                    @foreach (var c in _data.ClientReliability)
+                    {
+                        <div class="flex items-center justify-between py-2.5 border-b border-gray-50 dark:border-slate-700/50">
+                            <div class="min-w-0">
+                                <a href="clients/@c.ClientId" class="font-medium text-gray-900 dark:text-slate-100 hover:text-primary-600 truncate">@c.ClientName</a>
+                                <div class="text-xs text-gray-500 dark:text-slate-400">
+                                    @if (c.SampleSize < 2)
+                                    {
+                                        <span>Not enough history yet</span>
+                                    }
+                                    else
+                                    {
+                                        <span>@(c.AvgDaysLate <= 0 ? $"{Math.Abs(c.AvgDaysLate):0.#}d early" : $"{c.AvgDaysLate:0.#}d late") on avg · @((c.OnTimeRate * 100).ToString("0"))% on time · @c.SampleSize paid</span>
+                                    }
+                                </div>
+                            </div>
+                            <span class="shrink-0 px-2 py-1 text-[11px] font-semibold rounded-full @ScoreClass(c.Score)">@c.Score</span>
+                        </div>
+                    }
+                </div>
+            }
+            else
+            {
+                <div class="flex items-center justify-center h-28 text-sm text-gray-500 dark:text-slate-400">No payment history yet — reliability appears once invoices get paid.</div>
+            }
+        </Card>
+    }
+</div>
+
+@code {
+    private CashFlowProjectionDto? _data;
+    private bool _isLoading = true;
+    private int _renderKey;
+
+    private bool _editingBalance;
+    private decimal _balanceInput;
+    private bool _savingBalance;
+
+    private ApexChartOptions<CashProjectionPointDto> _chartOptions = new();
+
+    private readonly List<PageHeader.BreadcrumbItem> _breadcrumbs = new()
+    {
+        new() { Label = "Cash flow", Href = "cash-flow" }
+    };
+
+    protected override async Task OnInitializedAsync()
+    {
+        Reporting.OnChange += OnReportingChanged;
+        await Reporting.InitializeAsync();
+        await LoadAsync();
+    }
+
+    private void OnReportingChanged() => _ = ReloadFromEvent();
+    private async Task ReloadFromEvent() { await LoadAsync(); await InvokeAsync(StateHasChanged); }
+
+    private async Task LoadAsync()
+    {
+        _isLoading = true;
+        StateHasChanged();
+        try
+        {
+            _data = await GetProjectionCall.Call(new GetCashFlowProjection { ReportingCurrency = Reporting.Currency });
+            if (_data is not null)
+            {
+                _balanceInput = _data.CurrentBalance;
+                BuildChart();
+                _renderKey++;
+            }
+        }
+        catch
+        {
+            _data = null;
+        }
+        finally
+        {
+            _isLoading = false;
+        }
+    }
+
+    private void StartEditBalance()
+    {
+        _balanceInput = _data?.CurrentBalance ?? 0;
+        _editingBalance = true;
+    }
+
+    private async Task SaveBalanceAsync()
+    {
+        _savingBalance = true;
+        try
+        {
+            await UpdateBalanceCall.Call(new UpdateCashBalance { Balance = _balanceInput });
+            _editingBalance = false;
+            await LoadAsync();
+        }
+        catch { }
+        finally { _savingBalance = false; }
+    }
+
+    private void BuildChart()
+    {
+        if (_data is null) return;
+        var sym = CurrencyExtensions.GetSymbol(_data.Currency);
+        _chartOptions = new ApexChartOptions<CashProjectionPointDto>
+        {
+            Chart = new Chart { Toolbar = new Toolbar { Show = false }, Background = "transparent", FontFamily = "Inter, ui-sans-serif, sans-serif", Zoom = new Zoom { Enabled = false } },
+            Colors = new List<string> { "#0e7d88" },
+            DataLabels = new DataLabels { Enabled = false },
+            Stroke = new Stroke { Curve = Curve.Smooth, Width = 2.5 },
+            Fill = new Fill
+            {
+                Type = FillType.Gradient,
+                Gradient = new FillGradient { ShadeIntensity = 1, OpacityFrom = 0.35, OpacityTo = 0.03, Stops = new List<double> { 0, 90, 100 } }
+            },
+            Grid = new Grid { BorderColor = "rgba(148,163,184,0.16)", StrokeDashArray = 4, Padding = new Padding { Left = 4, Right = 8 } },
+            Legend = new Legend { Show = false },
+            Tooltip = new ApexCharts.Tooltip { X = new TooltipX { Format = "dd MMM" }, Y = new TooltipY { Formatter = CurrencyFmt(sym) } },
+            Xaxis = new XAxis
+            {
+                Type = XAxisType.Datetime,
+                AxisBorder = new AxisBorder { Show = false },
+                AxisTicks = new AxisTicks { Show = false },
+                Labels = new XAxisLabels { Style = new AxisLabelStyle { FontSize = "11px", Colors = "#94a3b8" }, Format = "dd MMM" }
+            },
+            Yaxis = new List<YAxis> { new YAxis { Labels = new YAxisLabels { Style = new AxisLabelStyle { FontSize = "11px", Colors = "#94a3b8" }, Formatter = ShortCurrencyFmt(sym) } } }
+        };
+    }
+
+    private string RunwayHeadline()
+    {
+        if (_data is null) return "—";
+        if (!_data.HasBalance) return "Set balance";
+        if (_data.RunwayDays < 0) return "Healthy";
+        var months = _data.RunwayDays / 30.0;
+        return months >= 1 ? $"{months:0.#} mo" : $"{_data.RunwayDays} days";
+    }
+
+    private string RunwaySub()
+    {
+        if (_data is null) return "";
+        if (!_data.HasBalance) return "Add your cash balance";
+        if (_data.RunwayDays < 0) return "Not trending to zero";
+        return _data.ZeroDate is { } z ? $"Runs dry ~{z:d MMM yyyy}" : "At current burn";
+    }
+
+    private string Money(decimal v)
+    {
+        var sym = CurrencyExtensions.GetSymbol(_data?.Currency ?? Reporting.Currency);
+        return $"{sym}{v:N2}";
+    }
+
+    private static string ScoreClass(string score) => score switch
+    {
+        "Reliable" => "bg-emerald-100 text-emerald-700 dark:bg-emerald-900/30 dark:text-emerald-400",
+        "Slow" => "bg-amber-100 text-amber-700 dark:bg-amber-900/30 dark:text-amber-400",
+        "Risky" => "bg-red-100 text-red-700 dark:bg-red-900/30 dark:text-red-400",
+        _ => "bg-gray-100 text-gray-600 dark:bg-slate-700 dark:text-slate-400"
+    };
+
+    private static string ConfidenceClass(string c) => c switch
+    {
+        "High" => "bg-emerald-50 text-emerald-600 dark:bg-emerald-900/20 dark:text-emerald-400",
+        "Medium" => "bg-amber-50 text-amber-600 dark:bg-amber-900/20 dark:text-amber-400",
+        _ => "bg-gray-100 text-gray-500 dark:bg-slate-700 dark:text-slate-400"
+    };
+
+    private static string CurrencyFmt(string sym)
+        => $"function (v) {{ return '{sym}' + (v ?? 0).toLocaleString(undefined, {{ minimumFractionDigits: 2, maximumFractionDigits: 2 }}); }}";
+
+    private static string ShortCurrencyFmt(string sym)
+        => $"function (v) {{ if (v <= -1000 || v >= 1000) {{ return '{sym}' + (v/1000).toFixed(1) + 'k'; }} return '{sym}' + Math.round(v); }}";
+
+    public void Dispose() => Reporting.OnChange -= OnReportingChanged;
+}

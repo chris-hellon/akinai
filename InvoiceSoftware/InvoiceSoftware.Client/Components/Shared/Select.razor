@@ -1,0 +1,209 @@
+@typeparam TValue
+@using System.Linq.Expressions
+
+@* Custom searchable select — mobile-friendly (bottom sheet on small screens), keyboard accessible. *@
+<div class="isel @(Disabled ? "isel--disabled" : "") @(_open ? "isel--open" : "") @Class">
+    <button type="button" class="isel-trigger" @ref="_triggerRef" @onclick="Toggle" @onkeydown="OnTriggerKey"
+            disabled="@Disabled" aria-haspopup="listbox" aria-expanded="@_open">
+        <span class="isel-value @(_selected is null ? "isel-value--placeholder" : "")">@(_selected?.Label ?? Placeholder)</span>
+        <svg class="isel-caret" width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
+            <path stroke-linecap="round" stroke-linejoin="round" d="M6 9l6 6 6-6" />
+        </svg>
+    </button>
+
+    @if (_open)
+    {
+        <div class="isel-backdrop" @onclick="Close"></div>
+        <div class="isel-panel" role="listbox" @ref="_panelRef">
+            @if (_searchable)
+            {
+                <div class="isel-search">
+                    <svg width="15" height="15" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
+                        <circle cx="11" cy="11" r="7" /><path stroke-linecap="round" d="M21 21l-4.3-4.3" />
+                    </svg>
+                    <input @ref="_searchRef" class="isel-search-input" placeholder="@SearchPlaceholder"
+                           value="@_query" @oninput="OnSearchInput" @onkeydown="OnListKey" autocomplete="off" />
+                </div>
+            }
+            <div class="isel-options">
+                @if (_filtered.Count == 0)
+                {
+                    <div class="isel-empty">@EmptyText</div>
+                }
+                else
+                {
+                    @for (var i = 0; i < _filtered.Count; i++)
+                    {
+                        var opt = _filtered[i];
+                        var idx = i;
+                        <button type="button"
+                                class="isel-option @(IsSelected(opt) ? "isel-option--selected" : "") @(idx == _highlight ? "isel-option--active" : "")"
+                                disabled="@opt.Disabled"
+                                @onclick="() => Choose(opt)"
+                                @onmouseenter="() => _highlight = idx">
+                            <span class="isel-option-main">
+                                <span class="isel-option-label">@opt.Label</span>
+                                @if (!string.IsNullOrEmpty(opt.Description))
+                                {
+                                    <span class="isel-option-desc">@opt.Description</span>
+                                }
+                            </span>
+                            @if (IsSelected(opt))
+                            {
+                                <svg class="isel-check" width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5">
+                                    <path stroke-linecap="round" stroke-linejoin="round" d="M5 13l4 4L19 7" />
+                                </svg>
+                            }
+                        </button>
+                    }
+                }
+            </div>
+        </div>
+    }
+</div>
+
+@code {
+    [Parameter] public TValue Value { get; set; } = default!;
+    [Parameter] public EventCallback<TValue> ValueChanged { get; set; }
+    [Parameter] public Expression<Func<TValue>>? ValueExpression { get; set; }
+
+    [Parameter] public IReadOnlyList<SelectOption<TValue>> Options { get; set; } = Array.Empty<SelectOption<TValue>>();
+    [Parameter] public string Placeholder { get; set; } = "Select...";
+    [Parameter] public string SearchPlaceholder { get; set; } = "Search...";
+    [Parameter] public string EmptyText { get; set; } = "No results";
+    /// <summary>Force the search box on/off. When null, it shows automatically once there are more than <see cref="SearchThreshold"/> options.</summary>
+    [Parameter] public bool? Searchable { get; set; }
+    [Parameter] public int SearchThreshold { get; set; } = 7;
+    [Parameter] public bool Disabled { get; set; }
+    /// <summary>Extra CSS classes on the root element (e.g. width utilities for filter dropdowns).</summary>
+    [Parameter] public string? Class { get; set; }
+
+    [CascadingParameter] private EditContext? EditContext { get; set; }
+
+    private bool _open;
+    private string _query = "";
+    private int _highlight = -1;
+    private ElementReference _searchRef;
+    private ElementReference _triggerRef;
+    private ElementReference _panelRef;
+    private bool _focusSearch;
+    private bool _positioned;
+    private SelectOption<TValue>? _selected;
+    private List<SelectOption<TValue>> _filtered = new();
+
+    private bool _searchable => Searchable ?? Options.Count > SearchThreshold;
+
+    protected override void OnParametersSet()
+    {
+        _selected = Options.FirstOrDefault(o => SameValue(o.Value, Value));
+        if (!_open) ApplyFilter();
+    }
+
+    private static bool SameValue(TValue a, TValue b) => EqualityComparer<TValue>.Default.Equals(a, b);
+    private bool IsSelected(SelectOption<TValue> o) => SameValue(o.Value, Value);
+
+    private void ApplyFilter()
+    {
+        if (string.IsNullOrWhiteSpace(_query))
+        {
+            _filtered = Options.ToList();
+        }
+        else
+        {
+            _filtered = Options.Where(o =>
+                o.Label.Contains(_query, StringComparison.OrdinalIgnoreCase) ||
+                (o.Description?.Contains(_query, StringComparison.OrdinalIgnoreCase) ?? false)).ToList();
+        }
+    }
+
+    private async Task Toggle()
+    {
+        if (Disabled) return;
+        if (_open) await Close(); else Open();
+    }
+
+    private void Open()
+    {
+        _open = true;
+        _query = "";
+        ApplyFilter();
+        _highlight = _filtered.FindIndex(o => SameValue(o.Value, Value));
+        _focusSearch = true;
+    }
+
+    private async Task Close()
+    {
+        _open = false;
+        _highlight = -1;
+        if (_positioned)
+        {
+            _positioned = false;
+            try { await Js.InvokeVoidAsync("floatingPanel.detach", _panelRef); } catch { /* ignore */ }
+        }
+    }
+
+    protected override async Task OnAfterRenderAsync(bool firstRender)
+    {
+        if (_open && !_positioned)
+        {
+            _positioned = true;
+            try { await Js.InvokeVoidAsync("floatingPanel.attach", _triggerRef, _panelRef, true); } catch { /* ignore */ }
+        }
+        if (_focusSearch && _searchable)
+        {
+            _focusSearch = false;
+            try { await _searchRef.FocusAsync(); } catch { /* element gone */ }
+        }
+    }
+
+    private void OnSearchInput(ChangeEventArgs e)
+    {
+        _query = e.Value?.ToString() ?? "";
+        ApplyFilter();
+        _highlight = _filtered.Count > 0 ? 0 : -1;
+    }
+
+    private async Task Choose(SelectOption<TValue> opt)
+    {
+        if (opt.Disabled) return;
+        Value = opt.Value;
+        _selected = opt;
+        await ValueChanged.InvokeAsync(opt.Value);
+        NotifyEdit();
+        await Close();
+    }
+
+    private void NotifyEdit()
+    {
+        if (EditContext is not null && ValueExpression is not null)
+        {
+            EditContext.NotifyFieldChanged(FieldIdentifier.Create(ValueExpression));
+        }
+    }
+
+    private async Task OnTriggerKey(KeyboardEventArgs e)
+    {
+        if (Disabled) return;
+        if (e.Key == "ArrowDown" && !_open) Open();
+        else if (e.Key == "Escape" && _open) await Close();
+    }
+
+    private async Task OnListKey(KeyboardEventArgs e)
+    {
+        switch (e.Key)
+        {
+            case "ArrowDown":
+                if (_filtered.Count > 0) _highlight = (_highlight + 1) % _filtered.Count;
+                break;
+            case "ArrowUp":
+                if (_filtered.Count > 0) _highlight = (_highlight - 1 + _filtered.Count) % _filtered.Count;
+                break;
+            case "Enter":
+                if (_highlight >= 0 && _highlight < _filtered.Count) await Choose(_filtered[_highlight]);
+                break;
+            case "Escape":
+                Close();
+                break;
+        }
+    }
+}

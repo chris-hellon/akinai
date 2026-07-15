@@ -13,8 +13,8 @@ public class InvoiceTemplate : AggregateRoot, IAuditableEntity
     public bool IsSystem { get; private set; }
     public InvoiceTemplateType TemplateType { get; private set; }
 
-    public string PrimaryColor { get; private set; } = "#4F46E5"; // Indigo
-    public string AccentColor { get; private set; } = "#6366F1";
+    public string PrimaryColor { get; private set; } = "#0e5c66"; // Indigo
+    public string AccentColor { get; private set; } = "#059669";
     public string TextColor { get; private set; } = "#1F2937";
     public string BackgroundColor { get; private set; } = "#FFFFFF";
 

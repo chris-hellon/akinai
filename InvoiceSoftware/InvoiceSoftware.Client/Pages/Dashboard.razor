@@ -1,287 +1,727 @@
 @page "/dashboard"
 @attribute [Authorize]
+@implements IDisposable
 @inject ICall<GetDashboardMetrics, DashboardMetricsDto> GetMetricsCall
-@inject ICall<GetInvoiceStatusBreakdown, InvoiceStatusBreakdownDto> GetStatusBreakdownCall
-@inject ICall<GetTopClients, List<TopClientDto>> GetTopClientsCall
 @inject ICall<GetRevenueChart, RevenueChartDataDto> GetRevenueChartCall
+@inject ICall<GetInvoiceStatusBreakdown, InvoiceStatusBreakdownDto> GetStatusBreakdownCall
+@inject ICall<GetCashFlowForecast, CashFlowForecastDto> GetCashFlowCall
 @inject ICall<GetInvoices, PaginatedResponse<InvoiceSummaryDto>> GetInvoicesCall
 @inject ICall<GetEstimates, PaginatedResponse<EstimateSummaryDto>> GetEstimatesCall
+@inject ICall<GetTopClients, List<TopClientDto>> GetTopClientsCall
+@inject ICall<GetBusinessProfile, BusinessProfileDto?> GetBusinessProfileCall
+@inject NotificationState Activity
+@inject ReportingCurrencyState Reporting
 
 <PageTitle>Dashboard - InvoicePro</PageTitle>
 
-<div class="max-w-[1180px]">
+<div class="dash">
     <!-- Header -->
-    <div class="flex flex-col sm:flex-row sm:items-end sm:justify-between gap-4 mb-7">
+    <div class="fx ac jb fu" style="flex-wrap:wrap;gap:12px">
         <div>
-            <div class="font-mono text-[11px] uppercase tracking-wider text-gray-400 dark:text-slate-500 mb-1.5">@DateTime.Now.ToString("dddd, d MMMM")</div>
-            <h1 class="font-display text-3xl font-semibold tracking-tight text-gray-900 dark:text-slate-100">Good @GetGreeting()</h1>
+            <div class="eyb">@DateTime.Now.ToString("dddd · d MMMM yyyy")</div>
+            <div class="h1">Good @GetGreeting()</div>
         </div>
-        <div class="flex items-center gap-2">
-            <a href="estimates/new" class="btn-secondary">New Estimate</a>
-            <a href="invoices/new" class="btn-primary">
-                <svg class="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                    <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M12 6v6m0 0v6m0-6h6m-6 0H6" />
-                </svg>
-                Create Invoice
+        <div class="fx ac gap12">
+            <a class="btng" href="estimates/new">New estimate</a>
+            <a class="btnp" href="invoices/new"><svg fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2.4" d="M12 5v14M5 12h14"></path></svg>Create invoice</a>
+        </div>
+    </div>
+
+    <!-- Stat strip -->
+    <div class="strip fu" style="animation-delay:.04s">
+        <div class="cell">
+            <div class="clab">Paid · this month</div>
+            <div class="cnum tnum" style="color:var(--ok)">@Money(_metrics?.PaidRevenue ?? 0)</div>
+            <div class="cnote">
+                @if (_paidTrendPct is { } pct)
+                {
+                    <span class="trend @(pct >= 0 ? "tup" : "tdn")">@(pct >= 0 ? "▲" : "▼") @Math.Abs(pct).ToString("0.#")%</span> <span> vs last month</span>
+                }
+                else
+                {
+                    <span>Revenue collected</span>
+                }
+            </div>
+        </div>
+        <div class="cell">
+            <div class="clab">Outstanding</div>
+            <div class="cnum tnum">@Money(_metrics?.OutstandingAmount ?? 0)</div>
+            <div class="cnote tnum">@(_metrics?.OutstandingInvoices ?? 0) invoices awaiting</div>
+        </div>
+        <div class="cell">
+            <div class="clab">Overdue</div>
+            <div class="cnum tnum" style="color:var(--bad)">@Money(_metrics?.OverdueAmount ?? 0)</div>
+            <div class="cnote tnum">@(_metrics?.OverdueInvoices ?? 0) past due · chase below</div>
+        </div>
+        <div class="cell">
+            <div class="clab">Unbilled time</div>
+            <div class="cnum tnum">@((_metrics?.UnbilledHours ?? 0).ToString("0.#"))<span style="font-size:16px;color:var(--tt)">h</span></div>
+            <div class="cnote">≈ @Money(_metrics?.UnbilledAmount ?? 0) ready to bill</div>
+        </div>
+    </div>
+
+    <!-- Revenue + Collect -->
+    <div class="grid16">
+        <div class="dcard lift fu" style="animation-delay:.08s">
+            <div class="chd">
+                <div><div class="ctitle">Revenue</div><div class="clab" style="margin-top:4px">Trailing 12 months</div></div>
+                <div class="fx ac gap12">
+                    <div class="seg">
+                        <button class="segb @(_chartView == "trend" ? "on" : "")" @onclick='() => _chartView = "trend"'>Trend</button>
+                        <button class="segb @(_chartView == "cash" ? "on" : "")" @onclick='() => _chartView = "cash"'>Cash flow</button>
+                        <button class="segb @(_chartView == "pnl" ? "on" : "")" @onclick='() => _chartView = "pnl"'>P&amp;L</button>
+                    </div>
+                    <span class="tnum" style="font:600 20px Sora,sans-serif">@Money(_revenueTotal)</span>
+                </div>
+            </div>
+            <div style="padding:10px 12px 6px">
+                @if (_revenue is { DataPoints.Count: > 1 })
+                {
+                    <ApexChart TItem="RevenueDataPoint" @ref="_revenueChart" @key="_chartView"
+                               Options="@(_chartView == "pnl" ? _pnlOptions : _chartView == "cash" ? _cashOptions : _chartOptions)" Height="235">
+                        @if (_chartView == "pnl")
+                        {
+                            <ApexPointSeries TItem="RevenueDataPoint" Items="_revenue.DataPoints" Name="Revenue" SeriesType="SeriesType.Bar" XValue="@(p => p.Label)" YValue="@(p => p.Revenue)" />
+                            <ApexPointSeries TItem="RevenueDataPoint" Items="_revenue.DataPoints" Name="Expenses" SeriesType="SeriesType.Bar" XValue="@(p => p.Label)" YValue="@(p => p.Expenses)" />
+                            <ApexPointSeries TItem="RevenueDataPoint" Items="_revenue.DataPoints" Name="Profit" SeriesType="SeriesType.Bar" XValue="@(p => p.Label)" YValue="@(p => p.Profit)" />
+                        }
+                        else if (_chartView == "cash")
+                        {
+                            <ApexPointSeries TItem="RevenueDataPoint" Items="_revenue.DataPoints" Name="Collected" SeriesType="SeriesType.Bar" XValue="@(p => p.Label)" YValue="@(p => p.Revenue)" />
+                        }
+                        else
+                        {
+                            <ApexPointSeries TItem="RevenueDataPoint" Items="_revenue.DataPoints" Name="Revenue" SeriesType="SeriesType.Area" XValue="@(p => p.Label)" YValue="@(p => p.Revenue)" />
+                        }
+                    </ApexChart>
+                }
+                else
+                {
+                    <div class="fx ac" style="justify-content:center;height:235px;color:var(--tt);font-size:13px">No revenue data yet</div>
+                }
+            </div>
+        </div>
+
+        <!-- Collect faster — driven by the user's real payment settings -->
+        <div class="dcard lift fu" style="animation-delay:.12s;display:flex;flex-direction:column">
+            <div class="chd">
+                <div class="ctitle">Collect faster</div>
+                @if (_hasVietQr)
+                {
+                    <span class="pill" style="color:var(--acc);background:var(--acc50)"><span class="dot" style="background:var(--acc)"></span>VietQR</span>
+                }
+                else if (_hasAnyPayment)
+                {
+                    <span class="pill" style="color:var(--acc);background:var(--acc50)"><span class="dot" style="background:var(--acc)"></span>Enabled</span>
+                }
+            </div>
+
+            @if (!_paymentsLoaded)
+            {
+                <div style="padding:16px 18px;height:120px"></div>
+            }
+            else if (!_hasAnyPayment)
+            {
+                <div class="setup">
+                    <div class="fx ac gap12">
+                        <span class="setup-ico"><svg width="19" height="19" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="1.8" d="M3 10h18M3 10l2-5h14l2 5M5 10v9a1 1 0 001 1h12a1 1 0 001-1v-9"></path></svg></span>
+                        <div>
+                            <div style="font:600 14px Inter,sans-serif;color:var(--tp)">No payment methods yet</div>
+                            <div style="font:400 12.5px Inter,sans-serif;color:var(--ts);margin-top:2px">Add bank details, PayPal, Wise, Revolut or VietQR so clients can pay you.</div>
+                        </div>
+                    </div>
+                    <a class="btnp" href="settings/business" style="margin-top:14px;width:100%;justify-content:center">Set up payments</a>
+                </div>
+            }
+            else if (_hasVietQr)
+            {
+                <div style="padding:16px 18px;display:flex;gap:15px;align-items:center;flex-wrap:wrap">
+                    <span class="qrtile">
+                        @if (!string.IsNullOrEmpty(_vietQrImageUrl))
+                        {
+                            <img src="@_vietQrImageUrl" alt="VietQR" style="width:100%;height:100%;object-fit:contain" />
+                        }
+                        else
+                        {
+                            @((MarkupString)QrSvg)
+                        }
+                    </span>
+                    <div style="flex:1;min-width:130px">
+                        <div class="clab">Attach to any VND invoice</div>
+                        <div style="font:600 14.5px Inter,sans-serif;margin-top:7px;line-height:1.35;color:var(--tp)">Scan &amp; pay from any Vietnamese bank</div>
+                        @if (!string.IsNullOrWhiteSpace(_vietQrDetail))
+                        {
+                            <div class="mono" style="font-size:10.5px;margin-top:8px;letter-spacing:.03em;color:var(--tt)">@_vietQrDetail</div>
+                        }
+                    </div>
+                </div>
+                @if (_otherRails.Count > 0)
+                {
+                    <div style="padding:0 18px 12px">
+                        <div class="clab">Also enabled</div>
+                        <div class="fx ac gap8" style="flex-wrap:wrap;margin-top:9px">
+                            @foreach (var rail in _otherRails)
+                            {
+                                <span class="chip">@rail</span>
+                            }
+                        </div>
+                    </div>
+                }
+            }
+            else
+            {
+                <div style="padding:16px 18px">
+                    <div class="clab">Your clients can pay via</div>
+                    <div class="fx ac gap8" style="flex-wrap:wrap;margin-top:11px">
+                        @foreach (var rail in _enabledRails)
+                        {
+                            <span class="chip">@rail</span>
+                        }
+                    </div>
+                    @if (!string.IsNullOrWhiteSpace(_bankDetail))
+                    {
+                        <div class="mono" style="font-size:10.5px;margin-top:12px;letter-spacing:.03em;color:var(--tt)">@_bankDetail</div>
+                    }
+                    <a class="link" href="settings/business" style="display:inline-block;margin-top:12px">Manage payment methods →</a>
+                </div>
+            }
+
+            <a href="estimates" class="fx ac jb" style="margin-top:auto;border-top:1px solid var(--bds);padding:12px 18px;text-decoration:none">
+                <span class="clab">Pending estimates</span>
+                <span class="fx ac gap8"><span class="tnum" style="font:600 17px Sora,sans-serif;color:var(--tp)">@_pendingEstimates.Count</span>@if (_pendingEstimates.Count > 0){<span class="pill" style="color:var(--violet);background:var(--violet50)">@AmountShort(_pendingValue) value</span>}</span>
             </a>
         </div>
     </div>
 
-    <!-- Summary ledger strip -->
-    @if (_isLoading)
-    {
-        <div class="h-[104px] card animate-pulse mb-6"></div>
-    }
-    else if (_metrics != null)
-    {
-        <div class="flex flex-col sm:flex-row card overflow-hidden mb-6">
-            <div class="flex-1 p-5">
-                <div class="font-mono text-[10px] uppercase tracking-[0.07em] text-gray-400 dark:text-slate-500">Paid this month</div>
-                <div class="mt-2.5 font-display text-[27px] leading-none font-semibold tracking-tight tnum text-success">@_currency@_metrics.PaidRevenue.ToString("N0")</div>
-                <div class="mt-2 text-xs text-gray-500 dark:text-slate-400">Revenue collected</div>
-            </div>
-            <div class="flex-1 p-5 border-t sm:border-t-0 sm:border-l border-line-subtle">
-                <div class="font-mono text-[10px] uppercase tracking-[0.07em] text-gray-400 dark:text-slate-500">Outstanding</div>
-                <div class="mt-2.5 font-display text-[27px] leading-none font-semibold tracking-tight tnum text-gray-900 dark:text-slate-100">@_currency@_metrics.OutstandingAmount.ToString("N0")</div>
-                <div class="mt-2 text-xs text-gray-500 dark:text-slate-400 tnum">@_metrics.OutstandingInvoices awaiting payment</div>
-            </div>
-            <div class="flex-1 p-5 border-t sm:border-t-0 sm:border-l border-line-subtle">
-                <div class="font-mono text-[10px] uppercase tracking-[0.07em] text-gray-400 dark:text-slate-500">Overdue</div>
-                <div class="mt-2.5 font-display text-[27px] leading-none font-semibold tracking-tight tnum text-danger">@_currency@_metrics.OverdueAmount.ToString("N0")</div>
-                <div class="mt-2 text-xs text-gray-500 dark:text-slate-400 tnum">@_metrics.OverdueInvoices past due</div>
-            </div>
-            <div class="flex-1 p-5 border-t sm:border-t-0 sm:border-l border-line-subtle">
-                <div class="font-mono text-[10px] uppercase tracking-[0.07em] text-gray-400 dark:text-slate-500">Unbilled time</div>
-                <div class="mt-2.5 font-display text-[27px] leading-none font-semibold tracking-tight tnum text-gray-900 dark:text-slate-100">@_metrics.UnbilledHours.ToString("N1")<span class="text-lg text-gray-400 dark:text-slate-500">h</span></div>
-                <div class="mt-2 text-xs text-gray-500 dark:text-slate-400">Ready to invoice</div>
+    <!-- Money charts: invoice status · collection rate · cash-flow forecast -->
+    <div style="display:grid;grid-template-columns:repeat(auto-fit,minmax(280px,1fr));gap:16px">
+        <!-- Invoice status donut -->
+        <div class="dcard lift fu" style="animation-delay:.10s">
+            <div class="chd"><div class="ctitle">Invoice status</div><div class="clab">By amount</div></div>
+            <div style="padding:6px 10px 12px">
+                @if (_statusSlices.Count > 0)
+                {
+                    <ApexChart TItem="StatusSlice" Options="_donutOptions" Height="250">
+                        <ApexPointSeries TItem="StatusSlice" Items="_statusSlices" Name="Amount" SeriesType="SeriesType.Donut" XValue="@(s => s.Label)" YValue="@(s => s.Amount)" />
+                    </ApexChart>
+                }
+                else
+                {
+                    <div class="fx ac" style="justify-content:center;height:250px;color:var(--tt);font-size:13px">No invoices yet</div>
+                }
             </div>
         </div>
-    }
+
+        <!-- Collection rate gauge -->
+        <div class="dcard lift fu" style="animation-delay:.12s">
+            <div class="chd"><div class="ctitle">Collection rate</div><div class="clab">Paid of billed</div></div>
+            <div style="padding:6px 10px 12px">
+                @if (_hasBilling)
+                {
+                    var frac = Math.Clamp(_collectionRate / 100.0, 0, 1);
+                    var circ = 2 * Math.PI * 80;
+                    var track = circ * 0.75;                       // 270° arc, gap at the bottom
+                    var inv = System.Globalization.CultureInfo.InvariantCulture;
+                    var trackDash = $"{track.ToString(inv)} {(circ - track).ToString(inv)}";
+                    var prog = track * frac;                       // grows from the arc's start tip
+                    var progDash = $"{prog.ToString(inv)} {(circ - prog).ToString(inv)}";
+                    <div class="fx ac" style="position:relative;justify-content:center;height:250px">
+                        <svg viewBox="0 0 200 200" style="width:220px;max-width:100%;height:100%;transform:rotate(135deg)" role="img" aria-label="Collection rate @Math.Round(_collectionRate)%">
+                            <circle cx="100" cy="100" r="80" fill="none" stroke="rgba(148,163,184,0.18)" stroke-width="16" stroke-linecap="round"
+                                    stroke-dasharray="@trackDash" />
+                            <circle cx="100" cy="100" r="80" fill="none" stroke="var(--acc)" stroke-width="16" stroke-linecap="round"
+                                    stroke-dasharray="@progDash" style="transition:stroke-dasharray .6s ease" />
+                        </svg>
+                        <div style="position:absolute;text-align:center;transform:translateY(6px)">
+                            <div style="font:700 34px Sora,sans-serif;color:var(--acc);line-height:1">@Math.Round(_collectionRate)%</div>
+                            <div style="font:500 12px Inter,sans-serif;color:var(--tt);margin-top:6px;letter-spacing:.04em">COLLECTED</div>
+                        </div>
+                    </div>
+                }
+                else
+                {
+                    <div class="fx ac" style="justify-content:center;height:250px;color:var(--tt);font-size:13px">No billing yet</div>
+                }
+            </div>
+        </div>
+
+        <!-- Cash-flow forecast -->
+        <div class="dcard lift fu" style="animation-delay:.14s">
+            <div class="chd"><div class="ctitle">Cash-flow forecast</div><div class="clab">Expected in · next 6 mo</div></div>
+            <div style="padding:6px 10px 12px">
+                @if (_cashFlow is { DataPoints.Count: > 0 } && _cashFlow.DataPoints.Any(p => p.ExpectedInflow > 0))
+                {
+                    <ApexChart TItem="CashFlowPointDto" Options="_cashFlowOptions" Height="250">
+                        <ApexPointSeries TItem="CashFlowPointDto" Items="_cashFlow.DataPoints" Name="Expected in" SeriesType="SeriesType.Bar" XValue="@(p => p.Date.ToString("MMM"))" YValue="@(p => p.ExpectedInflow)" />
+                    </ApexChart>
+                }
+                else
+                {
+                    <div class="fx ac" style="justify-content:center;height:250px;color:var(--tt);font-size:13px">Nothing due soon</div>
+                }
+            </div>
+        </div>
+    </div>
+
+    <!-- Chase overdue + Activity -->
+    <div class="grid16">
+        <div class="dcard lift fu" style="animation-delay:.16s">
+            <div class="chd">
+                <div class="fx ac gap8"><div class="ctitle">Chase overdue</div>@if (_overdue.Count > 0){<span class="pill" style="color:var(--bad);background:#f7e4e2">@_overdue.Count · @AmountShort(_overdueValue)</span>}</div>
+                @if (_overdue.Count > 0){<a class="dlink" href="invoices?status=Overdue">View all</a>}
+            </div>
+            @if (_overdue.Count == 0)
+            {
+                <div class="fx ac" style="justify-content:center;padding:34px;color:var(--tt);font-size:13px">Nothing overdue — nicely done.</div>
+            }
+            else
+            {
+                @foreach (var inv in _overdue.Take(4))
+                {
+                    var days = Math.Max(0, DateOnly.FromDateTime(DateTime.Today).DayNumber - inv.DueDate.DayNumber);
+                    var initial = string.IsNullOrEmpty(inv.ClientName) ? "?" : inv.ClientName[..1].ToUpper();
+                    <div class="chaserow">
+                        <span class="cav" style="background:#f7e4e2;color:var(--bad)">@initial</span>
+                        <div class="f1">
+                            <div style="font:600 13.5px Inter,sans-serif;color:var(--tp)">@inv.ClientName</div>
+                            <div class="mono" style="font-size:11px;margin-top:2px;color:var(--tt)">@inv.InvoiceNumber · due @inv.DueDate.ToString("d MMM")</div>
+                        </div>
+                        <span class="od">@days days</span>
+                        <div class="tnum" style="font:600 14px Inter,sans-serif;width:84px;text-align:right;color:var(--tp)">@AmountCur(inv.Total, inv.Currency)</div>
+                        <a class="remind" href="invoices/@inv.Id">Remind</a>
+                    </div>
+                }
+            }
+        </div>
+
+        <div class="dcard lift fu" style="animation-delay:.2s">
+            <div class="chd"><div class="ctitle">Activity</div>@if (Activity.RealtimeConnected){<span class="clab" style="color:var(--ok)">● Live</span>}else{<span class="clab">Recent</span>}</div>
+            @if (_activityLoaded && Activity.Items.Count == 0)
+            {
+                <div class="fx ac" style="justify-content:center;padding:34px;color:var(--tt);font-size:13px">No activity yet.</div>
+            }
+            else
+            {
+                @foreach (var n in Activity.Items.Take(5))
+                {
+                    var (bg, fg, icon) = ActVisual(n.Type);
+                    <div class="actrow">
+                        <span class="actico" style="background:@bg;color:@fg">@((MarkupString)icon)</span>
+                        <div class="f1">
+                            <div class="actt">@n.Title</div>
+                            <div class="actm">@n.Message · @TimeAgo(n.CreatedAt)</div>
+                        </div>
+                    </div>
+                }
+            }
+        </div>
+    </div>
 
     <!-- Recent invoices + Top clients -->
-    <div class="grid grid-cols-1 lg:grid-cols-3 gap-6 mb-6">
-        <!-- Recent invoices -->
-        <div class="lg:col-span-2 card overflow-hidden">
-            <div class="card-header flex items-center justify-between">
-                <h2 class="font-display text-[15px] font-semibold text-gray-900 dark:text-slate-100">Recent invoices</h2>
-                <a href="invoices" class="link text-sm">View all</a>
-            </div>
-            @if (_isLoading)
+    <div class="grid16">
+        <div class="dcard lift fu" style="animation-delay:.24s">
+            <div class="chd"><div class="ctitle">Recent invoices</div><a class="dlink" href="invoices">View all</a></div>
+            @if (_recent.Count == 0)
             {
-                <div class="p-5 space-y-3 animate-pulse">
-                    @for (int i = 0; i < 5; i++)
-                    {
-                        <div class="h-9 bg-gray-100 dark:bg-slate-700 rounded"></div>
-                    }
-                </div>
-            }
-            else if (_recentInvoices.Count == 0)
-            {
-                <div class="p-10 text-center">
-                    <p class="text-sm text-gray-500 dark:text-slate-400 mb-3">No invoices yet</p>
-                    <a href="invoices/new" class="link text-sm">Create your first invoice</a>
-                </div>
+                <div class="fx ac" style="justify-content:center;padding:34px;color:var(--tt);font-size:13px">No invoices yet. <a class="dlink" href="invoices/new" style="margin-left:6px">Create one</a></div>
             }
             else
             {
-                <div class="flex px-5 py-2.5 font-mono text-[10px] uppercase tracking-[0.06em] text-gray-400 dark:text-slate-500 border-b border-line-subtle">
-                    <div class="w-24">Invoice</div>
-                    <div class="flex-1">Client</div>
-                    <div class="w-24">Status</div>
-                    <div class="w-28 text-right">Amount</div>
-                </div>
-                @foreach (var inv in _recentInvoices.Take(5))
+                @foreach (var inv in _recent.Take(5))
                 {
-                    var isOverdue = inv.Status != "Paid" && inv.Status != "Void" && inv.DueDate < DateOnly.FromDateTime(DateTime.Today);
-                    var (sc, sl) = StatusDisplay(inv.Status, isOverdue);
-                    <a href="invoices/@inv.Id" class="flex items-center px-5 py-3 border-b hover:bg-gray-50 dark:hover:bg-slate-800/50 transition-colors group border-line-subtle">
-                        <div class="w-24 font-mono text-[13px] text-gray-900 dark:text-slate-200">@inv.InvoiceNumber</div>
-                        <div class="flex-1 text-sm text-gray-700 dark:text-slate-300 truncate pr-3">@inv.ClientName</div>
-                        <div class="w-24">
-                            <span class="inline-flex items-center gap-1.5 text-xs font-medium" style="color:@sc;">
-                                <span class="w-1.5 h-1.5 rounded-full" style="background:@sc;"></span>@sl
-                            </span>
-                        </div>
-                        <div class="w-28 text-right text-sm font-semibold tnum text-gray-900 dark:text-slate-100">@CurrencyExtensions.GetSymbol(inv.Currency)@inv.Total.ToString("N2")</div>
+                    var (sc, sl) = StatusDisplay(inv.Status, IsOverdue(inv));
+                    <a class="mrow" href="invoices/@inv.Id">
+                        <div class="mono" style="font-size:13px;width:92px">@inv.InvoiceNumber</div>
+                        <div class="f1" style="font-size:13.5px">@inv.ClientName</div>
+                        <span class="badge" style="color:@sc;width:78px"><span class="dot" style="background:@sc"></span>@sl</span>
+                        <div class="tnum" style="font:600 13.5px Inter,sans-serif;width:90px;text-align:right">@AmountCur(inv.Total, inv.Currency)</div>
                     </a>
                 }
             }
         </div>
 
-        <!-- Top clients -->
-        <div class="card overflow-hidden">
-            <div class="card-header">
-                <h2 class="font-display text-[15px] font-semibold text-gray-900 dark:text-slate-100">Top clients</h2>
-            </div>
-            @if (_isLoading)
+        <div class="dcard lift fu" style="animation-delay:.28s">
+            <div class="chd"><div class="ctitle">Top clients</div><span class="clab">By revenue</span></div>
+            @if (_topClients.Count == 0)
             {
-                <div class="p-5 space-y-3 animate-pulse">
-                    @for (int i = 0; i < 4; i++)
-                    {
-                        <div class="h-9 bg-gray-100 dark:bg-slate-700 rounded"></div>
-                    }
-                </div>
-            }
-            else if (_topClients.Count == 0)
-            {
-                <div class="p-10 text-center"><p class="text-sm text-gray-500 dark:text-slate-400">No client data yet</p></div>
+                <div class="fx ac" style="justify-content:center;padding:34px;color:var(--tt);font-size:13px">No client revenue yet.</div>
             }
             else
             {
-                @foreach (var client in _topClients)
+                var top = _topClients.Max(c => c.TotalRevenue);
+                @foreach (var c in _topClients.Take(4))
                 {
-                    <a href="clients/@client.ClientId" class="flex items-center gap-3 px-5 py-3 border-b hover:bg-gray-50 dark:hover:bg-slate-800/50 transition-colors border-line-subtle">
-                        <span class="w-8 h-8 rounded-md flex items-center justify-center font-display font-semibold text-[13px] shrink-0 bg-primary-50 text-primary-600">@client.ClientName[..1].ToUpper()</span>
-                        <div class="flex-1 min-w-0">
-                            <div class="text-[13px] font-medium text-gray-900 dark:text-slate-200 truncate">@client.ClientName</div>
-                            <div class="text-[11px] text-gray-500 dark:text-slate-400 tnum">@client.InvoiceCount invoices</div>
+                    var barPct = top > 0 ? (int)Math.Round((double)(c.TotalRevenue / top) * 100) : 0;
+                    var initial = string.IsNullOrEmpty(c.ClientName) ? "?" : c.ClientName[..1].ToUpper();
+                    <a class="clientrow" href="clients/@c.ClientId">
+                        <span class="cav" style="background:var(--acc50);color:var(--acc)">@initial</span>
+                        <div class="f1">
+                            <div class="fx ac jb"><span style="font:600 13px Inter,sans-serif">@c.ClientName</span><span class="tnum" style="font:600 13px Inter,sans-serif">@AmountCur(c.TotalRevenue, c.Currency)</span></div>
+                            <div class="cbar" style="width:@(Math.Max(6, barPct))%"></div>
                         </div>
-                        <div class="text-[13px] font-semibold tnum text-gray-900 dark:text-slate-100">@CurrencyExtensions.GetSymbol(client.Currency)@client.TotalRevenue.ToString("N0")</div>
                     </a>
                 }
-            }
-        </div>
-    </div>
-
-    <!-- Invoice status + Activity -->
-    <div class="grid grid-cols-1 lg:grid-cols-3 gap-6 mb-6">
-        <!-- Invoice status breakdown -->
-        <div class="lg:col-span-2 card overflow-hidden">
-            <div class="card-header flex items-center justify-between">
-                <h2 class="font-display text-[15px] font-semibold text-gray-900 dark:text-slate-100">Invoice status</h2>
-                <a href="invoices" class="link text-sm">View all</a>
-            </div>
-            @if (_isLoading || _statusBreakdown == null)
-            {
-                <div class="p-5 h-24 animate-pulse"><div class="h-full bg-gray-100 dark:bg-slate-700 rounded"></div></div>
-            }
-            else
-            {
-                <div class="flex flex-col sm:flex-row">
-                    @foreach (var s in StatusCells())
-                    {
-                        <div class="flex-1 p-5 border-t sm:border-t-0 sm:border-l first:border-l-0 first:border-t-0 border-line-subtle">
-                            <div class="flex items-center gap-2 mb-2.5">
-                                <span class="w-2 h-2 rounded-full" style="background:@s.Color;"></span>
-                                <span class="font-mono text-[10px] uppercase tracking-[0.06em] text-gray-400 dark:text-slate-500">@s.Label</span>
-                            </div>
-                            <div class="font-display text-2xl font-semibold tnum text-gray-900 dark:text-slate-100">@s.Count</div>
-                            <div class="text-[11px] text-gray-500 dark:text-slate-400 tnum mt-1">@_currency@s.Total.ToString("N0")</div>
-                        </div>
-                    }
-                </div>
-            }
-        </div>
-
-        <!-- Activity -->
-        <div class="card overflow-hidden">
-            <div class="card-header"><h2 class="font-display text-[15px] font-semibold text-gray-900 dark:text-slate-100">Activity</h2></div>
-            @if (_isLoading || _metrics == null)
-            {
-                <div class="p-5 space-y-3 animate-pulse">@for (int i = 0; i < 3; i++){<div class="h-8 bg-gray-100 dark:bg-slate-700 rounded"></div>}</div>
-            }
-            else
-            {
-                <div class="flex items-center justify-between px-5 py-3 border-b border-line-subtle">
-                    <span class="text-[13px] text-gray-600 dark:text-slate-300">Total clients</span>
-                    <span class="font-display text-base font-semibold tnum text-gray-900 dark:text-slate-100">@_metrics.ActiveClients</span>
-                </div>
-                <div class="flex items-center justify-between px-5 py-3 border-b border-line-subtle">
-                    <span class="text-[13px] text-gray-600 dark:text-slate-300">Active projects</span>
-                    <span class="font-display text-base font-semibold tnum text-gray-900 dark:text-slate-100">@_metrics.ActiveProjects</span>
-                </div>
-                <div class="flex items-center justify-between px-5 py-3">
-                    <span class="text-[13px] text-gray-600 dark:text-slate-300">Hours this month</span>
-                    <span class="font-display text-base font-semibold tnum text-gray-900 dark:text-slate-100">@_metrics.BillableHours.ToString("N1")h</span>
-                </div>
-            }
-        </div>
-    </div>
-
-    <!-- Quick actions -->
-    <div class="card overflow-hidden">
-        <div class="flex flex-wrap divide-x" style="--tw-divide-opacity:1;">
-            @foreach (var action in QuickActions)
-            {
-                <a href="@action.Href" class="flex items-center gap-2.5 px-5 py-3.5 text-[13px] font-medium text-gray-600 dark:text-slate-300 hover:text-primary-600 dark:hover:text-primary-400 hover:bg-gray-50 dark:hover:bg-slate-800/50 transition-colors border-r border-line-subtle">
-                    <svg class="w-4 h-4 text-gray-400 dark:text-slate-500" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                        <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="@action.Icon" />
-                    </svg>
-                    @action.Label
-                </a>
             }
         </div>
     </div>
 </div>
 
 @code {
-    private bool _isLoading = true;
-    private string _currency = "£";
     private DashboardMetricsDto? _metrics;
+    private RevenueChartDataDto? _revenue;
+    private decimal _revenueTotal;
+    private double? _paidTrendPct;
+    private string _chartView = "trend";
+    private ApexChart<RevenueDataPoint>? _revenueChart;
+    private ApexChartOptions<RevenueDataPoint> _chartOptions = new();
+    private ApexChartOptions<RevenueDataPoint> _pnlOptions = new();
+    private ApexChartOptions<RevenueDataPoint> _cashOptions = new();
+
     private InvoiceStatusBreakdownDto? _statusBreakdown;
-    private List<TopClientDto> _topClients = [];
-    private List<InvoiceSummaryDto> _recentInvoices = [];
+    private CashFlowForecastDto? _cashFlow;
+    private ApexChartOptions<StatusSlice> _donutOptions = new();
+    private ApexChartOptions<CashFlowPointDto> _cashFlowOptions = new();
+    private List<StatusSlice> _statusSlices = new();
+    private double _collectionRate;
+    private bool _hasBilling;
 
-    private record QuickAction(string Label, string Href, string Icon);
-    private static readonly QuickAction[] QuickActions =
-    {
-        new("New Invoice", "invoices/new", "M9 12h6m-6 4h6m2 5H7a2 2 0 01-2-2V5a2 2 0 012-2h5.586a1 1 0 01.707.293l5.414 5.414a1 1 0 01.293.707V19a2 2 0 01-2 2z"),
-        new("New Estimate", "estimates/new", "M9 7h6m0 10v-3m-3 3h.01M9 17h.01M9 14h.01M12 14h.01M15 11h.01M12 11h.01M9 11h.01M7 21h10a2 2 0 002-2V5a2 2 0 00-2-2H7a2 2 0 00-2 2v14a2 2 0 002 2z"),
-        new("Add Client", "clients/new", "M18 9v3m0 0v3m0-3h3m-3 0h-3m-2-5a4 4 0 11-8 0 4 4 0 018 0zM3 20a6 6 0 0112 0v1H3v-1z"),
-        new("New Project", "projects/new", "M9 13h6m-3-3v6m-9 1V7a2 2 0 012-2h6l2 2h6a2 2 0 012 2v8a2 2 0 01-2 2H5a2 2 0 01-2-2z"),
-        new("Log Time", "timesheet", "M12 8v4l3 3m6-3a9 9 0 11-18 0 9 9 0 0118 0z"),
-        new("Add Product", "products/new", "M20 7l-8-4-8 4m16 0l-8 4m8-4v10l-8 4m0-10L4 7m8 4v10M4 7v10l8 4"),
-    };
+    public record StatusSlice(string Label, decimal Amount);
+    private List<InvoiceSummaryDto> _recent = new();
+    private List<InvoiceSummaryDto> _overdue = new();
+    private decimal _overdueValue;
+    private List<EstimateSummaryDto> _pendingEstimates = new();
+    private decimal _pendingValue;
+    private List<TopClientDto> _topClients = new();
+    private bool _activityLoaded;
 
-    private record StatusCell(string Label, string Color, int Count, decimal Total);
-    private IEnumerable<StatusCell> StatusCells()
-    {
-        if (_statusBreakdown is null) yield break;
-        yield return new("Draft", "#9a917f", _statusBreakdown.Draft, _statusBreakdown.DraftTotal);
-        yield return new("Sent", "#2b6d7d", _statusBreakdown.Sent, _statusBreakdown.SentTotal);
-        yield return new("Paid", "#0f7a5a", _statusBreakdown.Paid, _statusBreakdown.PaidTotal);
-        yield return new("Overdue", "#b23b30", _statusBreakdown.Overdue, _statusBreakdown.OverdueTotal);
-    }
-
-    private static (string color, string label) StatusDisplay(string status, bool overdue)
-    {
-        if (overdue) return ("#b23b30", "Overdue");
-        return status switch
-        {
-            "Paid" => ("#0f7a5a", "Paid"),
-            "Sent" => ("#2b6d7d", "Sent"),
-            "Draft" => ("#9a917f", "Draft"),
-            "Void" => ("#9a917f", "Void"),
-            _ => ("#57503f", status),
-        };
-    }
+    // Payment settings (drive the Collect card)
+    private BusinessProfileDto? _profile;
+    private bool _paymentsLoaded;
+    private bool _hasVietQr;
+    private bool _hasAnyPayment;
+    private string? _vietQrDetail;
+    private string? _vietQrImageUrl;
+    private string? _bankDetail;
+    private List<string> _enabledRails = new();
+    private List<string> _otherRails = new();
 
     protected override async Task OnInitializedAsync()
     {
+        Activity.OnChange += OnActivityChanged;
+        Reporting.OnChange += OnReportingChanged;
+        await Reporting.InitializeAsync();
+
         try
         {
-            var metricsTask = GetMetricsCall.Call(new GetDashboardMetrics { Period = "month" });
-            var statusTask = GetStatusBreakdownCall.Call(new GetInvoiceStatusBreakdown());
-            var topClientsTask = GetTopClientsCall.Call(new GetTopClients { Count = 5 });
-            var invoicesTask = GetInvoicesCall.Call(new GetInvoices { PageSize = 5 });
+            var metricsTask = GetMetricsCall.Call(new GetDashboardMetrics { Period = "month", ReportingCurrency = Reporting.Currency });
+            var revenueTask = GetRevenueChartCall.Call(new GetRevenueChart { Period = "month", ReportingCurrency = Reporting.Currency });
+            var statusTask = GetStatusBreakdownCall.Call(new GetInvoiceStatusBreakdown { ReportingCurrency = Reporting.Currency });
+            var cashFlowTask = GetCashFlowCall.Call(new GetCashFlowForecast { Months = 6, ReportingCurrency = Reporting.Currency });
+            var invoicesTask = GetInvoicesCall.Call(new GetInvoices { PageSize = 30 });
+            var estimatesTask = GetEstimatesCall.Call(new GetEstimates { PageSize = 20 });
+            var topClientsTask = GetTopClientsCall.Call(new GetTopClients { Count = 4 });
+            var profileTask = GetBusinessProfileCall.Call(new GetBusinessProfile());
 
-            await Task.WhenAll(metricsTask, statusTask, topClientsTask, invoicesTask);
+            await Task.WhenAll(metricsTask, revenueTask, statusTask, cashFlowTask, invoicesTask, estimatesTask, topClientsTask, profileTask);
 
             _metrics = await metricsTask;
+
+            _revenue = await revenueTask;
+            _revenueTotal = _revenue?.DataPoints?.Sum(p => p.Revenue) ?? 0;
+            RecomputeTrend();
+            BuildChartOptions();
+
             _statusBreakdown = await statusTask;
-            _topClients = await topClientsTask ?? [];
-            var invoicesResponse = await invoicesTask;
-            _recentInvoices = invoicesResponse?.Items?.ToList() ?? [];
+            _cashFlow = await cashFlowTask;
+            BuildAuxCharts();
+
+            var invoices = (await invoicesTask)?.Items?.ToList() ?? new();
+            _recent = invoices.OrderByDescending(i => i.IssueDate).ToList();
+            _overdue = invoices.Where(IsOverdue).OrderBy(i => i.DueDate).ToList();
+            _overdueValue = _overdue.Sum(i => i.Total);
+
+            var estimates = (await estimatesTask)?.Items?.ToList() ?? new();
+            _pendingEstimates = estimates
+                .Where(e => e.Status is not ("Accepted" or "Declined" or "Expired" or "Converted"))
+                .OrderByDescending(e => e.EstimateDate)
+                .ToList();
+            _pendingValue = _pendingEstimates.Sum(e => e.Total);
+
+            _topClients = await topClientsTask ?? new();
+
+            _profile = await profileTask;
+            BuildPaymentState();
         }
         catch (Exception ex)
         {
-            Console.WriteLine($"Error loading dashboard: {ex.Message}");
+            Console.WriteLine($"Dashboard load error: {ex.Message}");
         }
-        finally
+
+        _paymentsLoaded = true;
+
+        await Activity.InitializeAsync();
+        _activityLoaded = true;
+    }
+
+    private void BuildPaymentState()
+    {
+        var p = _profile;
+        var hasBank = !string.IsNullOrWhiteSpace(p?.BankAccountNumber) || !string.IsNullOrWhiteSpace(p?.BankIban);
+        var hasPaypal = !string.IsNullOrWhiteSpace(p?.PayPalMeUsername);
+        var hasWise = !string.IsNullOrWhiteSpace(p?.WiseEmail);
+        var hasRevolut = !string.IsNullOrWhiteSpace(p?.RevolutUsername);
+        _hasVietQr = !string.IsNullOrWhiteSpace(p?.VietQrBankCode);
+        _hasAnyPayment = _hasVietQr || hasBank || hasPaypal || hasWise || hasRevolut;
+
+        _enabledRails = new();
+        if (hasBank) _enabledRails.Add("Bank transfer");
+        if (hasPaypal) _enabledRails.Add("PayPal");
+        if (hasWise) _enabledRails.Add("Wise");
+        if (hasRevolut) _enabledRails.Add("Revolut");
+
+        // "Also enabled" list when VietQR is the headline
+        _otherRails = new(_enabledRails);
+
+        if (_hasVietQr)
         {
-            _isLoading = false;
+            var acct = p?.BankAccountNumber;
+            _vietQrDetail = string.IsNullOrWhiteSpace(acct)
+                ? p?.VietQrBankCode
+                : $"{p?.VietQrBankCode} · {acct}";
+
+            // Real static VietQR for the user's account (no amount) — the same
+            // img.vietqr.io endpoint the invoice view/PDF use.
+            if (!string.IsNullOrWhiteSpace(acct))
+            {
+                var name = Uri.EscapeDataString(p?.BankAccountName ?? p?.CompanyName ?? "");
+                _vietQrImageUrl = $"https://img.vietqr.io/image/{p!.VietQrBankCode}-{acct}-compact.png?accountName={name}";
+            }
+        }
+
+        if (hasBank)
+        {
+            var bank = p?.BankName;
+            var acct = p?.BankAccountNumber ?? p?.BankIban;
+            _bankDetail = string.IsNullOrWhiteSpace(bank) ? acct : $"{bank} · {acct}";
         }
     }
+
+    private void OnActivityChanged() => InvokeAsync(StateHasChanged);
+
+    private void OnReportingChanged() => _ = ReloadFinancialsAsync();
+
+    private async Task ReloadFinancialsAsync()
+    {
+        try
+        {
+            var metricsTask = GetMetricsCall.Call(new GetDashboardMetrics { Period = "month", ReportingCurrency = Reporting.Currency });
+            var revenueTask = GetRevenueChartCall.Call(new GetRevenueChart { Period = "month", ReportingCurrency = Reporting.Currency });
+            var statusTask = GetStatusBreakdownCall.Call(new GetInvoiceStatusBreakdown { ReportingCurrency = Reporting.Currency });
+            var cashFlowTask = GetCashFlowCall.Call(new GetCashFlowForecast { Months = 6, ReportingCurrency = Reporting.Currency });
+            await Task.WhenAll(metricsTask, revenueTask, statusTask, cashFlowTask);
+            _metrics = await metricsTask;
+            _revenue = await revenueTask;
+            _revenueTotal = _revenue?.DataPoints?.Sum(p => p.Revenue) ?? 0;
+            RecomputeTrend();
+            BuildChartOptions();
+            _statusBreakdown = await statusTask;
+            _cashFlow = await cashFlowTask;
+            BuildAuxCharts();
+        }
+        catch { }
+        await InvokeAsync(StateHasChanged);
+    }
+
+    private void RecomputeTrend()
+    {
+        _paidTrendPct = null;
+        var points = _revenue?.DataPoints;
+        if (points is { Count: >= 2 })
+        {
+            var last = points[^1].Revenue;
+            var prev = points[^2].Revenue;
+            if (prev > 0) _paidTrendPct = (double)((last - prev) / prev * 100);
+        }
+    }
+
+    private void BuildChartOptions()
+    {
+        var sym = CurrencyExtensions.GetSymbol(Reporting.Currency);
+        _chartOptions = new ApexChartOptions<RevenueDataPoint>
+        {
+            Chart = new Chart
+            {
+                Toolbar = new Toolbar { Show = false },
+                Background = "transparent",
+                FontFamily = "Inter, ui-sans-serif, sans-serif",
+                Zoom = new Zoom { Enabled = false }
+            },
+            Colors = new List<string> { "#0e7d88" },
+            DataLabels = new DataLabels { Enabled = false },
+            Stroke = new Stroke { Curve = Curve.Smooth, Width = 3 },
+            Fill = new Fill
+            {
+                Type = FillType.Gradient,
+                Gradient = new FillGradient
+                {
+                    ShadeIntensity = 1,
+                    OpacityFrom = 0.4,
+                    OpacityTo = 0.05,
+                    Stops = new List<double> { 0, 90, 100 }
+                }
+            },
+            PlotOptions = new PlotOptions
+            {
+                Bar = new PlotOptionsBar { BorderRadius = 6, ColumnWidth = "55%" }
+            },
+            Grid = new Grid
+            {
+                BorderColor = "rgba(148,163,184,0.16)",
+                StrokeDashArray = 4,
+                Padding = new Padding { Left = 4, Right = 8 }
+            },
+            Legend = new Legend { Show = false },
+            Tooltip = new ApexCharts.Tooltip
+            {
+                Y = new TooltipY
+                {
+                    Formatter = $"function (v) {{ return '{sym}' + v.toLocaleString(undefined, {{ minimumFractionDigits: 2, maximumFractionDigits: 2 }}); }}"
+                }
+            },
+            Xaxis = new XAxis
+            {
+                AxisBorder = new AxisBorder { Show = false },
+                AxisTicks = new AxisTicks { Show = false },
+                Labels = new XAxisLabels
+                {
+                    Rotate = 0,
+                    RotateAlways = false,
+                    HideOverlappingLabels = true,
+                    Style = new AxisLabelStyle { FontSize = "11px", Colors = "#94a3b8" },
+                    // "Aug 2025" -> "Aug" so 12 labels fit without squashing (tooltip keeps the full label)
+                    Formatter = "function (value) { return value ? String(value).split(' ')[0] : value; }"
+                }
+            },
+            Yaxis = new List<YAxis>
+            {
+                new YAxis
+                {
+                    Labels = new YAxisLabels
+                    {
+                        Style = new AxisLabelStyle { FontSize = "11px", Colors = "#94a3b8" },
+                        Formatter = $"function (v) {{ if (v >= 1000000) return '{sym}' + (v/1000000).toFixed(1) + 'M'; if (v >= 1000) return '{sym}' + (v/1000).toFixed(1) + 'k'; return '{sym}' + Math.round(v); }}"
+                    }
+                }
+            }
+        };
+    }
+
+    private static string CurrencyFmt(string sym)
+        => $"function (v) {{ return '{sym}' + v.toLocaleString(undefined, {{ minimumFractionDigits: 2, maximumFractionDigits: 2 }}); }}";
+
+    private static string ShortCurrencyFmt(string sym)
+        => $"function (v) {{ if (v >= 1000000) return '{sym}' + (v/1000000).toFixed(1) + 'M'; if (v >= 1000) return '{sym}' + (v/1000).toFixed(1) + 'k'; return '{sym}' + Math.round(v); }}";
+
+    private void BuildAuxCharts()
+    {
+        var sym = CurrencyExtensions.GetSymbol(Reporting.Currency);
+
+        // Revenue vs Expenses vs Profit (grouped columns)
+        _pnlOptions = new ApexChartOptions<RevenueDataPoint>
+        {
+            Chart = new Chart { Toolbar = new Toolbar { Show = false }, Background = "transparent", FontFamily = "Inter, ui-sans-serif, sans-serif", Zoom = new Zoom { Enabled = false } },
+            Colors = new List<string> { "#0e7d88", "#e0796f", "#3f9d5f" },
+            DataLabels = new DataLabels { Enabled = false },
+            Stroke = new Stroke { Show = false },
+            PlotOptions = new PlotOptions { Bar = new PlotOptionsBar { BorderRadius = 4, ColumnWidth = "72%" } },
+            Grid = new Grid { BorderColor = "rgba(148,163,184,0.16)", StrokeDashArray = 4, Padding = new Padding { Left = 4, Right = 8 } },
+            Legend = new Legend { Show = true, Position = LegendPosition.Top, HorizontalAlign = Align.Left, FontSize = "12px" },
+            Tooltip = new ApexCharts.Tooltip { Y = new TooltipY { Formatter = CurrencyFmt(sym) } },
+            Xaxis = new XAxis { AxisBorder = new AxisBorder { Show = false }, AxisTicks = new AxisTicks { Show = false }, Labels = new XAxisLabels { Style = new AxisLabelStyle { FontSize = "11px", Colors = "#94a3b8" }, Formatter = "function (value) { return value ? String(value).split(' ')[0] : value; }" } },
+            Yaxis = new List<YAxis> { new YAxis { Labels = new YAxisLabels { Style = new AxisLabelStyle { FontSize = "11px", Colors = "#94a3b8" }, Formatter = ShortCurrencyFmt(sym) } } }
+        };
+
+        // Cash-flow (collected per month) — solid columns, not the area styling used by Trend
+        _cashOptions = new ApexChartOptions<RevenueDataPoint>
+        {
+            Chart = new Chart { Toolbar = new Toolbar { Show = false }, Background = "transparent", FontFamily = "Inter, ui-sans-serif, sans-serif", Zoom = new Zoom { Enabled = false } },
+            Colors = new List<string> { "#0e7d88" },
+            DataLabels = new DataLabels { Enabled = false },
+            Stroke = new Stroke { Show = false },
+            Fill = new Fill { Type = FillType.Solid, Opacity = 1 },
+            PlotOptions = new PlotOptions { Bar = new PlotOptionsBar { BorderRadius = 6, ColumnWidth = "50%" } },
+            Grid = new Grid { BorderColor = "rgba(148,163,184,0.16)", StrokeDashArray = 4, Padding = new Padding { Left = 4, Right = 8 } },
+            Legend = new Legend { Show = false },
+            Tooltip = new ApexCharts.Tooltip { Y = new TooltipY { Formatter = CurrencyFmt(sym) } },
+            Xaxis = new XAxis { AxisBorder = new AxisBorder { Show = false }, AxisTicks = new AxisTicks { Show = false }, Labels = new XAxisLabels { Style = new AxisLabelStyle { FontSize = "11px", Colors = "#94a3b8" }, Formatter = "function (value) { return value ? String(value).split(' ')[0] : value; }" } },
+            Yaxis = new List<YAxis> { new YAxis { Labels = new YAxisLabels { Style = new AxisLabelStyle { FontSize = "11px", Colors = "#94a3b8" }, Formatter = ShortCurrencyFmt(sym) } } }
+        };
+
+        // Invoice status donut slices
+        if (_statusBreakdown is not null)
+        {
+            _statusSlices = new List<StatusSlice>
+            {
+                new("Paid", _statusBreakdown.PaidTotal),
+                new("Sent", _statusBreakdown.SentTotal),
+                new("Overdue", _statusBreakdown.OverdueTotal),
+                new("Draft", _statusBreakdown.DraftTotal)
+            }.Where(s => s.Amount > 0).ToList();
+        }
+        _donutOptions = new ApexChartOptions<StatusSlice>
+        {
+            Chart = new Chart { Background = "transparent", FontFamily = "Inter, sans-serif" },
+            Colors = new List<string> { "#0f7a5a", "#2b6d7d", "#b23b30", "#94a3b8" },
+            Legend = new Legend { Show = true, Position = LegendPosition.Bottom, FontSize = "12px" },
+            Stroke = new Stroke { Show = false },
+            DataLabels = new DataLabels { Enabled = false },
+            Tooltip = new ApexCharts.Tooltip { Y = new TooltipY { Formatter = CurrencyFmt(sym) } },
+            PlotOptions = new PlotOptions
+            {
+                Pie = new PlotOptionsPie
+                {
+                    Donut = new PlotOptionsDonut
+                    {
+                        Size = "70%",
+                        Labels = new DonutLabels
+                        {
+                            Show = true,
+                            Total = new DonutLabelTotal
+                            {
+                                Show = true,
+                                Label = "Billed",
+                                Formatter = $"function (w) {{ var t = w.globals.seriesTotals.reduce(function (a, b) {{ return a + b; }}, 0); return '{sym}' + t.toLocaleString(undefined, {{ minimumFractionDigits: 0, maximumFractionDigits: 2 }}); }}"
+                            }
+                        }
+                    }
+                }
+            }
+        };
+
+        // Cash-flow forecast (expected inflow per month)
+        _cashFlowOptions = new ApexChartOptions<CashFlowPointDto>
+        {
+            Chart = new Chart { Toolbar = new Toolbar { Show = false }, Background = "transparent", FontFamily = "Inter, sans-serif", Zoom = new Zoom { Enabled = false } },
+            Colors = new List<string> { "#147d87" },
+            DataLabels = new DataLabels { Enabled = false },
+            Stroke = new Stroke { Show = false },
+            PlotOptions = new PlotOptions { Bar = new PlotOptionsBar { BorderRadius = 6, ColumnWidth = "45%" } },
+            Grid = new Grid { BorderColor = "rgba(148,163,184,0.16)", StrokeDashArray = 4, Padding = new Padding { Left = 4, Right = 8 } },
+            Legend = new Legend { Show = false },
+            Tooltip = new ApexCharts.Tooltip { Y = new TooltipY { Formatter = CurrencyFmt(sym) } },
+            Xaxis = new XAxis { AxisBorder = new AxisBorder { Show = false }, AxisTicks = new AxisTicks { Show = false }, Labels = new XAxisLabels { Style = new AxisLabelStyle { FontSize = "11px", Colors = "#94a3b8" } } },
+            Yaxis = new List<YAxis> { new YAxis { Labels = new YAxisLabels { Style = new AxisLabelStyle { FontSize = "11px", Colors = "#94a3b8" }, Formatter = ShortCurrencyFmt(sym) } } }
+        };
+
+        // Collection rate: paid ÷ everything billed (paid + outstanding + overdue). Rendered as an SVG gauge.
+        var paid = _metrics?.TotalRevenue ?? 0;
+        var billed = paid + (_metrics?.OutstandingAmount ?? 0) + (_metrics?.OverdueAmount ?? 0);
+        _collectionRate = billed > 0 ? (double)(paid / billed) * 100 : 0;
+        _hasBilling = billed > 0;
+    }
+
+    private static bool IsOverdue(InvoiceSummaryDto i)
+        => i.Status is "Sent" or "Overdue" && i.DueDate < DateOnly.FromDateTime(DateTime.Today);
 
     private static string GetGreeting()
     {
@@ -289,5 +729,139 @@
         if (hour < 12) return "morning";
         if (hour < 17) return "afternoon";
         return "evening";
+    }
+
+    private string Money(decimal v)
+        => $"{CurrencyExtensions.GetSymbol(Reporting.Currency)}{FormatExact(v)}";
+
+    private string AmountShort(decimal v) => Money(v);
+
+    private static string AmountCur(decimal v, string currency)
+        => $"{CurrencyExtensions.GetSymbol(currency)}{FormatExact(v)}";
+
+    // Exact amount, never abbreviated: whole pounds show no decimals, otherwise two.
+    private static string FormatExact(decimal v)
+        => v == Math.Truncate(v) ? v.ToString("N0") : v.ToString("N2");
+
+    private static string ShortLabel(string label)
+        => label.Length >= 3 ? label[..3] : label;
+
+    private static (string color, string label) StatusDisplay(string status, bool isOverdue)
+    {
+        if (isOverdue) return ("#b23b30", "Overdue");
+        return status switch
+        {
+            "Paid" => ("#0f7a5a", "Paid"),
+            "Sent" => ("#2b6d7d", "Sent"),
+            "Draft" => ("#9a917f", "Draft"),
+            "Overdue" => ("#b23b30", "Overdue"),
+            "Void" => ("#9a917f", "Void"),
+            _ => ("#57503f", status),
+        };
+    }
+
+    private static string TimeAgo(DateTime utc)
+    {
+        var span = DateTime.UtcNow - DateTime.SpecifyKind(utc, DateTimeKind.Utc);
+        if (span.TotalSeconds < 60) return "just now";
+        if (span.TotalMinutes < 60) return $"{(int)span.TotalMinutes}m ago";
+        if (span.TotalHours < 24) return $"{(int)span.TotalHours}h ago";
+        if (span.TotalDays < 7) return $"{(int)span.TotalDays}d ago";
+        return DateTime.SpecifyKind(utc, DateTimeKind.Utc).ToLocalTime().ToString("d MMM");
+    }
+
+    private static (string bg, string fg, string icon) ActVisual(string type) => type switch
+    {
+        "PaymentReceived" or "InvoicePaid" or "EstimateAccepted" => ("#e2efe9", "#0f7a5a", CheckIcon),
+        "InvoiceSent" or "EstimateSent" => ("#e7f2f3", "#2b6d7d", SendIcon),
+        "InvoiceOverdue" or "ReminderSent" or "EstimateDeclined" => ("#f7e4e2", "#b23b30", BellIcon),
+        "EstimateViewed" => ("#ecebf6", "#5b53a8", EyeIcon),
+        _ => ("#e7f2f3", "#0e5c66", DotIcon),
+    };
+
+    private string BuildRevenueChart()
+    {
+        var pts = _revenue?.DataPoints;
+        if (pts is null || pts.Count < 2) return "";
+
+        double W = 720, H = 200, top = 14;
+        var vals = pts.Select(p => (double)p.Revenue).ToList();
+        var max = vals.Max() * 1.14;
+        if (max <= 0) max = 1;
+
+        double X(int i) => Math.Round(i / (double)(pts.Count - 1) * W, 1);
+        double Y(double v) => Math.Round(H - (v / max) * (H - top), 1);
+        var P = vals.Select((v, i) => (x: X(i), y: Y(v))).ToList();
+
+        var sb = new System.Text.StringBuilder();
+        sb.Append($"M {P[0].x.ToString(Ci)} {P[0].y.ToString(Ci)}");
+        for (int i = 0; i < P.Count - 1; i++)
+        {
+            var p0 = i > 0 ? P[i - 1] : P[i];
+            var p1 = P[i];
+            var p2 = P[i + 1];
+            var p3 = i + 2 < P.Count ? P[i + 2] : p2;
+            var c1x = p1.x + (p2.x - p0.x) / 6;
+            var c1y = p1.y + (p2.y - p0.y) / 6;
+            var c2x = p2.x - (p3.x - p1.x) / 6;
+            var c2y = p2.y - (p3.y - p1.y) / 6;
+            sb.Append($" C {c1x.ToString("F1", Ci)} {c1y.ToString("F1", Ci)}, {c2x.ToString("F1", Ci)} {c2y.ToString("F1", Ci)}, {p2.x.ToString(Ci)} {p2.y.ToString(Ci)}");
+        }
+        var line = sb.ToString();
+        var area = $"{line} L {W.ToString(Ci)} {H.ToString(Ci)} L 0 {H.ToString(Ci)} Z";
+        var last = P[^1];
+
+        var grid = string.Concat(new[] { 1, 2, 3 }.Select(g =>
+        {
+            var gy = (H - (g / 4.0) * (H - top)).ToString("F1", Ci);
+            return $"<line x1='0' y1='{gy}' x2='{W.ToString(Ci)}' y2='{gy}' style='stroke:var(--bds);stroke-width:1'/>";
+        }));
+
+        return $@"<svg viewBox='0 0 720 200' preserveAspectRatio='none' style='width:100%;height:200px;display:block'>
+<defs><linearGradient id='drevg' x1='0' y1='0' x2='0' y2='1'><stop offset='0%' style='stop-color:var(--acc);stop-opacity:.2'/><stop offset='100%' style='stop-color:var(--acc);stop-opacity:0'/></linearGradient></defs>
+{grid}
+<path d='{area}' style='fill:url(#drevg)'/>
+<path d='{line}' vector-effect='non-scaling-stroke' style='fill:none;stroke:var(--acc);stroke-width:2.5;stroke-linejoin:round;stroke-linecap:round;stroke-dasharray:2400;stroke-dashoffset:2400;animation:ddraw 1.4s ease .2s forwards'/>
+<line x1='{last.x.ToString(Ci)}' y1='{last.y.ToString(Ci)}' x2='{last.x.ToString(Ci)}' y2='200' stroke-dasharray='3 3' style='stroke:var(--acc);stroke-width:1;opacity:.35'/>
+<circle cx='{last.x.ToString(Ci)}' cy='{last.y.ToString(Ci)}' r='4.5' style='fill:var(--acc);stroke:var(--elev);stroke-width:2'/>
+</svg>";
+    }
+
+    private string BuildCashBars()
+    {
+        var pts = _revenue?.DataPoints;
+        if (pts is null || pts.Count < 2) return "";
+        var vals = pts.Select(p => (double)p.Revenue).ToList();
+        var max = vals.Max() * 1.08;
+        if (max <= 0) max = 1;
+
+        var sb = new System.Text.StringBuilder();
+        sb.Append("<div style='display:flex;align-items:flex-end;gap:8px;height:200px'>");
+        for (int i = 0; i < vals.Count; i++)
+        {
+            var hpct = (vals[i] / max * 100).ToString("F1", Ci);
+            var isLast = i == vals.Count - 1;
+            var col = isLast ? "var(--acc2)" : "var(--acc)";
+            var delay = (0.05 + i * 0.04).ToString("F2", Ci);
+            sb.Append($"<div style='flex:1;display:flex;flex-direction:column;justify-content:flex-end;height:100%'><div style='height:{hpct}%;background:{col};border-radius:4px 4px 0 0;transform-origin:bottom;animation:dgrow .6s cubic-bezier(.2,.7,.2,1) {delay}s both'></div></div>");
+        }
+        sb.Append("</div>");
+        return sb.ToString();
+    }
+
+    private static readonly System.Globalization.CultureInfo Ci = System.Globalization.CultureInfo.InvariantCulture;
+
+    private const string CheckIcon = "<svg width=\"15\" height=\"15\" fill=\"none\" stroke=\"currentColor\" viewBox=\"0 0 24 24\"><path stroke-linecap=\"round\" stroke-linejoin=\"round\" stroke-width=\"2.4\" d=\"M5 13l4 4L19 7\"/></svg>";
+    private const string SendIcon = "<svg width=\"15\" height=\"15\" fill=\"none\" stroke=\"currentColor\" viewBox=\"0 0 24 24\"><path stroke-linecap=\"round\" stroke-linejoin=\"round\" stroke-width=\"2\" d=\"M22 2L11 13M22 2l-7 20-4-9-9-4 20-7z\"/></svg>";
+    private const string BellIcon = "<svg width=\"15\" height=\"15\" fill=\"none\" stroke=\"currentColor\" viewBox=\"0 0 24 24\"><path stroke-linecap=\"round\" stroke-linejoin=\"round\" stroke-width=\"2\" d=\"M18 8A6 6 0 006 8c0 7-3 9-3 9h18s-3-2-3-9M13.7 21a2 2 0 01-3.4 0\"/></svg>";
+    private const string EyeIcon = "<svg width=\"15\" height=\"15\" fill=\"none\" stroke=\"currentColor\" viewBox=\"0 0 24 24\"><path stroke-linecap=\"round\" stroke-linejoin=\"round\" stroke-width=\"2\" d=\"M15 12a3 3 0 11-6 0 3 3 0 016 0z\"/><path stroke-linecap=\"round\" stroke-linejoin=\"round\" stroke-width=\"2\" d=\"M2.5 12S6 5 12 5s9.5 7 9.5 7-3.5 7-9.5 7-9.5-7-9.5-7z\"/></svg>";
+    private const string DotIcon = "<svg width=\"15\" height=\"15\" fill=\"currentColor\" viewBox=\"0 0 24 24\"><circle cx=\"12\" cy=\"12\" r=\"5\"/></svg>";
+
+    private const string QrSvg = "<svg width=\"86\" height=\"86\" viewBox=\"0 0 80 80\" fill=\"none\" xmlns=\"http://www.w3.org/2000/svg\"><rect x=\"4\" y=\"4\" width=\"20\" height=\"20\" rx=\"2\" stroke=\"#14181f\" stroke-width=\"4\"/><rect x=\"12\" y=\"12\" width=\"4\" height=\"4\" fill=\"#14181f\"/><rect x=\"56\" y=\"4\" width=\"20\" height=\"20\" rx=\"2\" stroke=\"#14181f\" stroke-width=\"4\"/><rect x=\"64\" y=\"12\" width=\"4\" height=\"4\" fill=\"#14181f\"/><rect x=\"4\" y=\"56\" width=\"20\" height=\"20\" rx=\"2\" stroke=\"#14181f\" stroke-width=\"4\"/><rect x=\"12\" y=\"64\" width=\"4\" height=\"4\" fill=\"#14181f\"/><g fill=\"#14181f\"><rect x=\"32\" y=\"4\" width=\"6\" height=\"6\"/><rect x=\"42\" y=\"4\" width=\"6\" height=\"6\"/><rect x=\"32\" y=\"14\" width=\"6\" height=\"6\"/><rect x=\"4\" y=\"32\" width=\"6\" height=\"6\"/><rect x=\"14\" y=\"32\" width=\"6\" height=\"6\"/><rect x=\"24\" y=\"42\" width=\"6\" height=\"6\"/><rect x=\"34\" y=\"32\" width=\"6\" height=\"6\"/><rect x=\"44\" y=\"42\" width=\"6\" height=\"6\"/><rect x=\"54\" y=\"32\" width=\"6\" height=\"6\"/><rect x=\"64\" y=\"42\" width=\"6\" height=\"6\"/><rect x=\"70\" y=\"32\" width=\"6\" height=\"6\"/><rect x=\"32\" y=\"52\" width=\"6\" height=\"6\"/><rect x=\"42\" y=\"62\" width=\"6\" height=\"6\"/><rect x=\"52\" y=\"52\" width=\"6\" height=\"6\"/><rect x=\"62\" y=\"62\" width=\"6\" height=\"6\"/><rect x=\"70\" y=\"70\" width=\"6\" height=\"6\"/><rect x=\"52\" y=\"70\" width=\"6\" height=\"6\"/><rect x=\"34\" y=\"42\" width=\"6\" height=\"6\"/></g></svg>";
+
+    public void Dispose()
+    {
+        Activity.OnChange -= OnActivityChanged;
+        Reporting.OnChange -= OnReportingChanged;
     }
 }

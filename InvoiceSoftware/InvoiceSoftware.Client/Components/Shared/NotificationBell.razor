@@ -1,0 +1,133 @@
+@implements IDisposable
+@inject NotificationState Notifications
+@inject NavigationManager Nav
+
+<div class="relative">
+    @if (_open)
+    {
+        <div class="fixed inset-0 z-40" @onclick="Close"></div>
+    }
+
+    <button type="button"
+            class="relative p-2 rounded-xl text-gray-400 dark:text-slate-400 hover:text-gray-600 dark:hover:text-slate-200 hover:bg-gray-100 dark:hover:bg-slate-800 transition-colors"
+            @onclick="Toggle"
+            @onclick:stopPropagation="true"
+            title="Notifications">
+        <svg class="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+            <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M15 17h5l-1.405-1.405A2.032 2.032 0 0118 14.158V11a6.002 6.002 0 00-4-5.659V5a2 2 0 10-4 0v.341C7.67 6.165 6 8.388 6 11v3.159c0 .538-.214 1.055-.595 1.436L4 17h5m6 0v1a3 3 0 11-6 0v-1m6 0H9" />
+        </svg>
+        @if (Notifications.UnreadCount > 0)
+        {
+            <span class="absolute -top-0.5 -right-0.5 min-w-[18px] h-[18px] px-1 flex items-center justify-center rounded-full text-[10px] font-semibold text-white bg-red-500 ring-2 ring-white dark:ring-[#0b0e12]">
+                @(Notifications.UnreadCount > 9 ? "9+" : Notifications.UnreadCount.ToString())
+            </span>
+        }
+    </button>
+
+    @if (_open)
+    {
+        <div class="absolute right-0 mt-2 w-[420px] max-w-[calc(100vw-24px)] bg-white dark:bg-[#14181e] rounded-2xl shadow-xl ring-1 ring-black/5 dark:ring-white/10 z-50 overflow-hidden">
+            <div class="flex items-center justify-between px-5 py-3.5 border-b border-gray-100 dark:border-[#242b34]">
+                <span class="text-[15px] font-semibold text-gray-900 dark:text-slate-100" style="font-family:'Sora',sans-serif">Notifications</span>
+                @if (Notifications.UnreadCount > 0)
+                {
+                    <button type="button" class="text-xs font-medium text-primary-600 dark:text-primary-400 hover:underline" @onclick="MarkAllRead">Mark all read</button>
+                }
+            </div>
+
+            <div class="max-h-[460px] overflow-y-auto">
+                @if (Notifications.Items.Count == 0)
+                {
+                    <div class="px-4 py-12 text-center">
+                        <div class="mx-auto w-12 h-12 rounded-xl flex items-center justify-center bg-gray-100 dark:bg-slate-800 text-gray-400">
+                            <svg class="w-6 h-6" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M15 17h5l-1.405-1.405A2.032 2.032 0 0118 14.158V11a6.002 6.002 0 00-4-5.659V5a2 2 0 10-4 0v.341C7.67 6.165 6 8.388 6 11v3.159c0 .538-.214 1.055-.595 1.436L4 17h5" /></svg>
+                        </div>
+                        <p class="mt-3 text-sm text-gray-500 dark:text-slate-400">You're all caught up</p>
+                    </div>
+                }
+                else
+                {
+                    @foreach (var n in Notifications.Items.Take(8))
+                    {
+                        var (bg, fg, icon) = Visual(n.Type);
+                        <button type="button"
+                                class="w-full flex items-start gap-3.5 px-5 py-3.5 text-left border-b border-gray-50 dark:border-[#1d232b] hover:bg-gray-50 dark:hover:bg-[#1a1f27] transition-colors @(n.IsRead ? "" : "bg-primary-50/40 dark:bg-primary-900/10")"
+                                @onclick="() => Open(n)">
+                            <span class="mt-0.5 w-10 h-10 rounded-lg flex items-center justify-center shrink-0" style="background:@bg;color:@fg">
+                                @((MarkupString)icon)
+                            </span>
+                            <span class="flex-1 min-w-0">
+                                <span class="block text-sm font-semibold text-gray-900 dark:text-slate-100 truncate">@n.Title</span>
+                                <span class="block text-[13px] text-gray-500 dark:text-slate-400 line-clamp-2">@n.Message</span>
+                                <span class="block mt-1 text-[11.5px] text-gray-400 dark:text-slate-500" style="font-family:'IBM Plex Mono',monospace">@TimeAgo(n.CreatedAt)</span>
+                            </span>
+                            @if (!n.IsRead)
+                            {
+                                <span class="mt-1.5 w-2 h-2 rounded-full bg-primary-500 shrink-0"></span>
+                            }
+                        </button>
+                    }
+                }
+            </div>
+
+            <a href="notifications" @onclick="Close"
+               class="block px-4 py-3 text-center text-[13px] font-medium text-primary-600 dark:text-primary-400 hover:bg-gray-50 dark:hover:bg-[#1a1f27] border-t border-gray-100 dark:border-[#242b34]">
+                View all notifications
+            </a>
+        </div>
+    }
+</div>
+
+@code {
+    private bool _open;
+
+    protected override async Task OnInitializedAsync()
+    {
+        Notifications.OnChange += OnStateChanged;
+        await Notifications.InitializeAsync();
+    }
+
+    private void OnStateChanged() => InvokeAsync(StateHasChanged);
+
+    private void Toggle() => _open = !_open;
+    private void Close() => _open = false;
+
+    private async Task MarkAllRead() => await Notifications.MarkAllAsReadAsync();
+
+    private async Task Open(NotificationDto n)
+    {
+        _open = false;
+        await Notifications.MarkAsReadAsync(n.Id);
+        if (!string.IsNullOrEmpty(n.Link))
+            Nav.NavigateTo(n.Link);
+    }
+
+    private static string TimeAgo(DateTime utc)
+    {
+        var span = DateTime.UtcNow - DateTime.SpecifyKind(utc, DateTimeKind.Utc);
+        if (span.TotalSeconds < 60) return "just now";
+        if (span.TotalMinutes < 60) return $"{(int)span.TotalMinutes}m ago";
+        if (span.TotalHours < 24) return $"{(int)span.TotalHours}h ago";
+        if (span.TotalDays < 7) return $"{(int)span.TotalDays}d ago";
+        return DateTime.SpecifyKind(utc, DateTimeKind.Utc).ToLocalTime().ToString("d MMM");
+    }
+
+    private static (string bg, string fg, string icon) Visual(string type) => type switch
+    {
+        "PaymentReceived" or "InvoicePaid" => ("#e2efe9", "#0f7a5a", CheckIcon),
+        "InvoiceSent" or "EstimateSent" => ("#e7f2f3", "#2b6d7d", SendIcon),
+        "InvoiceOverdue" or "ReminderSent" => ("#f7e4e2", "#b23b30", BellIcon),
+        "EstimateAccepted" => ("#e2efe9", "#0f7a5a", CheckIcon),
+        "EstimateViewed" => ("#ecebf6", "#5b53a8", EyeIcon),
+        "EstimateDeclined" => ("#f7e4e2", "#b23b30", BellIcon),
+        _ => ("#e7f2f3", "#0e5c66", DotIcon),
+    };
+
+    private const string CheckIcon = "<svg width=\"15\" height=\"15\" fill=\"none\" stroke=\"currentColor\" viewBox=\"0 0 24 24\"><path stroke-linecap=\"round\" stroke-linejoin=\"round\" stroke-width=\"2.4\" d=\"M5 13l4 4L19 7\"/></svg>";
+    private const string SendIcon = "<svg width=\"15\" height=\"15\" fill=\"none\" stroke=\"currentColor\" viewBox=\"0 0 24 24\"><path stroke-linecap=\"round\" stroke-linejoin=\"round\" stroke-width=\"2\" d=\"M22 2L11 13M22 2l-7 20-4-9-9-4 20-7z\"/></svg>";
+    private const string BellIcon = "<svg width=\"15\" height=\"15\" fill=\"none\" stroke=\"currentColor\" viewBox=\"0 0 24 24\"><path stroke-linecap=\"round\" stroke-linejoin=\"round\" stroke-width=\"2\" d=\"M18 8A6 6 0 006 8c0 7-3 9-3 9h18s-3-2-3-9M13.7 21a2 2 0 01-3.4 0\"/></svg>";
+    private const string EyeIcon = "<svg width=\"15\" height=\"15\" fill=\"none\" stroke=\"currentColor\" viewBox=\"0 0 24 24\"><path stroke-linecap=\"round\" stroke-linejoin=\"round\" stroke-width=\"2\" d=\"M15 12a3 3 0 11-6 0 3 3 0 016 0z\"/><path stroke-linecap=\"round\" stroke-linejoin=\"round\" stroke-width=\"2\" d=\"M2.5 12S6 5 12 5s9.5 7 9.5 7-3.5 7-9.5 7-9.5-7-9.5-7z\"/></svg>";
+    private const string DotIcon = "<svg width=\"15\" height=\"15\" fill=\"currentColor\" viewBox=\"0 0 24 24\"><circle cx=\"12\" cy=\"12\" r=\"5\"/></svg>";
+
+    public void Dispose() => Notifications.OnChange -= OnStateChanged;
+}

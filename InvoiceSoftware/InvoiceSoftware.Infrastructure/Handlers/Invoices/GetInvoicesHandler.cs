@@ -91,7 +91,7 @@ public class GetInvoicesHandler(IDbContextFactory<ApplicationDbContext> dbFactor
     private static (decimal Subtotal, decimal TaxAmount, decimal Total) CalculateInvoiceTotals(
         List<TimeEntry> timeEntries, List<Expense> expenses, List<InvoiceLineItem> productLineItems, decimal taxRate)
     {
-        var timeSubtotal = timeEntries.Sum(e => RoundToQuarterHour(e.Hours.Value) * e.Job.GetEffectiveHourlyRate());
+        var timeSubtotal = timeEntries.Sum(e => e.BillableHours * e.Job.GetEffectiveHourlyRate());
         var expenseSubtotal = expenses.Sum(e => e.GetTotalAmount());
         var productSubtotal = productLineItems.Sum(p => p.LineTotal.Amount);
         var subtotal = timeSubtotal + expenseSubtotal + productSubtotal;
@@ -100,8 +100,4 @@ public class GetInvoicesHandler(IDbContextFactory<ApplicationDbContext> dbFactor
         return (subtotal, taxAmount, total);
     }
 
-    private static decimal RoundToQuarterHour(decimal hours)
-    {
-        return Math.Round(hours * 4, MidpointRounding.AwayFromZero) / 4;
-    }
 }

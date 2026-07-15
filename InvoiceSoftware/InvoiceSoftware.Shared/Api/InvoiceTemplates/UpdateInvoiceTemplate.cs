@@ -18,10 +18,10 @@ public class UpdateInvoiceTemplate : IPut
     public string TemplateType { get; init; } = "Professional";
 
     [BodyParam]
-    public string PrimaryColor { get; init; } = "#4F46E5";
+    public string PrimaryColor { get; init; } = "#0e5c66";
 
     [BodyParam]
-    public string AccentColor { get; init; } = "#6366F1";
+    public string AccentColor { get; init; } = "#059669";
 
     [BodyParam]
     public string TextColor { get; init; } = "#1F2937";

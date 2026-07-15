@@ -24,65 +24,48 @@ public class GetRevenueChartHandler(IDbContextFactory<ApplicationDbContext> dbFa
         var months = request.Months > 0 ? request.Months : 12;
         var dataPoints = new List<RevenueDataPoint>();
 
-        // Get all invoices for the user
         var invoices = await db.Invoices
+            .Include(i => i.CurrencyTotals)
+            .Include(i => i.LineItems)
             .Include(i => i.TimeEntries)
                 .ThenInclude(te => te.Job)
+                    .ThenInclude(j => j.Project)
+                        .ThenInclude(p => p.Client)
             .Include(i => i.Client)
             .Where(i => i.Client.UserId == userId)
             .ToListAsync(cancellationToken);
 
-        // Get all expenses for the user (Expense uses CreatedBy, not UserId)
         var expenses = await db.Expenses
-            .Where(e => e.CreatedBy == userId)
+            .Where(e => e.CreatedBy == userId && e.InvoiceId == null)
             .ToListAsync(cancellationToken);
 
-        // Get default currency
         var businessProfile = await db.BusinessProfiles
             .FirstOrDefaultAsync(bp => bp.UserId == userId, cancellationToken);
-        var currency = businessProfile?.DefaultCurrency ?? "USD";
+        var reporting = !string.IsNullOrWhiteSpace(request.ReportingCurrency)
+            ? request.ReportingCurrency!
+            : businessProfile?.DefaultCurrency ?? "USD";
 
-        // Group by month
         for (int i = months - 1; i >= 0; i--)
         {
             var monthStart = new DateTime(now.Year, now.Month, 1).AddMonths(-i);
             var monthEnd = monthStart.AddMonths(1).AddDays(-1);
             var label = monthStart.ToString("MMM yyyy");
-
-            // Paid invoices in this month (PaidDate is DateOnly, compare with DateOnly)
             var monthStartDate = DateOnly.FromDateTime(monthStart);
             var monthEndDate = DateOnly.FromDateTime(monthEnd);
+
             var monthInvoices = invoices
                 .Where(inv => inv.Status == InvoiceStatus.Paid &&
-                             inv.PaidDate.HasValue &&
-                             inv.PaidDate.Value >= monthStartDate &&
-                             inv.PaidDate.Value <= monthEndDate)
-                .ToList();
+                              inv.PaidDate is { } d && d >= monthStartDate && d <= monthEndDate);
 
-            decimal revenue = 0;
-            foreach (var invoice in monthInvoices)
-            {
-                decimal subtotal = 0;
-                foreach (var te in invoice.TimeEntries)
-                {
-                    var hourlyRate = te.Job.GetEffectiveHourlyRate();
-                    subtotal += te.Hours.Value * hourlyRate;
-                }
-                revenue += subtotal + (subtotal * invoice.TaxRate / 100);
-            }
+            var revenue = monthInvoices.Sum(inv => InvoiceTotals.InReporting(inv, reporting));
 
-            // Expenses in this month (use monthStartDate and monthEndDate already calculated)
             var monthExpenses = expenses
                 .Where(e => e.ExpenseDate >= monthStartDate && e.ExpenseDate <= monthEndDate)
                 .Sum(e => e.Amount.Amount);
 
-            var profit = revenue - monthExpenses;
-
-            dataPoints.Add(new RevenueDataPoint(label, revenue, monthExpenses, profit));
+            dataPoints.Add(new RevenueDataPoint(label, revenue, monthExpenses, revenue - monthExpenses));
         }
 
-        var dto = new RevenueChartDataDto(dataPoints, currency, request.Period);
-
-        return HttpResult<RevenueChartDataDto>.Ok(dto);
+        return HttpResult<RevenueChartDataDto>.Ok(new RevenueChartDataDto(dataPoints, reporting, request.Period));
     }
 }

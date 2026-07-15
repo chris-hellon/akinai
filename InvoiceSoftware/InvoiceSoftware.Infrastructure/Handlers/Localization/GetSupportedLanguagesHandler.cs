@@ -15,7 +15,8 @@ public class GetSupportedLanguagesHandler : IHandle<GetSupportedLanguages, List<
         [SupportedLanguage.French] = ("French", "Français"),
         [SupportedLanguage.German] = ("German", "Deutsch"),
         [SupportedLanguage.Chinese] = ("Chinese (Simplified)", "简体中文"),
-        [SupportedLanguage.Vietnamese] = ("Vietnamese", "Tiếng Việt")
+        [SupportedLanguage.Vietnamese] = ("Vietnamese", "Tiếng Việt"),
+        [SupportedLanguage.Russian] = ("Russian", "Русский")
     };
 
     public Task<HttpResult<List<LanguageDto>>> Handle(GetSupportedLanguages request, CancellationToken cancellationToken)

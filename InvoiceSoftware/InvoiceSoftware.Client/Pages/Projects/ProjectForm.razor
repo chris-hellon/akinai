@@ -5,6 +5,7 @@
 @inject ICall<GetProject, ProjectDetailDto> GetProjectCall
 @inject ICall<CreateProject, Guid> CreateProjectCall
 @inject ICall<UpdateProject> UpdateProjectCall
+@inject ICall<DeleteProject> DeleteProjectCall
 @inject ICall<CreateProjectSection, Guid> CreateSectionCall
 @inject ICall<UpdateProjectSection> UpdateSectionCall
 @inject ICall<DeleteProjectSection> DeleteSectionCall
@@ -32,24 +33,15 @@
             <Card Title="Project Details" Description="Basic information about this project.">
                     <div>
                         <label for="clientId" class="block text-sm font-medium text-gray-700 mb-2">Client <span class="text-red-500">*</span></label>
-                        <InputSelect id="clientId" @bind-Value="_model.ClientId"
-                            class="w-full px-4 py-3 text-sm text-gray-900 bg-white border border-gray-200 rounded-xl transition-all duration-200 focus:outline-none focus:border-primary-400 focus:ring-4 focus:ring-primary-500/10 hover:border-gray-300 cursor-pointer">
-                            <option value="@Guid.Empty">Select a client...</option>
-                            @if (_clients != null)
-                            {
-                                @foreach (var client in _clients)
-                                {
-                                    <option value="@client.Id">@client.Name</option>
-                                }
-                            }
-                        </InputSelect>
+                        <Select TValue="Guid" @bind-Value="_model.ClientId" Placeholder="Select a client..."
+                                Options="@(_clients?.Select(c => new SelectOption<Guid>(c.Id, c.Name)).ToList() ?? new())" />
                         <ValidationMessage For="@(() => _model.ClientId)" class="mt-1.5 text-xs text-red-600" />
                     </div>
 
                     <div>
                         <label for="name" class="block text-sm font-medium text-gray-700 mb-2">Project Name <span class="text-red-500">*</span></label>
                         <InputText id="name" @bind-Value="_model.Name"
-                            class="w-full px-4 py-3 text-sm text-gray-900 bg-white border border-gray-200 rounded-xl transition-all duration-200 placeholder:text-gray-400 focus:outline-none focus:border-primary-400 focus:ring-4 focus:ring-primary-500/10 hover:border-gray-300"
+                            class="form-control"
                             placeholder="Website Redesign" />
                         <ValidationMessage For="@(() => _model.Name)" class="mt-1.5 text-xs text-red-600" />
                     </div>
@@ -57,19 +49,14 @@
                     <div>
                         <label for="description" class="block text-sm font-medium text-gray-700 mb-2">Description</label>
                         <InputTextArea id="description" @bind-Value="_model.Description" rows="3"
-                            class="w-full px-4 py-3 text-sm text-gray-900 bg-white border border-gray-200 rounded-xl transition-all duration-200 placeholder:text-gray-400 focus:outline-none focus:border-primary-400 focus:ring-4 focus:ring-primary-500/10 hover:border-gray-300 resize-none"
+                            class="form-control resize-none"
                             placeholder="Brief description of the project..." />
                     </div>
 
                     <div>
                         <label for="status" class="block text-sm font-medium text-gray-700 mb-2">Status</label>
-                        <InputSelect id="status" @bind-Value="_model.Status"
-                            class="w-full px-4 py-3 text-sm text-gray-900 bg-white border border-gray-200 rounded-xl transition-all duration-200 focus:outline-none focus:border-primary-400 focus:ring-4 focus:ring-primary-500/10 hover:border-gray-300 cursor-pointer">
-                            <option value="Active">Active</option>
-                            <option value="OnHold">On Hold</option>
-                            <option value="Completed">Completed</option>
-                            <option value="Archived">Archived</option>
-                        </InputSelect>
+                        <Select TValue="string" @bind-Value="_model.Status" Searchable="false"
+                                Options="@(new List<SelectOption<string>> { new("Active", "Active"), new("OnHold", "On Hold"), new("Completed", "Completed"), new("Archived", "Archived") })" />
                     </div>
             </Card>
 
@@ -78,14 +65,12 @@
                     <div class="grid grid-cols-1 sm:grid-cols-2 gap-5">
                         <div>
                             <label for="startDate" class="block text-sm font-medium text-gray-700 dark:text-slate-300 mb-2">Start Date</label>
-                            <InputDate id="startDate" @bind-Value="_model.StartDate"
-                                class="w-full px-4 py-3 text-sm text-gray-900 dark:text-slate-100 bg-white dark:bg-[#1e1b3a] border border-gray-200 dark:border-[#2d2a4a] rounded-xl transition-all duration-200 focus:outline-none focus:border-primary-400 dark:focus:border-primary-500 focus:ring-4 focus:ring-primary-500/10 hover:border-gray-300 dark:hover:border-[#3d3a5a]" />
+                            <DatePicker @bind-Value="_model.StartDate" />
                         </div>
 
                         <div>
                             <label for="endDate" class="block text-sm font-medium text-gray-700 dark:text-slate-300 mb-2">End Date</label>
-                            <InputDate id="endDate" @bind-Value="_model.EndDate"
-                                class="w-full px-4 py-3 text-sm text-gray-900 dark:text-slate-100 bg-white dark:bg-[#1e1b3a] border border-gray-200 dark:border-[#2d2a4a] rounded-xl transition-all duration-200 focus:outline-none focus:border-primary-400 dark:focus:border-primary-500 focus:ring-4 focus:ring-primary-500/10 hover:border-gray-300 dark:hover:border-[#3d3a5a]" />
+                            <DatePicker @bind-Value="_model.EndDate" />
                         </div>
                     </div>
 
@@ -98,7 +83,7 @@
                                 <span class="text-gray-500 dark:text-slate-400 text-sm">@CurrencyExtensions.GetSymbol(ClientCurrency)</span>
                             </div>
                             <InputNumber id="hourlyRate" @bind-Value="_model.HourlyRateOverride"
-                                class="w-full pl-8 pr-16 py-3 text-sm text-gray-900 dark:text-slate-100 bg-white dark:bg-[#1e1b3a] border border-gray-200 dark:border-[#2d2a4a] rounded-xl transition-all duration-200 focus:outline-none focus:border-primary-400 dark:focus:border-primary-500 focus:ring-4 focus:ring-primary-500/10 hover:border-gray-300 dark:hover:border-[#3d3a5a]" />
+                                class="form-control pl-8 pr-16" />
                             <div class="absolute inset-y-0 right-0 pr-4 flex items-center pointer-events-none">
                                 <span class="text-gray-400 dark:text-slate-500 text-sm">/ hour</span>
                             </div>
@@ -123,9 +108,9 @@
                                         <!-- Edit Mode -->
                                         <div class="flex-1 space-y-3">
                                             <input type="text" @bind="_editSectionName" placeholder="Section name"
-                                                class="w-full px-3 py-2 text-sm text-gray-900 dark:text-slate-100 bg-white dark:bg-[#252240] border border-gray-200 dark:border-[#3d3a5a] rounded-lg focus:outline-none focus:border-primary-400" />
+                                                class="form-control" />
                                             <input type="text" @bind="_editSectionDescription" placeholder="Description (optional)"
-                                                class="w-full px-3 py-2 text-sm text-gray-900 dark:text-slate-100 bg-white dark:bg-[#252240] border border-gray-200 dark:border-[#3d3a5a] rounded-lg focus:outline-none focus:border-primary-400" />
+                                                class="form-control" />
                                             <div class="flex gap-2">
                                                 <button type="button" @onclick="SaveEditSection" disabled="@_isSavingSection"
                                                     class="px-3 py-1.5 text-xs font-medium text-white bg-primary-600 rounded-lg hover:bg-primary-700 disabled:opacity-50">
@@ -184,9 +169,9 @@
                         <div class="@(_sections.Count > 0 ? "mt-4" : "") p-4 bg-primary-50 dark:bg-primary-900/20 rounded-xl border border-primary-100 dark:border-primary-800">
                             <div class="space-y-3">
                                 <input type="text" @bind="_newSectionName" placeholder="Section name"
-                                    class="w-full px-3 py-2 text-sm text-gray-900 dark:text-slate-100 bg-white dark:bg-[#252240] border border-gray-200 dark:border-[#3d3a5a] rounded-lg focus:outline-none focus:border-primary-400" />
+                                    class="form-control" />
                                 <input type="text" @bind="_newSectionDescription" placeholder="Description (optional)"
-                                    class="w-full px-3 py-2 text-sm text-gray-900 dark:text-slate-100 bg-white dark:bg-[#252240] border border-gray-200 dark:border-[#3d3a5a] rounded-lg focus:outline-none focus:border-primary-400" />
+                                    class="form-control" />
                                 <div class="flex gap-2">
                                     <button type="button" @onclick="AddSection" disabled="@_isSavingSection"
                                         class="px-3 py-1.5 text-xs font-medium text-white bg-primary-600 rounded-lg hover:bg-primary-700 disabled:opacity-50">
@@ -227,6 +212,13 @@
                                ShowIcon="false" />
             </div>
         </EditForm>
+
+        @if (Id.HasValue)
+        {
+            <DangerZone EntityLabel="Project" ItemName="@_model.Name"
+                        WarningMessage="This permanently deletes the project and all its jobs, tasks and time entries. This cannot be undone."
+                        OnConfirmed="DeleteAsync" />
+        }
     }
 </div>
 
@@ -299,6 +291,20 @@
         finally
         {
             _isLoading = false;
+        }
+    }
+
+    private async Task DeleteAsync()
+    {
+        _errorMessage = null;
+        try
+        {
+            await DeleteProjectCall.Call(new DeleteProject { Id = Id!.Value });
+            NavigationManager.NavigateTo("projects");
+        }
+        catch (Exception ex)
+        {
+            _errorMessage = $"Failed to delete project: {ex.Message}";
         }
     }
 

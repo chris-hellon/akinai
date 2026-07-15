@@ -22,8 +22,18 @@ public class GetBankTransactions : IGet<PaginatedResponse<BankTransactionDto>>, 
     public bool? IsIgnored { get; init; }
 
     [QueryStringParam]
+    public bool? IsExpensed { get; init; }
+
+    [QueryStringParam]
     public DateOnly? FromDate { get; init; }
 
     [QueryStringParam]
     public DateOnly? ToDate { get; init; }
+
+    /// <summary>"in" = money in (positive), "out" = money out (negative), null = both.</summary>
+    [QueryStringParam]
+    public string? Direction { get; init; }
+
+    [QueryStringParam]
+    public string? Currency { get; init; }
 }

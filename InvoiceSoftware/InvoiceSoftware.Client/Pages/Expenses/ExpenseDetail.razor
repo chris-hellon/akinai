@@ -18,18 +18,6 @@
                     <EditIcon />
                     Edit Expense
                 </a>
-                <button @onclick="DeleteExpenseAsync" disabled="@_isDeleting"
-                        class="inline-flex items-center gap-2 px-4 py-2.5 text-sm font-medium text-red-700 dark:text-red-300 bg-red-50 dark:bg-red-900/30 border border-red-200 dark:border-red-800 rounded-xl hover:bg-red-100 dark:hover:bg-red-900/50 transition-all duration-200 disabled:opacity-50 disabled:cursor-not-allowed">
-                    @if (_isDeleting)
-                    {
-                        <div class="w-4 h-4 border-2 border-red-300 border-t-red-600 rounded-full animate-spin"></div>
-                    }
-                    else
-                    {
-                        <DeleteIcon />
-                    }
-                    Delete
-                </button>
             </div>
         }
     </PageHeader>
@@ -232,6 +220,10 @@
                 </div>
             </div>
         </div>
+
+        <DangerZone EntityLabel="Expense" ItemName="@($"{_expense.MerchantName} - {CurrencyExtensions.GetSymbol(_expense.Currency)}{_expense.Amount:N2}")"
+                    WarningMessage="This permanently deletes this expense. This cannot be undone."
+                    OnConfirmed="PerformDelete" />
     }
 </div>
 
@@ -241,7 +233,6 @@
 
     private ExpenseDetailDto? _expense;
     private bool _isLoading = true;
-    private bool _isDeleting;
     private List<PageHeader.BreadcrumbItem> _breadcrumbs = [];
 
     protected override async Task OnInitializedAsync()
@@ -270,34 +261,16 @@
         }
     }
 
-    private async Task DeleteExpenseAsync()
+    private async Task PerformDelete()
     {
-        if (_expense == null) return;
-
-        var confirmed = await ModalService.ShowAsync<bool>(
-            typeof(DeleteConfirmationModal),
-            "Delete Expense",
-            new Dictionary<string, object>
-            {
-                { "ItemName", $"{_expense.MerchantName} - {CurrencyExtensions.GetSymbol(_expense.Currency)}{_expense.Amount:N2}" }
-            },
-            new ModalOptions { Size = ModalSize.Small });
-
-        if (!confirmed) return;
-
-        _isDeleting = true;
         try
         {
             await DeleteExpenseCall.Call(new DeleteExpense { Id = Id });
             NavigationManager.NavigateTo("expenses");
         }
-        catch (Exception ex)
+        catch (Exception)
         {
-            Console.WriteLine($"Error deleting expense: {ex.Message}");
-        }
-        finally
-        {
-            _isDeleting = false;
+            // ignored
         }
     }
 }

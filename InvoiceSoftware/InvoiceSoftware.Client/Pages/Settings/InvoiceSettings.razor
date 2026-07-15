@@ -36,32 +36,27 @@
                     <div class="grid grid-cols-1 gap-4 sm:grid-cols-2">
                         <div>
                             <label for="DefaultCurrency" class="block text-sm font-medium text-gray-700 dark:text-slate-300 mb-2">Default Currency</label>
-                            <InputSelect @bind-Value="Input.DefaultCurrency" id="DefaultCurrency"
-                                class="w-full px-4 py-3 text-sm text-gray-900 dark:text-slate-100 bg-white dark:bg-slate-800 border border-gray-200 dark:border-slate-600 rounded-xl transition-all duration-200 focus:outline-none focus:border-primary-400 dark:focus:border-primary-500 focus:ring-4 focus:ring-primary-500/10 hover:border-gray-300 dark:hover:border-slate-500">
-                                @foreach (var currency in _availableCurrencies)
-                                {
-                                    <option value="@currency.Code">@currency.Code - @currency.Name</option>
-                                }
-                            </InputSelect>
+                            <Select TValue="string" @bind-Value="Input.DefaultCurrency"
+                                Options="@(_availableCurrencies.Select(c => new SelectOption<string>(c.Code, $"{c.Code} - {c.Name}")).ToList())" />
                         </div>
                         <div>
                             <label for="DefaultPaymentTermsDays" class="block text-sm font-medium text-gray-700 dark:text-slate-300 mb-2">Default Payment Terms (Days)</label>
                             <InputNumber @bind-Value="Input.DefaultPaymentTermsDays" id="DefaultPaymentTermsDays"
-                                class="w-full px-4 py-3 text-sm text-gray-900 dark:text-slate-100 bg-white dark:bg-slate-800 border border-gray-200 dark:border-slate-600 rounded-xl transition-all duration-200 focus:outline-none focus:border-primary-400 dark:focus:border-primary-500 focus:ring-4 focus:ring-primary-500/10 hover:border-gray-300 dark:hover:border-slate-500" />
+                                class="form-control" />
                         </div>
                     </div>
 
                     <div>
                         <label for="InvoiceNotes" class="block text-sm font-medium text-gray-700 dark:text-slate-300 mb-2">Default Invoice Notes</label>
                         <InputTextArea @bind-Value="Input.InvoiceNotes" id="InvoiceNotes" rows="3"
-                            class="w-full px-4 py-3 text-sm text-gray-900 dark:text-slate-100 bg-white dark:bg-slate-800 border border-gray-200 dark:border-slate-600 rounded-xl transition-all duration-200 placeholder:text-gray-400 dark:placeholder:text-slate-500 focus:outline-none focus:border-primary-400 dark:focus:border-primary-500 focus:ring-4 focus:ring-primary-500/10 hover:border-gray-300 dark:hover:border-slate-500 resize-none"
+                            class="form-control resize-none"
                             placeholder="Thank you for your business." />
                     </div>
 
                     <div>
                         <label for="InvoiceFooter" class="block text-sm font-medium text-gray-700 dark:text-slate-300 mb-2">Invoice Footer Text</label>
                         <InputText @bind-Value="Input.InvoiceFooter" id="InvoiceFooter"
-                            class="w-full px-4 py-3 text-sm text-gray-900 dark:text-slate-100 bg-white dark:bg-slate-800 border border-gray-200 dark:border-slate-600 rounded-xl transition-all duration-200 placeholder:text-gray-400 dark:placeholder:text-slate-500 focus:outline-none focus:border-primary-400 dark:focus:border-primary-500 focus:ring-4 focus:ring-primary-500/10 hover:border-gray-300 dark:hover:border-slate-500"
+                            class="form-control"
                             placeholder="Registered in England. Company No. 12345678" />
                     </div>
                 </div>
@@ -75,14 +70,14 @@
                     <div>
                         <label for="InvoiceEmailSubject" class="block text-sm font-medium text-gray-700 dark:text-slate-300 mb-2">Email Subject</label>
                         <InputText @bind-Value="Input.InvoiceEmailSubject" id="InvoiceEmailSubject"
-                            class="w-full px-4 py-3 text-sm text-gray-900 dark:text-slate-100 bg-white dark:bg-slate-800 border border-gray-200 dark:border-slate-600 rounded-xl transition-all duration-200 placeholder:text-gray-400 dark:placeholder:text-slate-500 focus:outline-none focus:border-primary-400 dark:focus:border-primary-500 focus:ring-4 focus:ring-primary-500/10 hover:border-gray-300 dark:hover:border-slate-500"
+                            class="form-control"
                             placeholder="Invoice {InvoiceNumber} from {CompanyName}" />
                     </div>
 
                     <div>
                         <label for="InvoiceEmailBody" class="block text-sm font-medium text-gray-700 dark:text-slate-300 mb-2">Email Body</label>
                         <InputTextArea @bind-Value="Input.InvoiceEmailBody" id="InvoiceEmailBody" rows="5"
-                            class="w-full px-4 py-3 text-sm text-gray-900 dark:text-slate-100 bg-white dark:bg-slate-800 border border-gray-200 dark:border-slate-600 rounded-xl transition-all duration-200 placeholder:text-gray-400 dark:placeholder:text-slate-500 focus:outline-none focus:border-primary-400 dark:focus:border-primary-500 focus:ring-4 focus:ring-primary-500/10 hover:border-gray-300 dark:hover:border-slate-500 resize-none"
+                            class="form-control resize-none"
                             placeholder="Dear {ClientName},&#10;&#10;Please find attached invoice {InvoiceNumber} for {Amount}.&#10;&#10;Payment is due by {DueDate}." />
                     </div>
                 </div>
@@ -107,7 +102,7 @@
                             <div class="flex items-center gap-2">
                                 <span class="text-sm text-gray-500 dark:text-slate-400 whitespace-nowrap">paypal.me/</span>
                                 <InputText @bind-Value="Input.PayPalMeUsername" id="PayPalMeUsername"
-                                    class="flex-1 px-4 py-3 text-sm text-gray-900 dark:text-slate-100 bg-white dark:bg-slate-800 border border-gray-200 dark:border-slate-600 rounded-xl transition-all duration-200 placeholder:text-gray-400 dark:placeholder:text-slate-500 focus:outline-none focus:border-primary-400 dark:focus:border-primary-500 focus:ring-4 focus:ring-primary-500/10 hover:border-gray-300 dark:hover:border-slate-500"
+                                    class="form-control flex-1"
                                     placeholder="yourname" />
                             </div>
                         </div>
@@ -123,7 +118,7 @@
                                 </span>
                             </label>
                             <InputText @bind-Value="Input.WiseEmail" id="WiseEmail" type="email"
-                                class="w-full px-4 py-3 text-sm text-gray-900 dark:text-slate-100 bg-white dark:bg-slate-800 border border-gray-200 dark:border-slate-600 rounded-xl transition-all duration-200 placeholder:text-gray-400 dark:placeholder:text-slate-500 focus:outline-none focus:border-primary-400 dark:focus:border-primary-500 focus:ring-4 focus:ring-primary-500/10 hover:border-gray-300 dark:hover:border-slate-500"
+                                class="form-control"
                                 placeholder="you@email.com" />
                         </div>
 
@@ -140,7 +135,7 @@
                             <div class="flex items-center gap-2">
                                 <span class="text-sm text-gray-500 dark:text-slate-400 whitespace-nowrap">revolut.me/</span>
                                 <InputText @bind-Value="Input.RevolutUsername" id="RevolutUsername"
-                                    class="flex-1 px-4 py-3 text-sm text-gray-900 dark:text-slate-100 bg-white dark:bg-slate-800 border border-gray-200 dark:border-slate-600 rounded-xl transition-all duration-200 placeholder:text-gray-400 dark:placeholder:text-slate-500 focus:outline-none focus:border-primary-400 dark:focus:border-primary-500 focus:ring-4 focus:ring-primary-500/10 hover:border-gray-300 dark:hover:border-slate-500"
+                                    class="form-control flex-1"
                                     placeholder="yourname" />
                             </div>
                         </div>
@@ -154,7 +149,7 @@
                         </label>
                         <div class="max-w-xs">
                             <InputNumber @bind-Value="Input.VndToDefaultCurrencyRate" id="VndToDefaultCurrencyRate"
-                                class="w-full px-4 py-3 text-sm text-gray-900 dark:text-slate-100 bg-white dark:bg-slate-800 border border-gray-200 dark:border-slate-600 rounded-xl transition-all duration-200 placeholder:text-gray-400 dark:placeholder:text-slate-500 focus:outline-none focus:border-primary-400 dark:focus:border-primary-500 focus:ring-4 focus:ring-primary-500/10 hover:border-gray-300 dark:hover:border-slate-500"
+                                class="form-control"
                                 placeholder="e.g., 25000" />
                         </div>
                         <p class="mt-1.5 text-xs text-gray-500 dark:text-slate-400">
@@ -203,12 +198,12 @@
                             <div>
                                 <label class="block text-sm font-medium text-gray-700 dark:text-slate-300 mb-2">Bank Name</label>
                                 <input type="text" @bind="settings.BankName" @bind:event="oninput"
-                                    class="w-full px-4 py-3 text-sm text-gray-900 dark:text-slate-100 bg-white dark:bg-slate-800 border border-gray-200 dark:border-slate-600 rounded-xl transition-all duration-200 focus:outline-none focus:border-primary-400 dark:focus:border-primary-500 focus:ring-4 focus:ring-primary-500/10 hover:border-gray-300 dark:hover:border-slate-500" />
+                                    class="form-control" />
                             </div>
                             <div>
                                 <label class="block text-sm font-medium text-gray-700 dark:text-slate-300 mb-2">Account Name</label>
                                 <input type="text" @bind="settings.BankAccountName" @bind:event="oninput"
-                                    class="w-full px-4 py-3 text-sm text-gray-900 dark:text-slate-100 bg-white dark:bg-slate-800 border border-gray-200 dark:border-slate-600 rounded-xl transition-all duration-200 focus:outline-none focus:border-primary-400 dark:focus:border-primary-500 focus:ring-4 focus:ring-primary-500/10 hover:border-gray-300 dark:hover:border-slate-500" />
+                                    class="form-control" />
                             </div>
                         </div>
 
@@ -216,12 +211,12 @@
                             <div>
                                 <label class="block text-sm font-medium text-gray-700 dark:text-slate-300 mb-2">Account Number</label>
                                 <input type="text" @bind="settings.BankAccountNumber" @bind:event="oninput"
-                                    class="w-full px-4 py-3 text-sm text-gray-900 dark:text-slate-100 bg-white dark:bg-slate-800 border border-gray-200 dark:border-slate-600 rounded-xl transition-all duration-200 focus:outline-none focus:border-primary-400 dark:focus:border-primary-500 focus:ring-4 focus:ring-primary-500/10 hover:border-gray-300 dark:hover:border-slate-500" />
+                                    class="form-control" />
                             </div>
                             <div>
                                 <label class="block text-sm font-medium text-gray-700 dark:text-slate-300 mb-2">Sort Code / Routing Number</label>
                                 <input type="text" @bind="settings.BankSortCode" @bind:event="oninput"
-                                    class="w-full px-4 py-3 text-sm text-gray-900 dark:text-slate-100 bg-white dark:bg-slate-800 border border-gray-200 dark:border-slate-600 rounded-xl transition-all duration-200 focus:outline-none focus:border-primary-400 dark:focus:border-primary-500 focus:ring-4 focus:ring-primary-500/10 hover:border-gray-300 dark:hover:border-slate-500" />
+                                    class="form-control" />
                             </div>
                         </div>
 
@@ -229,12 +224,12 @@
                             <div>
                                 <label class="block text-sm font-medium text-gray-700 dark:text-slate-300 mb-2">IBAN</label>
                                 <input type="text" @bind="settings.BankIban" @bind:event="oninput"
-                                    class="w-full px-4 py-3 text-sm text-gray-900 dark:text-slate-100 bg-white dark:bg-slate-800 border border-gray-200 dark:border-slate-600 rounded-xl transition-all duration-200 focus:outline-none focus:border-primary-400 dark:focus:border-primary-500 focus:ring-4 focus:ring-primary-500/10 hover:border-gray-300 dark:hover:border-slate-500" />
+                                    class="form-control" />
                             </div>
                             <div>
                                 <label class="block text-sm font-medium text-gray-700 dark:text-slate-300 mb-2">BIC / SWIFT</label>
                                 <input type="text" @bind="settings.BankSwift" @bind:event="oninput"
-                                    class="w-full px-4 py-3 text-sm text-gray-900 dark:text-slate-100 bg-white dark:bg-slate-800 border border-gray-200 dark:border-slate-600 rounded-xl transition-all duration-200 focus:outline-none focus:border-primary-400 dark:focus:border-primary-500 focus:ring-4 focus:ring-primary-500/10 hover:border-gray-300 dark:hover:border-slate-500" />
+                                    class="form-control" />
                             </div>
                         </div>
 
@@ -249,21 +244,15 @@
                                         VietQR Bank
                                     </span>
                                 </label>
-                                <select @bind="settings.VietQrBankCode"
-                                    class="w-full px-4 py-3 text-sm text-gray-900 dark:text-slate-100 bg-white dark:bg-slate-800 border border-gray-200 dark:border-slate-600 rounded-xl transition-all duration-200 focus:outline-none focus:border-primary-400 dark:focus:border-primary-500 focus:ring-4 focus:ring-primary-500/10 hover:border-gray-300 dark:hover:border-slate-500">
-                                    <option value="">-- Select Bank for QR Code --</option>
-                                    @foreach (var bank in _vietQrBanks)
-                                    {
-                                        <option value="@bank.Code">@bank.ShortName</option>
-                                    }
-                                </select>
+                                <Select TValue="string" @bind-Value="settings.VietQrBankCode" Placeholder="-- Select Bank for QR Code --"
+                                    Options="@(new List<SelectOption<string>> { new("", "-- Select Bank for QR Code --") }.Concat(_vietQrBanks.Select(bank => new SelectOption<string>(bank.Code, bank.ShortName))).ToList())" />
                                 <p class="mt-1.5 text-xs text-gray-500 dark:text-slate-400">A QR code will appear on VND invoices for easy mobile payment.</p>
                             </div>
                         }
 
                         <div class="pt-4">
                             <button type="button" @onclick="SaveCurrencySettings" disabled="@_isSavingCurrency"
-                                class="inline-flex items-center justify-center gap-2 px-6 py-3 text-sm font-medium text-white rounded-xl transition-all duration-200 hover:shadow-lg active:scale-[0.98] disabled:opacity-50 disabled:cursor-not-allowed bg-emerald-600">
+                                class="inline-flex items-center justify-center gap-2 px-6 py-3 text-sm font-medium text-white rounded-xl transition-all duration-200 hover:shadow-lg active:scale-[0.98] disabled:opacity-50 disabled:cursor-not-allowed bg-primary-600 hover:bg-primary-700">
                                 @if (_isSavingCurrency)
                                 {
                                     <div class="w-4 h-4 border-2 border-white/30 border-t-white rounded-full animate-spin"></div>
@@ -305,7 +294,8 @@
         new("EUR", "Euro"),
         new("CAD", "Canadian Dollar"),
         new("AUD", "Australian Dollar"),
-        new("VND", "Vietnamese Dong")
+        new("VND", "Vietnamese Dong"),
+        new("RUB", "Russian Ruble")
     ];
 
     protected override async Task OnInitializedAsync()

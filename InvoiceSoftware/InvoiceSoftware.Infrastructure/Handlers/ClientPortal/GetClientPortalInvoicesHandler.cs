@@ -27,6 +27,8 @@ public class GetClientPortalInvoicesHandler(IDbContextFactory<ApplicationDbConte
         var query = db.Invoices
             .Include(i => i.TimeEntries)
                 .ThenInclude(te => te.Job)
+                    .ThenInclude(j => j.Project)
+                        .ThenInclude(p => p.Client)
             .Where(i => i.ClientId == client.Id);
 
         // Only show sent, overdue, and paid invoices (not drafts)

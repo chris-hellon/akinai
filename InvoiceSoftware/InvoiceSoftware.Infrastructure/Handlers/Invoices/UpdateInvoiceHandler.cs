@@ -2,12 +2,15 @@ using BlazorUtils.EasyApi;
 using BlazorUtils.EasyApi.Server;
 using InvoiceSoftware.Domain.Entities;
 using InvoiceSoftware.Infrastructure.Data;
+using InvoiceSoftware.Infrastructure.Services;
 using InvoiceSoftware.Shared.Api.Invoices;
 using Microsoft.EntityFrameworkCore;
 
 namespace InvoiceSoftware.Infrastructure.Handlers.Invoices;
 
-public class UpdateInvoiceHandler(IDbContextFactory<ApplicationDbContext> dbFactory) : IHandle<UpdateInvoice>
+public class UpdateInvoiceHandler(
+    IDbContextFactory<ApplicationDbContext> dbFactory,
+    IInvoiceTotalService totalService) : IHandle<UpdateInvoice>
 {
     public async Task<HttpResult> Handle(UpdateInvoice request, CancellationToken cancellationToken)
     {
@@ -91,6 +94,18 @@ public class UpdateInvoiceHandler(IDbContextFactory<ApplicationDbContext> dbFact
         }
 
         await db.SaveChangesAsync(cancellationToken);
+
+        // Re-snapshot totals after the invoice's lines/time/expenses changed.
+        var userId = await db.Clients
+            .Where(c => c.Id == invoice.ClientId)
+            .Select(c => c.UserId)
+            .FirstOrDefaultAsync(cancellationToken);
+        if (!string.IsNullOrEmpty(userId))
+        {
+            await totalService.RecalculateAsync(db, invoice.Id, userId, cancellationToken);
+            await db.SaveChangesAsync(cancellationToken);
+        }
+
         return HttpResult.NoContent();
     }
 }

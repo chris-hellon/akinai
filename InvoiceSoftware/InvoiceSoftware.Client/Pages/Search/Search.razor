@@ -1,0 +1,132 @@
+@page "/search"
+@attribute [Authorize]
+
+@inject ICall<GlobalSearch, GlobalSearchResultDto> SearchCall
+
+<PageTitle>Search - InvoicePro</PageTitle>
+
+<div class="space-y-6">
+    <div>
+        <h1 class="text-2xl font-bold text-gray-900 dark:text-slate-100" style="font-family:'Sora',sans-serif">Search</h1>
+        @if (!string.IsNullOrWhiteSpace(_query))
+        {
+            <p class="mt-1 text-sm text-gray-500 dark:text-slate-400">
+                @if (_isLoading)
+                {
+                    <span>Searching for &ldquo;<span class="font-medium text-gray-700 dark:text-slate-300">@_query</span>&rdquo;…</span>
+                }
+                else
+                {
+                    <span>@(_results?.TotalCount ?? 0) result@((_results?.TotalCount ?? 0) == 1 ? "" : "s") for &ldquo;<span class="font-medium text-gray-700 dark:text-slate-300">@_query</span>&rdquo;</span>
+                }
+            </p>
+        }
+    </div>
+
+    @if (_isLoading)
+    {
+        <LoadingSpinner Padding="py-20" />
+    }
+    else if (string.IsNullOrWhiteSpace(_query))
+    {
+        <EmptyState Title="Search your workspace"
+                    Message="Find clients, invoices, projects and estimates by name or number."
+                    IconType="EmptyState.EmptyStateIcon.Document" />
+    }
+    else if (_results == null || _results.TotalCount == 0)
+    {
+        <EmptyState Title="No matches found"
+                    Message="@($"Nothing matched “{_query}”. Try a different name or number.")"
+                    IconType="EmptyState.EmptyStateIcon.Document" />
+    }
+    else
+    {
+        <div class="grid grid-cols-1 lg:grid-cols-2 gap-6">
+            @foreach (var group in Groups)
+            {
+                if (group.Items.Count == 0) continue;
+
+                <Card Title="@($"{group.Title} ({group.Items.Count})")">
+                    <div class="-my-2 divide-y divide-gray-100 dark:divide-slate-700">
+                        @foreach (var item in group.Items)
+                        {
+                            <a href="@item.Url" class="flex items-center gap-3 py-3 group">
+                                <span class="w-9 h-9 rounded-lg flex items-center justify-center shrink-0 bg-gray-100 dark:bg-slate-700 text-gray-500 dark:text-slate-300">
+                                    @((MarkupString)IconFor(item.Type))
+                                </span>
+                                <span class="flex-1 min-w-0">
+                                    <span class="block text-sm font-medium text-gray-900 dark:text-slate-100 truncate group-hover:text-primary-600 dark:group-hover:text-primary-400 transition-colors">@item.Title</span>
+                                    @if (!string.IsNullOrEmpty(item.Subtitle))
+                                    {
+                                        <span class="block text-xs text-gray-500 dark:text-slate-400 truncate">@item.Subtitle</span>
+                                    }
+                                </span>
+                                <svg class="w-4 h-4 text-gray-300 dark:text-slate-600 group-hover:text-primary-500 transition-colors shrink-0" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                                    <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M9 5l7 7-7 7" />
+                                </svg>
+                            </a>
+                        }
+                    </div>
+                </Card>
+            }
+        </div>
+    }
+</div>
+
+@code {
+    [SupplyParameterFromQuery(Name = "q")]
+    public string? Q { get; set; }
+
+    private string _query = "";
+    private GlobalSearchResultDto? _results;
+    private bool _isLoading;
+    private string? _loadedQuery;
+
+    private IEnumerable<(string Title, List<GlobalSearchItemDto> Items)> Groups =>
+        _results is null
+            ? []
+            : [
+                ("Clients", _results.Clients),
+                ("Invoices", _results.Invoices),
+                ("Projects", _results.Projects),
+                ("Estimates", _results.Estimates)
+            ];
+
+    protected override async Task OnParametersSetAsync()
+    {
+        var incoming = Q ?? "";
+        if (incoming == _loadedQuery) return;
+
+        _loadedQuery = incoming;
+        _query = incoming;
+
+        if (string.IsNullOrWhiteSpace(incoming))
+        {
+            _results = null;
+            return;
+        }
+
+        _isLoading = true;
+        try
+        {
+            _results = await SearchCall.Call(new GlobalSearch { Query = incoming });
+        }
+        catch
+        {
+            _results = GlobalSearchResultDto.Empty();
+        }
+        finally
+        {
+            _isLoading = false;
+        }
+    }
+
+    private static string IconFor(string type) => type switch
+    {
+        "Client" => "<svg class=\"w-4 h-4\" fill=\"none\" stroke=\"currentColor\" viewBox=\"0 0 24 24\"><path stroke-linecap=\"round\" stroke-linejoin=\"round\" stroke-width=\"2\" d=\"M17 20h5v-2a4 4 0 00-3-3.87M9 20H4v-2a4 4 0 013-3.87m6-1.13a4 4 0 10-4-4 4 4 0 004 4z\"/></svg>",
+        "Invoice" => "<svg class=\"w-4 h-4\" fill=\"none\" stroke=\"currentColor\" viewBox=\"0 0 24 24\"><path stroke-linecap=\"round\" stroke-linejoin=\"round\" stroke-width=\"2\" d=\"M9 12h6m-6 4h6m2 5H7a2 2 0 01-2-2V5a2 2 0 012-2h5.586a1 1 0 01.707.293l5.414 5.414a1 1 0 01.293.707V19a2 2 0 01-2 2z\"/></svg>",
+        "Project" => "<svg class=\"w-4 h-4\" fill=\"none\" stroke=\"currentColor\" viewBox=\"0 0 24 24\"><path stroke-linecap=\"round\" stroke-linejoin=\"round\" stroke-width=\"2\" d=\"M3 7v10a2 2 0 002 2h14a2 2 0 002-2V9a2 2 0 00-2-2h-6l-2-2H5a2 2 0 00-2 2z\"/></svg>",
+        "Estimate" => "<svg class=\"w-4 h-4\" fill=\"none\" stroke=\"currentColor\" viewBox=\"0 0 24 24\"><path stroke-linecap=\"round\" stroke-linejoin=\"round\" stroke-width=\"2\" d=\"M9 7h6m-6 4h6m-2 8H7a2 2 0 01-2-2V5a2 2 0 012-2h6l4 4v3\"/><path stroke-linecap=\"round\" stroke-linejoin=\"round\" stroke-width=\"2\" d=\"M16 19l2 2 4-4\"/></svg>",
+        _ => "<svg class=\"w-4 h-4\" fill=\"none\" stroke=\"currentColor\" viewBox=\"0 0 24 24\"><circle cx=\"12\" cy=\"12\" r=\"6\"/></svg>"
+    };
+}

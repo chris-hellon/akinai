@@ -38,6 +38,13 @@
                                     <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M11 19l-7-7 7-7m8 14l-7-7 7-7" />
                                 </svg>
                             </button>
+
+                            <!-- Global search -->
+                            <div class="hidden md:flex items-center gap-2 ml-3 h-9 px-3 rounded-xl border border-gray-200 dark:border-[#242b34] bg-gray-50 dark:bg-[#0b0e12] w-[300px]">
+                                <svg class="w-4 h-4 text-gray-400 shrink-0" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M21 21l-4.35-4.35M17 11a6 6 0 11-12 0 6 6 0 0112 0z" /></svg>
+                                <input type="text" placeholder="Search clients, invoices, projects…" @bind="_search" @bind:event="oninput" @onkeydown="OnSearchKeyDown"
+                                       class="flex-1 min-w-0 bg-transparent border-0 outline-none text-sm text-gray-700 dark:text-slate-200 placeholder:text-gray-400 dark:placeholder:text-slate-500" />
+                            </div>
                         </div>
 
                         <!-- Spacer -->
@@ -45,19 +52,31 @@
 
                         <!-- Right Side Actions -->
                         <div class="flex items-center gap-4">
-                            <!-- Quick Actions -->
-                            <div class="hidden sm:flex items-center gap-2">
-                                <a href="clients/new" class="p-2 rounded-xl text-gray-400 dark:text-slate-500 hover:text-primary-600 dark:hover:text-primary-400 hover:bg-primary-50 dark:hover:bg-primary-900/40 transition-colors" title="New Client">
-                                    <svg class="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                                        <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M18 9v3m0 0v3m0-3h3m-3 0h-3m-2-5a4 4 0 11-8 0 4 4 0 018 0zM3 20a6 6 0 0112 0v1H3v-1z" />
-                                    </svg>
-                                </a>
-                                <a href="invoices/new" class="p-2 rounded-xl text-gray-400 dark:text-slate-500 hover:text-primary-600 dark:hover:text-primary-400 hover:bg-primary-50 dark:hover:bg-primary-900/40 transition-colors" title="New Invoice">
-                                    <svg class="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                                        <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M9 12h6m-6 4h6m2 5H7a2 2 0 01-2-2V5a2 2 0 012-2h5.586a1 1 0 01.707.293l5.414 5.414a1 1 0 01.293.707V19a2 2 0 01-2 2z" />
-                                    </svg>
-                                </a>
-                            </div>
+                            <!-- Time tracker -->
+                            <TimeTracker />
+
+                            <!-- Reporting currency (dashboard + reports) -->
+                            @if (ShowReportingCurrency)
+                            {
+                                <ReportingCurrencySelector />
+                            }
+
+                            @* <!-- Quick Actions --> *@
+                            @* <div class="hidden sm:flex items-center gap-2"> *@
+                            @*     <a href="clients/new" class="p-2 rounded-xl text-gray-400 dark:text-slate-500 hover:text-primary-600 dark:hover:text-primary-400 hover:bg-primary-50 dark:hover:bg-primary-900/40 transition-colors" title="New Client"> *@
+                            @*         <svg class="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24"> *@
+                            @*             <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M18 9v3m0 0v3m0-3h3m-3 0h-3m-2-5a4 4 0 11-8 0 4 4 0 018 0zM3 20a6 6 0 0112 0v1H3v-1z" /> *@
+                            @*         </svg> *@
+                            @*     </a> *@
+                            @*     <a href="invoices/new" class="p-2 rounded-xl text-gray-400 dark:text-slate-500 hover:text-primary-600 dark:hover:text-primary-400 hover:bg-primary-50 dark:hover:bg-primary-900/40 transition-colors" title="New Invoice"> *@
+                            @*         <svg class="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24"> *@
+                            @*             <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M9 12h6m-6 4h6m2 5H7a2 2 0 01-2-2V5a2 2 0 012-2h5.586a1 1 0 01.707.293l5.414 5.414a1 1 0 01.293.707V19a2 2 0 01-2 2z" /> *@
+                            @*         </svg> *@
+                            @*     </a> *@
+                            @* </div> *@
+
+                            <!-- Notifications -->
+                            <NotificationBell />
 
                             <!-- Dark Mode Toggle -->
                             <button type="button"
@@ -93,10 +112,6 @@
                                         class="flex items-center gap-3 p-1 -m-1 rounded-xl hover:bg-gray-100 dark:hover:bg-slate-800 transition-colors"
                                         @onclick="ToggleUserMenu"
                                         @onclick:stopPropagation="true">
-                                    <div class="w-9 h-9 rounded-md flex items-center justify-center text-white text-sm font-semibold"
-                                         style="background: #1c2530;">
-                                        @context.User.Identity?.Name?[0].ToString().ToUpper()
-                                    </div>
                                     <div class="hidden lg:flex items-center gap-2">
                                         <span class="text-sm font-medium text-gray-900 dark:text-slate-100">@context.User.Identity?.Name</span>
                                         <svg class="w-4 h-4 text-gray-400 dark:text-slate-500 transition-transform duration-200 @(_userMenuOpen ? "rotate-180" : "")" fill="none" stroke="currentColor" viewBox="0 0 24 24">
@@ -109,7 +124,7 @@
                                 @if (_userMenuOpen)
                                 {
                                     <div class="absolute right-0 mt-2 w-56 bg-white dark:bg-[#14181e] rounded-xl shadow-lg ring-1 ring-black/5 dark:ring-white/10 py-1 z-50">
-                                        <a href="/"
+                                        <a href="/dashboard"
                                            class="flex items-center gap-3 px-4 py-2.5 text-sm text-gray-700 dark:text-slate-300 hover:bg-gray-50 dark:hover:bg-[#242b34] transition-colors"
                                            @onclick="CloseUserMenu">
                                             <svg class="w-5 h-5 text-gray-400 dark:text-slate-500" fill="none" stroke="currentColor" viewBox="0 0 24 24">
@@ -234,6 +249,33 @@
     private bool _mobileSidebarOpen;
     private bool _userMenuOpen;
     private bool _initialized;
+    private string _search = "";
+    private string _currentPath = "";
+
+    private bool ShowReportingCurrency => _currentPath is "dashboard" or "reports" or "cash-flow";
+
+    protected override void OnInitialized()
+    {
+        _currentPath = GetRelativePath();
+        NavigationManager.LocationChanged += OnLocationChanged;
+    }
+
+    private void OnLocationChanged(object? sender, LocationChangedEventArgs e)
+    {
+        _currentPath = GetRelativePath();
+        InvokeAsync(StateHasChanged);
+    }
+
+    private string GetRelativePath() =>
+        NavigationManager.ToBaseRelativePath(NavigationManager.Uri).Split('?')[0].Trim('/').ToLowerInvariant();
+
+    private void OnSearchKeyDown(KeyboardEventArgs e)
+    {
+        if (e.Key == "Enter" && !string.IsNullOrWhiteSpace(_search))
+        {
+            NavigationManager.NavigateTo($"search?q={Uri.EscapeDataString(_search.Trim())}");
+        }
+    }
 
     protected override async Task OnAfterRenderAsync(bool firstRender)
     {
@@ -295,6 +337,7 @@
 
     public async ValueTask DisposeAsync()
     {
+        NavigationManager.LocationChanged -= OnLocationChanged;
         if (LayoutService is IAsyncDisposable disposable)
         {
             await disposable.DisposeAsync();

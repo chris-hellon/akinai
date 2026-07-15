@@ -31,12 +31,14 @@ public class GetSuggestedMatchesHandler(IDbContextFactory<ApplicationDbContext> 
             .Include(i => i.Client)
             .Include(i => i.TimeEntries)
                 .ThenInclude(te => te.Job)
+                    .ThenInclude(j => j.Project)
+                        .ThenInclude(p => p.Client)
             .Where(i => i.Client.UserId == userId &&
                        (i.Status == InvoiceStatus.Sent || i.Status == InvoiceStatus.Overdue))
             .ToListAsync(cancellationToken);
 
         var suggestions = new List<TransactionMatchDto>();
-        var transactionAmount = Math.Abs(transaction.Amount.Amount);
+        var transactionAmount = Math.Abs(transaction.Amount);
 
         foreach (var invoice in invoices)
         {

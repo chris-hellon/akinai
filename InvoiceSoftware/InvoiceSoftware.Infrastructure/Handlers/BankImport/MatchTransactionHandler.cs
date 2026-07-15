@@ -34,7 +34,11 @@ public class MatchTransactionHandler(IDbContextFactory<ApplicationDbContext> dbF
         {
             transaction.MatchToInvoice(request.InvoiceId, MatchConfidence.High, "Manually matched");
 
-            if (request.MarkInvoiceAsPaid)
+            // Only mark paid when it isn't already settled/void — linking a payment to an
+            // already-paid invoice should just record the link, not throw.
+            if (request.MarkInvoiceAsPaid &&
+                invoice.Status != InvoiceStatus.Paid &&
+                invoice.Status != InvoiceStatus.Void)
             {
                 invoice.MarkAsPaid(DateOnly.FromDateTime(DateTime.UtcNow));
             }

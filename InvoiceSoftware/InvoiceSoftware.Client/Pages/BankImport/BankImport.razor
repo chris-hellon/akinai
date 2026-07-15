@@ -5,6 +5,20 @@
 @inject ICall<MatchTransaction> MatchTransactionCall
 @inject ICall<IgnoreTransaction> IgnoreTransactionCall
 @inject ICall<GetSuggestedMatches, List<TransactionMatchDto>> GetSuggestionsCall
+@inject ICall<CreateExpenseFromTransaction, Guid> CreateExpenseFromTransactionCall
+@inject ICall<GetClients, PaginatedResponse<ClientDto>> GetClientsCall
+@inject ICall<GetProjects, PaginatedResponse<ProjectDto>> GetProjectsCall
+@inject ICall<GetMatchableInvoices, List<InvoiceOptionDto>> GetMatchableInvoicesCall
+@inject ICall<DeleteBankTransaction> DeleteBankTransactionCall
+@inject ICall<ClearBankTransactions, int> ClearBankTransactionsCall
+@inject ICall<GetBankTransactionCurrencies, List<string>> GetCurrenciesCall
+@inject ICall<GetBankInstitutions, List<BankInstitutionDto>> GetInstitutionsCall
+@inject ICall<StartBankConnection, BankLinkDto> StartConnectionCall
+@inject ICall<FinalizeBankConnection, BankConnectionDto?> FinalizeConnectionCall
+@inject ICall<GetBankConnections, List<BankConnectionDto>> GetConnectionsCall
+@inject ICall<SyncBankConnection, BankSyncResultDto> SyncConnectionCall
+@inject ICall<DeleteBankConnection> DeleteConnectionCall
+@inject NavigationManager Nav
 
 <PageTitle>Bank Import - InvoicePro</PageTitle>
 
@@ -13,17 +27,72 @@
                 Description="Import bank statements and match transactions to invoices."
                 Breadcrumbs="@(new List<PageHeader.BreadcrumbItem> { new("Bank Import") })">
         <Actions>
-            <label class="cursor-pointer">
-                <input type="file" accept=".csv,.ofx" class="hidden" @onchange="HandleFileUpload" />
-                <span class="inline-flex items-center gap-2 px-4 py-2.5 text-sm font-medium text-white bg-primary-600 hover:bg-primary-700 rounded-xl transition-colors">
+            @if (_response is { TotalCount: > 0 })
+            {
+                <button type="button" @onclick="ClearTransactionsAsync"
+                        class="inline-flex items-center gap-2 px-4 py-2.5 text-sm font-medium text-gray-600 dark:text-slate-300 bg-white dark:bg-slate-800 border border-gray-200 dark:border-slate-600 rounded-xl hover:bg-gray-50 dark:hover:bg-slate-700 hover:border-gray-300 transition-colors">
                     <svg class="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                        <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M4 16v1a3 3 0 003 3h10a3 3 0 003-3v-1m-4-8l-4-4m0 0L8 8m4-4v12" />
+                        <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M19 7l-.867 12.142A2 2 0 0116.138 21H7.862a2 2 0 01-1.995-1.858L5 7m5 4v6m4-6v6m1-10V4a1 1 0 00-1-1h-4a1 1 0 00-1 1v3M4 7h16" />
                     </svg>
-                    Import Statement
+                    @(HasActiveFilters ? "Delete filtered" : "Delete all")
+                </button>
+            }
+            <label class="cursor-pointer">
+                <InputFile OnChange="HandleFileUpload" accept=".csv,.tsv,.txt,.ofx,.qfx,.xls,.xlsx,.xlsm" class="hidden" disabled="@_isUploading" />
+                <span class="inline-flex items-center gap-2 px-4 py-2.5 text-sm font-medium text-white bg-primary-600 hover:bg-primary-700 rounded-xl transition-colors @(_isUploading ? "opacity-60 cursor-not-allowed" : "")">
+                    @if (_isUploading)
+                    {
+                        <div class="w-4 h-4 border-2 border-white/30 border-t-white rounded-full animate-spin"></div>
+                        <span>Importing…</span>
+                    }
+                    else
+                    {
+                        <svg class="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                            <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M4 16v1a3 3 0 003 3h10a3 3 0 003-3v-1m-4-8l-4-4m0 0L8 8m4-4v12" />
+                        </svg>
+                        <span>Import Statement</span>
+                    }
                 </span>
             </label>
         </Actions>
     </PageHeader>
+
+    @if (_connections.Any())
+    {
+        <Card>
+            <div class="space-y-3">
+                <div class="text-sm font-semibold text-gray-900 dark:text-slate-100">Connected banks</div>
+                @foreach (var c in _connections)
+                {
+                    <div class="flex items-center justify-between gap-3 py-2 border-b border-gray-50 dark:border-slate-700/50 last:border-0">
+                        <div class="min-w-0">
+                            <div class="flex items-center gap-2">
+                                <span class="font-medium text-gray-900 dark:text-slate-100 truncate">@c.InstitutionName</span>
+                                <span class="px-2 py-0.5 text-[11px] font-semibold rounded-full @ConnStatusClass(c.Status)">@c.Status</span>
+                            </div>
+                            <div class="text-xs text-gray-500 dark:text-slate-400">
+                                @(c.LastSyncedAt is { } s ? $"Last synced {s.ToLocalTime():d MMM HH:mm}" : "Not synced yet")
+                                @if (c.ConsentExpiresAt is { } e) { <span> · consent to @e.ToString("d MMM")</span> }
+                                @if (!string.IsNullOrEmpty(c.LastError)) { <span class="text-red-500"> · @c.LastError</span> }
+                            </div>
+                        </div>
+                        <div class="flex items-center gap-1 shrink-0">
+                            <IconButton OnClick="() => SyncConnectionAsync(c)" Title="Sync now" Disabled="@_syncingId.HasValue">
+                                <svg class="w-4 h-4 @(_syncingId == c.Id ? "animate-spin" : "")" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                                    <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M4 4v5h.582m15.356 2A8.001 8.001 0 004.582 9m0 0H9m11 11v-5h-.581m0 0a8.003 8.003 0 01-15.357-2m15.357 2H15" />
+                                </svg>
+                            </IconButton>
+                            <IconButton OnClick="() => DisconnectAsync(c)" Variant="IconButton.IconButtonVariant.Danger" Title="Disconnect">
+                                <svg class="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                                    <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M13.828 10.172a4 4 0 00-5.656 0l-4 4a4 4 0 105.656 5.656l1.102-1.101m-.758-4.899a4 4 0 005.656 0l4-4a4 4 0 00-5.656-5.656l-1.1 1.1" />
+                                </svg>
+                            </IconButton>
+                        </div>
+                    </div>
+                }
+            </div>
+        </Card>
+    }
 
     @if (_importResult != null)
     {
@@ -77,18 +146,29 @@
     }
 
     <!-- Filters -->
-    <div class="flex flex-wrap items-center gap-4">
-        <div class="flex-1 min-w-[200px]">
-            <input type="text" @bind="_searchTerm" @bind:after="OnFilterChanged" placeholder="Search transactions..."
-                   class="w-full px-4 py-2.5 text-sm bg-gray-50 dark:bg-slate-700 border-0 rounded-xl focus:ring-2 focus:ring-primary-500/20 text-gray-900 dark:text-slate-100 placeholder-gray-500 dark:placeholder-slate-400" />
-        </div>
-        <select @bind="_selectedStatus" @bind:after="OnFilterChanged" class="py-2.5 px-4 text-sm text-gray-700 dark:text-slate-200 bg-gray-50 dark:bg-slate-700 border-0 rounded-xl focus:outline-none focus:ring-2 focus:ring-primary-500/20 cursor-pointer">
-            <option value="">All Status</option>
-            <option value="unmatched">Unmatched</option>
-            <option value="matched">Matched</option>
-            <option value="ignored">Ignored</option>
-        </select>
-    </div>
+    <SearchBar Placeholder="Search transactions..." Value="@_searchTerm" ValueChanged="OnSearchChanged">
+        <DatePicker TValue="DateOnly?" Value="_fromDate" ValueChanged="OnFromDateChanged" Placeholder="From date" Class="w-full sm:w-40" />
+        <DatePicker TValue="DateOnly?" Value="_toDate" ValueChanged="OnToDateChanged" Placeholder="To date" Class="w-full sm:w-40" />
+        <Select TValue="string" Value="_selectedStatus" ValueChanged="OnStatusChanged" Searchable="false" Class="w-full sm:w-44"
+                Options="@(new List<SelectOption<string>> {
+                    new("", "All Status"),
+                    new("unmatched", "Needs review"),
+                    new("matched", "Matched to invoice"),
+                    new("expense", "Recorded as expense"),
+                    new("ignored", "Ignored")
+                })" />
+        <Select TValue="string" Value="_selectedDirection" ValueChanged="OnDirectionChanged" Searchable="false" Class="w-full sm:w-36"
+                Options="@(new List<SelectOption<string>> {
+                    new("", "In & out"),
+                    new("in", "Money in"),
+                    new("out", "Money out")
+                })" />
+        @if (_currencies.Count > 1)
+        {
+            <Select TValue="string" Value="_selectedCurrency" ValueChanged="OnCurrencyChanged" Searchable="false" Class="w-full sm:w-40"
+                    Options="@(new List<SelectOption<string>> { new("", "All currencies") }.Concat(_currencies.Select(c => new SelectOption<string>(c, c))).ToList())" />
+        }
+    </SearchBar>
 
     @if (_isLoading)
     {
@@ -108,7 +188,8 @@
                    TotalCount="_response.TotalCount"
                    PageSize="_response.PageSize"
                    ItemName="transactions"
-                   OnPageChanged="OnPageChanged">
+                   OnPageChanged="OnPageChanged"
+                   OnPageSizeChanged="OnPageSizeChanged">
             <HeaderTemplate>
                 <th scope="col" class="px-6 py-4 text-left text-xs font-semibold text-gray-500 dark:text-slate-400 uppercase tracking-wider">Date</th>
                 <th scope="col" class="px-6 py-4 text-left text-xs font-semibold text-gray-500 dark:text-slate-400 uppercase tracking-wider">Description</th>
@@ -121,7 +202,6 @@
                 <tr class="group hover:bg-gray-50/50 dark:hover:bg-[#2d2a4a]/50 transition-colors">
                     <td class="px-6 py-4 whitespace-nowrap">
                         <div class="text-sm font-medium text-gray-900 dark:text-slate-100">@transaction.TransactionDate.ToString("MMM d, yyyy")</div>
-                        <div class="text-xs text-gray-500 dark:text-slate-400">@transaction.SourceFileName</div>
                     </td>
                     <td class="px-6 py-4">
                         <div class="text-sm text-gray-900 dark:text-slate-100 max-w-xs truncate">@transaction.Description</div>
@@ -144,13 +224,21 @@
                         {
                             <span class="inline-flex items-center px-2.5 py-1 rounded-lg text-xs font-medium bg-emerald-50 text-emerald-700 dark:bg-emerald-900/30 dark:text-emerald-400">Matched</span>
                         }
+                        else if (transaction.IsExpensed)
+                        {
+                            <span class="inline-flex items-center px-2.5 py-1 rounded-lg text-xs font-medium bg-primary-50 text-primary-700 dark:bg-primary-900/30 dark:text-primary-400">Expense</span>
+                        }
                         else
                         {
-                            <span class="inline-flex items-center px-2.5 py-1 rounded-lg text-xs font-medium bg-amber-50 text-amber-700 dark:bg-amber-900/30 dark:text-amber-400">Unmatched</span>
+                            <span class="inline-flex items-center px-2.5 py-1 rounded-lg text-xs font-medium bg-amber-50 text-amber-700 dark:bg-amber-900/30 dark:text-amber-400">Needs review</span>
                         }
                     </td>
                     <td class="px-6 py-4 whitespace-nowrap">
-                        @if (transaction.IsMatched && !string.IsNullOrEmpty(transaction.MatchedInvoiceNumber))
+                        @if (transaction.IsExpensed && transaction.ExpenseId.HasValue)
+                        {
+                            <a href="@($"expenses/{transaction.ExpenseId}")" class="text-sm text-primary-600 dark:text-primary-400 hover:underline">View expense</a>
+                        }
+                        else if (transaction.IsMatched && !string.IsNullOrEmpty(transaction.MatchedInvoiceNumber))
                         {
                             <a href="@($"invoices/{transaction.MatchedInvoiceId}")" class="text-sm text-primary-600 dark:text-primary-400 hover:underline">
                                 @transaction.MatchedInvoiceNumber
@@ -171,23 +259,121 @@
                     </td>
                     <td class="px-6 py-4 whitespace-nowrap text-right">
                         <div class="flex items-center justify-end gap-1">
-                            @if (!transaction.IsMatched && !transaction.IsIgnored)
+                            @if (!transaction.IsMatched && !transaction.IsIgnored && !transaction.IsExpensed)
                             {
-                                <IconButton OnClick="() => ShowMatchModal(transaction)" Title="Match to Invoice">
-                                    <svg class="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                                        <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M13.828 10.172a4 4 0 00-5.656 0l-4 4a4 4 0 105.656 5.656l1.102-1.101m-.758-4.899a4 4 0 005.656 0l4-4a4 4 0 00-5.656-5.656l-1.1 1.1" />
-                                    </svg>
-                                </IconButton>
+                                @if (transaction.Amount < 0)
+                                {
+                                    <IconButton OnClick="() => ShowExpenseModal(transaction)" Title="Record as expense">
+                                        <svg class="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                                            <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M3 10h18M7 15h1m4 0h1m-7 4h12a3 3 0 003-3V8a3 3 0 00-3-3H6a3 3 0 00-3 3v8a3 3 0 003 3z" />
+                                        </svg>
+                                    </IconButton>
+                                }
+                                else
+                                {
+                                    <IconButton OnClick="() => ShowMatchModal(transaction)" Title="Match to invoice">
+                                        <svg class="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                                            <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M13.828 10.172a4 4 0 00-5.656 0l-4 4a4 4 0 105.656 5.656l1.102-1.101m-.758-4.899a4 4 0 005.656 0l4-4a4 4 0 00-5.656-5.656l-1.1 1.1" />
+                                        </svg>
+                                    </IconButton>
+                                }
                                 <IconButton OnClick="() => IgnoreTransactionAsync(transaction)" Title="Ignore">
                                     <svg class="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
                                         <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M18.364 18.364A9 9 0 005.636 5.636m12.728 12.728A9 9 0 015.636 5.636m12.728 12.728L5.636 5.636" />
                                     </svg>
                                 </IconButton>
                             }
+                            <IconButton OnClick="() => DeleteTransactionAsync(transaction)" Variant="IconButton.IconButtonVariant.Danger" Title="Delete">
+                                <svg class="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                                    <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M19 7l-.867 12.142A2 2 0 0116.138 21H7.862a2 2 0 01-1.995-1.858L5 7m5 4v6m4-6v6m1-10V4a1 1 0 00-1-1h-4a1 1 0 00-1 1v3M4 7h16" />
+                                </svg>
+                            </IconButton>
                         </div>
                     </td>
                 </tr>
             </RowTemplate>
+            <CardTemplate Context="transaction">
+                <div class="p-4">
+                    <div class="flex items-start justify-between gap-3">
+                        <div class="min-w-0">
+                            <div class="flex items-center gap-2 flex-wrap">
+                                <span class="text-sm font-semibold text-gray-900 dark:text-slate-100 truncate">@transaction.Description</span>
+                                @if (transaction.IsIgnored)
+                                {
+                                    <span class="inline-flex items-center px-2.5 py-1 rounded-lg text-xs font-medium bg-gray-100 text-gray-600 dark:bg-slate-700 dark:text-slate-400">Ignored</span>
+                                }
+                                else if (transaction.IsMatched)
+                                {
+                                    <span class="inline-flex items-center px-2.5 py-1 rounded-lg text-xs font-medium bg-emerald-50 text-emerald-700 dark:bg-emerald-900/30 dark:text-emerald-400">Matched</span>
+                                }
+                                else if (transaction.IsExpensed)
+                                {
+                                    <span class="inline-flex items-center px-2.5 py-1 rounded-lg text-xs font-medium bg-primary-50 text-primary-700 dark:bg-primary-900/30 dark:text-primary-400">Expense</span>
+                                }
+                                else
+                                {
+                                    <span class="inline-flex items-center px-2.5 py-1 rounded-lg text-xs font-medium bg-amber-50 text-amber-700 dark:bg-amber-900/30 dark:text-amber-400">Needs review</span>
+                                }
+                            </div>
+                            <div class="mt-1 text-xs text-gray-500 dark:text-slate-400">
+                                @transaction.TransactionDate.ToString("MMM d, yyyy")
+                                @if (!string.IsNullOrEmpty(transaction.Reference))
+                                {
+                                    <span> &middot; Ref: @transaction.Reference</span>
+                                }
+                            </div>
+                            @if (transaction.IsMatched && !string.IsNullOrEmpty(transaction.MatchedInvoiceNumber))
+                            {
+                                <div class="mt-1 text-xs">
+                                    <a href="@($"invoices/{transaction.MatchedInvoiceId}")" class="text-primary-600 dark:text-primary-400 hover:underline">@transaction.MatchedInvoiceNumber</a>
+                                    @if (!string.IsNullOrEmpty(transaction.MatchConfidence))
+                                    {
+                                        <span class="ml-1 text-gray-500 dark:text-slate-400">(@transaction.MatchConfidence)</span>
+                                    }
+                                </div>
+                            }
+                            else if (transaction.IsIgnored && !string.IsNullOrEmpty(transaction.IgnoreReason))
+                            {
+                                <div class="mt-1 text-xs text-gray-500 dark:text-slate-400">@transaction.IgnoreReason</div>
+                            }
+                        </div>
+                        <div class="text-right shrink-0">
+                            <div class="text-base font-semibold @(transaction.Amount >= 0 ? "text-emerald-600 dark:text-emerald-400" : "text-red-600 dark:text-red-400")">
+                                @(transaction.Amount >= 0 ? "+" : "")@CurrencyExtensions.GetSymbol(transaction.Currency)@transaction.Amount.ToString("N2")
+                            </div>
+                        </div>
+                    </div>
+                    <div class="mt-3 pt-3 border-t border-gray-50 dark:border-[#2d2a4a] flex items-center justify-end gap-1">
+                        @if (!transaction.IsMatched && !transaction.IsIgnored && !transaction.IsExpensed)
+                        {
+                            @if (transaction.Amount < 0)
+                            {
+                                <button @onclick="() => ShowExpenseModal(transaction)" class="inline-flex items-center gap-1.5 px-3 py-1.5 text-xs font-medium text-primary-700 dark:text-primary-300 bg-primary-50 dark:bg-primary-900/30 rounded-lg">
+                                    <svg class="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M3 10h18M7 15h1m4 0h1m-7 4h12a3 3 0 003-3V8a3 3 0 00-3-3H6a3 3 0 00-3 3v8a3 3 0 003 3z" /></svg>
+                                    Record expense
+                                </button>
+                            }
+                            else
+                            {
+                                <button @onclick="() => ShowMatchModal(transaction)" class="inline-flex items-center gap-1.5 px-3 py-1.5 text-xs font-medium text-primary-700 dark:text-primary-300 bg-primary-50 dark:bg-primary-900/30 rounded-lg">
+                                    <svg class="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M13.828 10.172a4 4 0 00-5.656 0l-4 4a4 4 0 105.656 5.656l1.102-1.101m-.758-4.899a4 4 0 005.656 0l4-4a4 4 0 00-5.656-5.656l-1.1 1.1" /></svg>
+                                    Match invoice
+                                </button>
+                            }
+                            <IconButton OnClick="() => IgnoreTransactionAsync(transaction)" Title="Ignore">
+                                <svg class="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                                    <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M18.364 18.364A9 9 0 005.636 5.636m12.728 12.728A9 9 0 015.636 5.636m12.728 12.728L5.636 5.636" />
+                                </svg>
+                            </IconButton>
+                        }
+                        <IconButton OnClick="() => DeleteTransactionAsync(transaction)" Variant="IconButton.IconButtonVariant.Danger" Title="Delete">
+                            <svg class="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                                <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M19 7l-.867 12.142A2 2 0 0116.138 21H7.862a2 2 0 01-1.995-1.858L5 7m5 4v6m4-6v6m1-10V4a1 1 0 00-1-1h-4a1 1 0 00-1 1v3M4 7h16" />
+                            </svg>
+                        </IconButton>
+                    </div>
+                </div>
+            </CardTemplate>
         </DataTable>
     }
 </div>
@@ -196,10 +382,9 @@
 @if (_showMatchModal && _selectedTransaction != null)
 {
     <div class="fixed inset-0 z-50 overflow-y-auto" aria-labelledby="modal-title" role="dialog" aria-modal="true">
-        <div class="flex items-center justify-center min-h-screen px-4 pt-4 pb-20 text-center sm:block sm:p-0">
-            <div class="fixed inset-0 bg-gray-500/75 dark:bg-slate-900/75 transition-opacity" @onclick="CloseMatchModal"></div>
-
-            <div class="inline-block w-full max-w-2xl my-8 overflow-hidden text-left align-middle transition-all transform bg-white dark:bg-slate-800 shadow-xl rounded-lg">
+        <div class="fixed inset-0 bg-gray-500/75 dark:bg-slate-900/75 transition-opacity" @onclick="CloseMatchModal"></div>
+        <div class="flex min-h-full items-center justify-center p-4">
+            <div class="relative w-full max-w-2xl overflow-hidden text-left bg-white dark:bg-slate-800 shadow-xl rounded-lg">
                 <div class="px-6 py-5 border-b border-gray-100 dark:border-slate-700">
                     <h3 class="text-lg font-semibold text-gray-900 dark:text-slate-100">Match Transaction</h3>
                     <p class="mt-1 text-sm text-gray-500 dark:text-slate-400">
@@ -207,50 +392,124 @@
                     </p>
                 </div>
 
-                <div class="px-6 py-4 max-h-96 overflow-y-auto">
+                <div class="px-6 py-4 space-y-4">
                     @if (_isLoadingSuggestions)
                     {
                         <div class="flex justify-center py-8">
                             <LoadingSpinner />
                         </div>
                     }
-                    else if (!_suggestions.Any())
-                    {
-                        <p class="text-center py-8 text-gray-500 dark:text-slate-400">No matching invoices found.</p>
-                    }
                     else
                     {
-                        <div class="space-y-3">
-                            @foreach (var suggestion in _suggestions)
-                            {
-                                <button @onclick="() => MatchToInvoiceAsync(suggestion.InvoiceId)"
-                                        class="w-full p-4 text-left bg-gray-50 dark:bg-slate-700 hover:bg-gray-100 dark:hover:bg-slate-600 rounded-xl transition-colors">
-                                    <div class="flex items-start justify-between">
-                                        <div>
-                                            <div class="flex items-center gap-2">
-                                                <span class="font-medium text-gray-900 dark:text-slate-100">@suggestion.InvoiceNumber</span>
-                                                <span class="px-2 py-0.5 text-xs rounded-full @GetConfidenceClass(suggestion.MatchConfidence)">
-                                                    @suggestion.MatchConfidence
-                                                </span>
+                        @if (_suggestions.Any())
+                        {
+                            <div>
+                                <p class="text-xs font-semibold text-gray-500 dark:text-slate-400 uppercase tracking-wide mb-2">Suggested matches</p>
+                                <div class="space-y-2 max-h-56 overflow-y-auto">
+                                    @foreach (var suggestion in _suggestions)
+                                    {
+                                        <button @onclick="() => MatchToInvoiceAsync(suggestion.InvoiceId)"
+                                                class="w-full p-3 text-left bg-gray-50 dark:bg-slate-700 hover:bg-gray-100 dark:hover:bg-slate-600 rounded-xl transition-colors">
+                                            <div class="flex items-start justify-between gap-3">
+                                                <div class="min-w-0">
+                                                    <div class="flex items-center gap-2">
+                                                        <span class="font-medium text-gray-900 dark:text-slate-100">@suggestion.InvoiceNumber</span>
+                                                        <span class="px-2 py-0.5 text-xs rounded-full @GetConfidenceClass(suggestion.MatchConfidence)">@suggestion.MatchConfidence</span>
+                                                    </div>
+                                                    <p class="text-sm text-gray-600 dark:text-slate-400 truncate">@suggestion.ClientName</p>
+                                                </div>
+                                                <div class="text-right shrink-0">
+                                                    <p class="font-semibold text-gray-900 dark:text-slate-100">@CurrencyExtensions.GetSymbol(suggestion.Currency)@suggestion.InvoiceTotal.ToString("N2")</p>
+                                                    <p class="text-xs text-gray-500 dark:text-slate-400">Due @suggestion.DueDate.ToString("MMM d")</p>
+                                                </div>
                                             </div>
-                                            <p class="text-sm text-gray-600 dark:text-slate-400">@suggestion.ClientName</p>
-                                            <p class="text-xs text-gray-500 dark:text-slate-500">@suggestion.MatchReason</p>
-                                        </div>
-                                        <div class="text-right">
-                                            <p class="font-semibold text-gray-900 dark:text-slate-100">@CurrencyExtensions.GetSymbol(suggestion.Currency)@suggestion.InvoiceTotal.ToString("N2")</p>
-                                            <p class="text-xs text-gray-500 dark:text-slate-400">Due @suggestion.DueDate.ToString("MMM d")</p>
-                                        </div>
-                                    </div>
-                                </button>
+                                        </button>
+                                    }
+                                </div>
+                            </div>
+                        }
+                        <div>
+                            <p class="text-xs font-semibold text-gray-500 dark:text-slate-400 uppercase tracking-wide mb-2">Or match to any invoice</p>
+                            @if (_matchableInvoices.Any())
+                            {
+                                <Select TValue="Guid?" @bind-Value="_selectedMatchInvoiceId" Placeholder="Search for an invoice…"
+                                        Options="@(_matchableInvoices.Select(inv => new SelectOption<Guid?>(inv.Id, $"{inv.InvoiceNumber} · {inv.ClientName}", $"{CurrencyExtensions.GetSymbol(inv.Currency)}{inv.Total:N2} · {inv.Status}")).ToList())" />
+                                <label class="flex items-center gap-2 mt-3 cursor-pointer select-none">
+                                    <input type="checkbox" checked="@_markInvoicePaid" @onchange="e => _markInvoicePaid = e.Value is true" class="h-4 w-4 rounded border-gray-300 text-primary-600 focus:ring-primary-500" />
+                                    <span class="text-sm text-gray-700 dark:text-slate-300">Mark this invoice as paid</span>
+                                </label>
+                            }
+                            else
+                            {
+                                <p class="text-sm text-gray-500 dark:text-slate-400">No open invoices to match against.</p>
                             }
                         </div>
                     }
                 </div>
 
                 <div class="px-6 py-4 bg-gray-50 dark:bg-slate-700/50 flex justify-end gap-3">
-                    <button type="button" @onclick="CloseMatchModal"
-                            class="px-5 py-2.5 text-sm font-medium text-gray-700 dark:text-slate-300 bg-white dark:bg-slate-800 border border-gray-200 dark:border-slate-600 rounded-xl hover:bg-gray-50 dark:hover:bg-slate-700 hover:border-gray-300 dark:hover:border-slate-500 transition-all duration-200">
-                        Cancel
+                    <button type="button" @onclick="CloseMatchModal" class="btn-secondary">Cancel</button>
+                    <button type="button" @onclick="MatchSelectedInvoiceAsync" disabled="@(_selectedMatchInvoiceId is null)"
+                            class="inline-flex items-center gap-2 px-5 py-2.5 text-sm font-medium text-white bg-primary-600 hover:bg-primary-700 rounded-xl transition-colors disabled:opacity-50 disabled:cursor-not-allowed">
+                        Match invoice
+                    </button>
+                </div>
+            </div>
+        </div>
+    </div>
+}
+
+<!-- Expense Modal -->
+@if (_showExpenseModal && _selectedTransaction != null)
+{
+    <div class="fixed inset-0 z-50 overflow-y-auto" role="dialog" aria-modal="true">
+        <div class="fixed inset-0 bg-gray-500/75 dark:bg-slate-900/75 transition-opacity" @onclick="CloseExpenseModal"></div>
+        <div class="flex min-h-full items-center justify-center p-4">
+            <div class="relative w-full max-w-lg overflow-visible text-left bg-white dark:bg-slate-800 shadow-xl rounded-lg">
+                <div class="px-6 py-5 border-b border-gray-100 dark:border-slate-700">
+                    <h3 class="text-lg font-semibold text-gray-900 dark:text-slate-100">Record as expense</h3>
+                    <p class="mt-1 text-sm text-gray-500 dark:text-slate-400">
+                        @_selectedTransaction.Description &middot; @CurrencyExtensions.GetSymbol(_selectedTransaction.Currency)@Math.Abs(_selectedTransaction.Amount).ToString("N2") &middot; @_selectedTransaction.TransactionDate.ToString("MMM d, yyyy")
+                    </p>
+                </div>
+                <div class="px-6 py-5 space-y-4">
+                    <div>
+                        <label class="block text-sm font-medium text-gray-700 dark:text-slate-300 mb-2">Category</label>
+                        <Select TValue="string" @bind-Value="_expenseCategory" Options="@_categoryOptions" />
+                    </div>
+                    <label class="flex items-center gap-3 cursor-pointer select-none">
+                        <input type="checkbox" checked="@_expenseBillable" @onchange="OnBillableToggled" class="h-4 w-4 rounded border-gray-300 text-primary-600 focus:ring-primary-500" />
+                        <span class="text-sm font-medium text-gray-700 dark:text-slate-300">Billable to a client</span>
+                    </label>
+                    @if (_expenseBillable)
+                    {
+                        <div class="grid grid-cols-1 sm:grid-cols-2 gap-4">
+                            <div>
+                                <label class="block text-sm font-medium text-gray-700 dark:text-slate-300 mb-2">Client</label>
+                                <Select TValue="Guid?" Value="_expenseClientId" ValueChanged="OnExpenseClientChanged" Placeholder="Select client"
+                                        Options="@(_clients.Select(c => new SelectOption<Guid?>(c.Id, c.Name)).ToList())" />
+                            </div>
+                            <div>
+                                <label class="block text-sm font-medium text-gray-700 dark:text-slate-300 mb-2">Project</label>
+                                <Select TValue="Guid?" @bind-Value="_expenseProjectId" Placeholder="No project"
+                                        Options="@(new List<SelectOption<Guid?>> { new(null, "No project") }.Concat(_projects.Where(p => p.ClientId == _expenseClientId).Select(p => new SelectOption<Guid?>(p.Id, p.Name))).ToList())" />
+                            </div>
+                        </div>
+                    }
+                    <div>
+                        <label class="block text-sm font-medium text-gray-700 dark:text-slate-300 mb-2">Notes</label>
+                        <textarea @bind="_expenseNotes" rows="2" class="form-control resize-none" placeholder="Optional notes…"></textarea>
+                    </div>
+                </div>
+                <div class="px-6 py-4 bg-gray-50 dark:bg-slate-700/50 flex justify-end gap-3">
+                    <button type="button" @onclick="CloseExpenseModal" class="btn-secondary">Cancel</button>
+                    <button type="button" @onclick="CreateExpenseAsync" disabled="@_isSavingExpense"
+                            class="inline-flex items-center gap-2 px-5 py-2.5 text-sm font-medium text-white bg-primary-600 hover:bg-primary-700 rounded-xl transition-colors disabled:opacity-60 disabled:cursor-not-allowed">
+                        @if (_isSavingExpense)
+                        {
+                            <div class="w-4 h-4 border-2 border-white/30 border-t-white rounded-full animate-spin"></div>
+                        }
+                        Create expense
                     </button>
                 </div>
             </div>
@@ -260,6 +519,70 @@
 
 <ErrorAlert Message="@_errorMessage" />
 
+@if (_showConnectModal)
+{
+    <div class="fixed inset-0 z-50 overflow-y-auto" role="dialog" aria-modal="true">
+        <div class="fixed inset-0 bg-gray-500/75 dark:bg-slate-900/75 transition-opacity" @onclick="CloseConnectModal"></div>
+        <div class="flex min-h-full items-center justify-center p-4">
+            <div class="relative w-full max-w-lg overflow-visible text-left bg-white dark:bg-slate-800 shadow-xl rounded-lg">
+                <div class="px-6 py-5 border-b border-gray-100 dark:border-slate-700">
+                    <h3 class="text-lg font-semibold text-gray-900 dark:text-slate-100">Connect your bank</h3>
+                    <p class="mt-1 text-sm text-gray-500 dark:text-slate-400">Securely link an account to pull transactions automatically.</p>
+                </div>
+                <div class="px-6 py-4 space-y-4">
+                    @if (_connectError is not null)
+                    {
+                        <div class="text-sm text-red-600 dark:text-red-400 bg-red-50 dark:bg-red-900/20 rounded-lg px-3 py-2">@_connectError</div>
+                    }
+                    <div>
+                        <label class="block text-sm font-medium text-gray-700 dark:text-slate-300 mb-1.5">Country</label>
+                        <Select TValue="string" Value="_country" ValueChanged="OnCountryChanged" Searchable="false"
+                                Options="@(new List<SelectOption<string>> {
+                                    new("us", "United States"),
+                                    new("ca", "Canada"),
+                                    new("gb", "United Kingdom"),
+                                    new("ie", "Ireland"),
+                                    new("de", "Germany"),
+                                    new("fr", "France"),
+                                    new("es", "Spain"),
+                                    new("nl", "Netherlands"),
+                                    new("it", "Italy")
+                                })" />
+                    </div>
+                    <div>
+                        <label class="block text-sm font-medium text-gray-700 dark:text-slate-300 mb-1.5">Bank</label>
+                        @if (_loadingInstitutions)
+                        {
+                            <div class="flex justify-center py-6"><LoadingSpinner /></div>
+                        }
+                        else if (!_institutions.Any())
+                        {
+                            <p class="text-sm text-gray-500 dark:text-slate-400">No live connections available for this country yet. Add a bank-data provider (Plaid for US/CA/UK/EU, TrueLayer for UK/EU) in configuration — or use CSV import, which works for any bank.</p>
+                        }
+                        else
+                        {
+                            <Select TValue="string" @bind-Value="_selectedInstitutionId" Placeholder="Search for your bank…"
+                                    Options="@(_institutions.Select(i => new SelectOption<string>(i.Id, i.Name)).ToList())" />
+                        }
+                    </div>
+                    <p class="text-xs text-gray-400 dark:text-slate-500">You'll be redirected to your bank to approve read-only access. Consent typically lasts ~90 days.</p>
+                </div>
+                <div class="px-6 py-4 bg-gray-50 dark:bg-slate-700/50 flex justify-end gap-3">
+                    <button type="button" @onclick="CloseConnectModal" class="btn-secondary">Cancel</button>
+                    <button type="button" @onclick="StartConnectAsync" disabled="@(string.IsNullOrEmpty(_selectedInstitutionId) || _connecting)"
+                            class="inline-flex items-center gap-2 px-5 py-2.5 text-sm font-medium text-white bg-primary-600 hover:bg-primary-700 rounded-xl transition-colors disabled:opacity-50 disabled:cursor-not-allowed">
+                        @if (_connecting)
+                        {
+                            <div class="w-4 h-4 border-2 border-white/30 border-t-white rounded-full animate-spin"></div>
+                        }
+                        Continue to bank
+                    </button>
+                </div>
+            </div>
+        </div>
+    </div>
+}
+
 @code {
     private PaginatedResponse<BankTransactionDto>? _response;
     private ImportResultDto? _importResult;
@@ -267,42 +590,276 @@
     private bool _isUploading;
     private string _searchTerm = "";
     private string _selectedStatus = "";
+    private string _selectedDirection = "";
+    private string _selectedCurrency = "";
     private int _currentPage = 1;
-    private const int PageSize = 15;
+    private int _pageSize = 50;
+    private List<string> _currencies = new();
     private string? _errorMessage;
 
     private bool _showMatchModal;
     private BankTransactionDto? _selectedTransaction;
     private List<TransactionMatchDto> _suggestions = new();
     private bool _isLoadingSuggestions;
+    private List<InvoiceOptionDto> _matchableInvoices = new();
+    private Guid? _selectedMatchInvoiceId;
+    private bool _markInvoicePaid = true;
 
-    private bool HasActiveFilters => !string.IsNullOrEmpty(_searchTerm) || !string.IsNullOrEmpty(_selectedStatus);
+    private DateOnly? _fromDate;
+    private DateOnly? _toDate;
+
+    // Expense modal
+    // Bank connection (open banking)
+    private bool _showConnectModal;
+    private bool _loadingInstitutions;
+    private bool _connecting;
+    private string? _connectError;
+    private string _country = "gb";
+    private string? _selectedInstitutionId;
+    private List<BankInstitutionDto> _institutions = new();
+    private List<BankConnectionDto> _connections = new();
+    private Guid? _syncingId;
+
+    private bool _showExpenseModal;
+    private bool _isSavingExpense;
+    private string _expenseCategory = "Other";
+    private string _expenseNotes = "";
+    private bool _expenseBillable;
+    private Guid? _expenseClientId;
+    private Guid? _expenseProjectId;
+    private List<ClientDto> _clients = new();
+    private List<ProjectDto> _projects = new();
+
+    private static readonly List<SelectOption<string>> _categoryOptions =
+        Enum.GetValues<ExpenseCategory>()
+            .Select(c => new SelectOption<string>(c.ToString(), c.GetDisplayName()))
+            .ToList();
+
+    private async Task ShowExpenseModal(BankTransactionDto transaction)
+    {
+        _selectedTransaction = transaction;
+        _expenseCategory = ExpenseCategoryRules.Suggest(transaction.Description).ToString();
+        _expenseNotes = "";
+        _expenseBillable = false;
+        _expenseClientId = null;
+        _expenseProjectId = null;
+        _errorMessage = null;
+        _showExpenseModal = true;
+        if (_clients.Count == 0)
+            await LoadClientsAndProjects();
+    }
+
+    private async Task LoadClientsAndProjects()
+    {
+        try
+        {
+            var clients = await GetClientsCall.Call(new GetClients { Page = 1, PageSize = 1000, ActiveOnly = true });
+            _clients = clients?.Items ?? new();
+            var projects = await GetProjectsCall.Call(new GetProjects { Page = 1, PageSize = 1000 });
+            _projects = projects?.Items ?? new();
+        }
+        catch { /* selects just stay empty */ }
+    }
+
+    private void OnBillableToggled(ChangeEventArgs e)
+    {
+        _expenseBillable = e.Value is true;
+        if (!_expenseBillable) { _expenseClientId = null; _expenseProjectId = null; }
+    }
+
+    private void OnExpenseClientChanged(Guid? clientId)
+    {
+        _expenseClientId = clientId;
+        _expenseProjectId = null;
+    }
+
+    private void CloseExpenseModal() => _showExpenseModal = false;
+
+    private async Task CreateExpenseAsync()
+    {
+        if (_selectedTransaction is null) return;
+        _isSavingExpense = true;
+        _errorMessage = null;
+        try
+        {
+            await CreateExpenseFromTransactionCall.Call(new CreateExpenseFromTransaction
+            {
+                Id = _selectedTransaction.Id,
+                Category = _expenseCategory,
+                Notes = string.IsNullOrWhiteSpace(_expenseNotes) ? null : _expenseNotes,
+                IsBillable = _expenseBillable,
+                ClientId = _expenseBillable ? _expenseClientId : null,
+                ProjectId = _expenseBillable ? _expenseProjectId : null
+            });
+            _showExpenseModal = false;
+            await LoadTransactions();
+        }
+        catch (Exception ex)
+        {
+            _errorMessage = $"Failed to create expense: {ex.Message}";
+        }
+        finally
+        {
+            _isSavingExpense = false;
+        }
+    }
+
+    private bool HasActiveFilters => !string.IsNullOrEmpty(_searchTerm) || !string.IsNullOrEmpty(_selectedStatus)
+        || !string.IsNullOrEmpty(_selectedDirection) || !string.IsNullOrEmpty(_selectedCurrency)
+        || _fromDate is not null || _toDate is not null;
 
     protected override async Task OnInitializedAsync()
     {
+        // Returning from a bank auth redirect? TrueLayer appends ?code=…&state=<ref>; GoCardless ?ref=<ref>.
+        var reference = GetQueryValue(Nav.Uri, "ref") ?? GetQueryValue(Nav.Uri, "state");
+        var code = GetQueryValue(Nav.Uri, "code");
+        if (!string.IsNullOrEmpty(reference))
+        {
+            try
+            {
+                await FinalizeConnectionCall.Call(new FinalizeBankConnection { Reference = reference, Code = code });
+            }
+            catch { }
+            Nav.NavigateTo("bank-import", replace: true); // clean the URL
+        }
+
         await LoadTransactions();
+        await LoadConnections();
+        await LoadCurrencies();
     }
+
+    private async Task LoadCurrencies()
+    {
+        try { _currencies = await GetCurrenciesCall.Call(new GetBankTransactionCurrencies()) ?? new(); }
+        catch { _currencies = new(); }
+    }
+
+    private static string? GetQueryValue(string uri, string key)
+    {
+        var q = new Uri(uri).Query;
+        if (string.IsNullOrEmpty(q)) return null;
+        foreach (var part in q.TrimStart('?').Split('&', StringSplitOptions.RemoveEmptyEntries))
+        {
+            var kv = part.Split('=', 2);
+            if (kv.Length == 2 && kv[0] == key) return Uri.UnescapeDataString(kv[1]);
+        }
+        return null;
+    }
+
+    private async Task LoadConnections()
+    {
+        try { _connections = await GetConnectionsCall.Call(new GetBankConnections()) ?? new(); }
+        catch { _connections = new(); }
+    }
+
+    private async Task OpenConnectModal()
+    {
+        _showConnectModal = true;
+        _connectError = null;
+        _selectedInstitutionId = null;
+        await LoadInstitutions();
+    }
+
+    private void CloseConnectModal() => _showConnectModal = false;
+
+    private async Task LoadInstitutions()
+    {
+        _loadingInstitutions = true;
+        try { _institutions = await GetInstitutionsCall.Call(new GetBankInstitutions { Country = _country }) ?? new(); }
+        catch { _institutions = new(); }
+        finally { _loadingInstitutions = false; }
+    }
+
+    private async Task OnCountryChanged(string value)
+    {
+        _country = value;
+        _selectedInstitutionId = null;
+        await LoadInstitutions();
+    }
+
+    private async Task StartConnectAsync()
+    {
+        if (string.IsNullOrEmpty(_selectedInstitutionId)) return;
+        _connecting = true;
+        _connectError = null;
+        try
+        {
+            var name = _institutions.FirstOrDefault(i => i.Id == _selectedInstitutionId)?.Name ?? "Bank";
+            var link = await StartConnectionCall.Call(new StartBankConnection { InstitutionId = _selectedInstitutionId, InstitutionName = name, Country = _country });
+            if (!string.IsNullOrEmpty(link?.AuthUrl))
+            {
+                Nav.NavigateTo(link.AuthUrl, forceLoad: true); // redirect to the bank
+            }
+            else
+            {
+                _connectError = "Couldn't start the connection. Check that GoCardless credentials and redirect URI are configured.";
+            }
+        }
+        catch
+        {
+            _connectError = "Something went wrong starting the connection.";
+        }
+        finally
+        {
+            _connecting = false;
+        }
+    }
+
+    private async Task SyncConnectionAsync(BankConnectionDto c)
+    {
+        _syncingId = c.Id;
+        try
+        {
+            await SyncConnectionCall.Call(new SyncBankConnection { Id = c.Id });
+            await LoadConnections();
+            _currentPage = 1;
+            await LoadTransactions();
+        }
+        catch { }
+        finally { _syncingId = null; }
+    }
+
+    private async Task DisconnectAsync(BankConnectionDto c)
+    {
+        try
+        {
+            await DeleteConnectionCall.Call(new DeleteBankConnection { Id = c.Id });
+            await LoadConnections();
+        }
+        catch { }
+    }
+
+    private static string ConnStatusClass(string status) => status switch
+    {
+        "Linked" => "bg-emerald-100 text-emerald-700 dark:bg-emerald-900/30 dark:text-emerald-400",
+        "Pending" => "bg-amber-100 text-amber-700 dark:bg-amber-900/30 dark:text-amber-400",
+        "Expired" => "bg-amber-100 text-amber-700 dark:bg-amber-900/30 dark:text-amber-400",
+        "Error" => "bg-red-100 text-red-700 dark:bg-red-900/30 dark:text-red-400",
+        _ => "bg-gray-100 text-gray-600 dark:bg-slate-700 dark:text-slate-400"
+    };
 
     private async Task LoadTransactions()
     {
         _isLoading = true;
         try
         {
-            bool? isMatched = _selectedStatus switch
-            {
-                "matched" => true,
-                "unmatched" => false,
-                _ => null
-            };
-            bool? isIgnored = _selectedStatus == "ignored" ? true : null;
+            // "Needs review" = not matched, not expensed, not ignored.
+            bool? isMatched = _selectedStatus switch { "matched" => true, "unmatched" => false, _ => (bool?)null };
+            bool? isExpensed = _selectedStatus switch { "expense" => true, "unmatched" => false, _ => (bool?)null };
+            bool? isIgnored = _selectedStatus switch { "ignored" => true, "unmatched" => false, _ => (bool?)null };
 
             _response = await GetTransactionsCall.Call(new GetBankTransactions
             {
                 Page = _currentPage,
-                PageSize = PageSize,
+                PageSize = _pageSize,
                 Search = _searchTerm,
                 IsMatched = isMatched,
-                IsIgnored = isIgnored
+                IsIgnored = isIgnored,
+                IsExpensed = isExpensed,
+                FromDate = _fromDate,
+                ToDate = _toDate,
+                Direction = string.IsNullOrEmpty(_selectedDirection) ? null : _selectedDirection,
+                Currency = string.IsNullOrEmpty(_selectedCurrency) ? null : _selectedCurrency
             });
         }
         catch (Exception ex)
@@ -315,9 +872,10 @@
         }
     }
 
-    private async Task HandleFileUpload(ChangeEventArgs e)
+    private async Task HandleFileUpload(InputFileChangeEventArgs e)
     {
-        if (e.Value is not Microsoft.AspNetCore.Components.Forms.IBrowserFile file)
+        var file = e.File;
+        if (file is null)
             return;
 
         _isUploading = true;
@@ -327,9 +885,10 @@
             var extension = Path.GetExtension(file.Name).ToLowerInvariant();
             var format = extension switch
             {
-                ".csv" => "CSV",
-                ".ofx" => "OFX",
-                _ => throw new Exception("Unsupported file format. Please use CSV or OFX files.")
+                ".csv" or ".tsv" or ".txt" => "CSV",
+                ".ofx" or ".qfx" => "OFX",
+                ".xls" or ".xlsx" or ".xlsm" => "XLSX",
+                _ => throw new Exception("Unsupported file format. Please upload a CSV, OFX/QFX, or Excel (.xls/.xlsx) file exported from your bank.")
             };
 
             using var stream = file.OpenReadStream(maxAllowedSize: 10 * 1024 * 1024);
@@ -346,6 +905,7 @@
 
             _currentPage = 1;
             await LoadTransactions();
+            await LoadCurrencies();
         }
         catch (Exception ex)
         {
@@ -363,6 +923,36 @@
         await LoadTransactions();
     }
 
+    private async Task OnStatusChanged(string value)
+    {
+        _selectedStatus = value;
+        await OnFilterChanged();
+    }
+
+    private async Task OnSearchChanged(string value)
+    {
+        _searchTerm = value;
+        await OnFilterChanged();
+    }
+
+    private async Task OnDirectionChanged(string value)
+    {
+        _selectedDirection = value;
+        await OnFilterChanged();
+    }
+
+    private async Task OnCurrencyChanged(string value)
+    {
+        _selectedCurrency = value;
+        await OnFilterChanged();
+    }
+
+    private async Task OnPageSizeChanged(int value)
+    {
+        _pageSize = value;
+        await OnFilterChanged();
+    }
+
     private async Task OnPageChanged(int page)
     {
         _currentPage = page;
@@ -375,14 +965,17 @@
         _showMatchModal = true;
         _suggestions = new();
         _isLoadingSuggestions = true;
+        _selectedMatchInvoiceId = null;
+        _markInvoicePaid = true;
 
         try
         {
             _suggestions = await GetSuggestionsCall.Call(new GetSuggestedMatches { Id = transaction.Id });
+            _matchableInvoices = await GetMatchableInvoicesCall.Call(new GetMatchableInvoices()) ?? new();
         }
         catch (Exception ex)
         {
-            _errorMessage = $"Failed to load suggestions: {ex.Message}";
+            _errorMessage = $"Failed to load invoices: {ex.Message}";
         }
         finally
         {
@@ -396,7 +989,7 @@
         _selectedTransaction = null;
     }
 
-    private async Task MatchToInvoiceAsync(Guid invoiceId)
+    private async Task MatchToInvoiceAsync(Guid invoiceId, bool markPaid = true)
     {
         if (_selectedTransaction == null) return;
 
@@ -406,7 +999,7 @@
             {
                 Id = _selectedTransaction.Id,
                 InvoiceId = invoiceId,
-                MarkInvoiceAsPaid = true
+                MarkInvoiceAsPaid = markPaid
             });
 
             CloseMatchModal();
@@ -416,6 +1009,73 @@
         {
             _errorMessage = $"Failed to match transaction: {ex.Message}";
         }
+    }
+
+    private async Task MatchSelectedInvoiceAsync()
+    {
+        if (_selectedMatchInvoiceId is Guid id)
+            await MatchToInvoiceAsync(id, _markInvoicePaid);
+    }
+
+    private async Task DeleteTransactionAsync(BankTransactionDto transaction)
+    {
+        try
+        {
+            await DeleteBankTransactionCall.Call(new DeleteBankTransaction { Id = transaction.Id });
+            await LoadTransactions();
+        }
+        catch (Exception ex)
+        {
+            _errorMessage = $"Failed to delete transaction: {ex.Message}";
+        }
+    }
+
+    private async Task ClearTransactionsAsync()
+    {
+        var scope = HasActiveFilters
+            ? "all transactions matching the current filters"
+            : "ALL imported transactions";
+        var confirmed = await ModalService.ShowAsync<bool>(
+            typeof(DeleteConfirmationModal),
+            "Delete transactions",
+            new Dictionary<string, object>
+            {
+                { "ItemName", scope },
+                { "WarningMessage", "This permanently removes the bank transactions. Any invoices already marked paid or expenses already created stay as they are." }
+            },
+            new ModalOptions { Size = ModalSize.Small });
+        if (!confirmed) return;
+
+        try
+        {
+            await ClearBankTransactionsCall.Call(new ClearBankTransactions
+            {
+                FromDate = _fromDate,
+                ToDate = _toDate,
+                Status = string.IsNullOrEmpty(_selectedStatus) ? null : _selectedStatus,
+                Direction = string.IsNullOrEmpty(_selectedDirection) ? null : _selectedDirection,
+                Currency = string.IsNullOrEmpty(_selectedCurrency) ? null : _selectedCurrency
+            });
+            _currentPage = 1;
+            await LoadTransactions();
+            await LoadCurrencies();
+        }
+        catch (Exception ex)
+        {
+            _errorMessage = $"Failed to delete transactions: {ex.Message}";
+        }
+    }
+
+    private async Task OnFromDateChanged(DateOnly? value)
+    {
+        _fromDate = value;
+        await OnFilterChanged();
+    }
+
+    private async Task OnToDateChanged(DateOnly? value)
+    {
+        _toDate = value;
+        await OnFilterChanged();
     }
 
     private async Task IgnoreTransactionAsync(BankTransactionDto transaction)

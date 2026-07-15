@@ -6,6 +6,7 @@
 @inject ICall<GetProducts, PaginatedResponse<ProductDto>> GetProductsCall
 @inject ICall<CreateRecurringInvoice, Guid> CreateRecurringInvoiceCall
 @inject ICall<UpdateRecurringInvoice> UpdateRecurringInvoiceCall
+@inject ICall<DeleteRecurringInvoice> DeleteRecurringInvoiceCall
 
 <PageTitle>@(Id.HasValue ? "Edit Recurring Invoice" : "New Recurring Invoice") - InvoicePro</PageTitle>
 
@@ -32,14 +33,8 @@
                     {
                         <div class="sm:col-span-2">
                             <label for="clientId" class="block text-sm font-medium text-gray-700 dark:text-slate-300 mb-2">Client <span class="text-red-500">*</span></label>
-                            <InputSelect id="clientId" @bind-Value="_model.ClientId"
-                                class="w-full px-4 py-3 text-sm text-gray-900 dark:text-slate-100 bg-white dark:bg-slate-800 border border-gray-200 dark:border-slate-600 rounded-xl transition-all duration-200 focus:outline-none focus:border-primary-400 focus:ring-4 focus:ring-primary-500/10 hover:border-gray-300 dark:hover:border-slate-500 cursor-pointer">
-                                <option value="">Select a client...</option>
-                                @foreach (var client in _clients)
-                                {
-                                    <option value="@client.Id">@client.Name @(client.CompanyName != null ? $"({client.CompanyName})" : "")</option>
-                                }
-                            </InputSelect>
+                            <Select @bind-Value="_model.ClientId" Placeholder="Select a client..."
+                                    Options="@(_clients.Select(c => new SelectOption<string>(c.Id.ToString(), c.Name + (c.CompanyName != null ? $" ({c.CompanyName})" : ""))).ToList())" />
                             <ValidationMessage For="@(() => _model.ClientId)" class="mt-1.5 text-xs text-red-600" />
                         </div>
                     }
@@ -47,7 +42,7 @@
                     <div class="@(Id.HasValue ? "sm:col-span-2" : "")">
                         <label for="templateName" class="block text-sm font-medium text-gray-700 dark:text-slate-300 mb-2">Template Name <span class="text-red-500">*</span></label>
                         <InputText id="templateName" @bind-Value="_model.TemplateName"
-                            class="w-full px-4 py-3 text-sm text-gray-900 dark:text-slate-100 bg-white dark:bg-slate-800 border border-gray-200 dark:border-slate-600 rounded-xl transition-all duration-200 placeholder:text-gray-400 dark:placeholder:text-slate-500 focus:outline-none focus:border-primary-400 focus:ring-4 focus:ring-primary-500/10 hover:border-gray-300 dark:hover:border-slate-500"
+                            class="form-control"
                             placeholder="Monthly Retainer" />
                         <ValidationMessage For="@(() => _model.TemplateName)" class="mt-1.5 text-xs text-red-600" />
                     </div>
@@ -56,13 +51,8 @@
                     {
                         <div>
                             <label for="currency" class="block text-sm font-medium text-gray-700 dark:text-slate-300 mb-2">Currency <span class="text-red-500">*</span></label>
-                            <InputSelect id="currency" @bind-Value="_model.Currency"
-                                class="w-full px-4 py-3 text-sm text-gray-900 dark:text-slate-100 bg-white dark:bg-slate-800 border border-gray-200 dark:border-slate-600 rounded-xl transition-all duration-200 focus:outline-none focus:border-primary-400 focus:ring-4 focus:ring-primary-500/10 hover:border-gray-300 dark:hover:border-slate-500 cursor-pointer">
-                                @foreach (var currency in Enum.GetValues<Currency>())
-                                {
-                                    <option value="@currency.ToString()">@currency.ToString() (@currency.GetSymbol())</option>
-                                }
-                            </InputSelect>
+                            <Select @bind-Value="_model.Currency" Placeholder="Select currency..."
+                                    Options="@(Enum.GetValues<Currency>().Select(c => new SelectOption<string>(c.ToString(), $"{c} ({c.GetSymbol()})")).ToList())" />
                         </div>
                     }
                 </div>
@@ -73,30 +63,23 @@
                     <div>
                         <label for="frequencyInterval" class="block text-sm font-medium text-gray-700 dark:text-slate-300 mb-2">Every</label>
                         <InputNumber id="frequencyInterval" @bind-Value="_model.FrequencyInterval"
-                            class="w-full px-4 py-3 text-sm text-gray-900 dark:text-slate-100 bg-white dark:bg-slate-800 border border-gray-200 dark:border-slate-600 rounded-xl transition-all duration-200 focus:outline-none focus:border-primary-400 focus:ring-4 focus:ring-primary-500/10 hover:border-gray-300 dark:hover:border-slate-500" />
+                            class="form-control" />
                     </div>
 
                     <div>
                         <label for="frequency" class="block text-sm font-medium text-gray-700 dark:text-slate-300 mb-2">Period</label>
-                        <InputSelect id="frequency" @bind-Value="_model.Frequency"
-                            class="w-full px-4 py-3 text-sm text-gray-900 dark:text-slate-100 bg-white dark:bg-slate-800 border border-gray-200 dark:border-slate-600 rounded-xl transition-all duration-200 focus:outline-none focus:border-primary-400 focus:ring-4 focus:ring-primary-500/10 hover:border-gray-300 dark:hover:border-slate-500 cursor-pointer">
-                            <option value="Day">Day(s)</option>
-                            <option value="Week">Week(s)</option>
-                            <option value="Month">Month(s)</option>
-                            <option value="Year">Year(s)</option>
-                        </InputSelect>
+                        <Select @bind-Value="_model.Frequency" Searchable="false"
+                                Options="@(new List<SelectOption<string>> { new("Day", "Day(s)"), new("Week", "Week(s)"), new("Month", "Month(s)"), new("Year", "Year(s)") })" />
                     </div>
 
                     <div>
                         <label for="startDate" class="block text-sm font-medium text-gray-700 dark:text-slate-300 mb-2">Start Date <span class="text-red-500">*</span></label>
-                        <InputDate id="startDate" @bind-Value="_model.StartDate"
-                            class="w-full px-4 py-3 text-sm text-gray-900 dark:text-slate-100 bg-white dark:bg-slate-800 border border-gray-200 dark:border-slate-600 rounded-xl transition-all duration-200 focus:outline-none focus:border-primary-400 focus:ring-4 focus:ring-primary-500/10 hover:border-gray-300 dark:hover:border-slate-500" />
+                        <DatePicker TValue="DateOnly" @bind-Value="_model.StartDate" Clearable="false" />
                     </div>
 
                     <div>
                         <label for="endDate" class="block text-sm font-medium text-gray-700 dark:text-slate-300 mb-2">End Date (Optional)</label>
-                        <InputDate id="endDate" @bind-Value="_model.EndDate"
-                            class="w-full px-4 py-3 text-sm text-gray-900 dark:text-slate-100 bg-white dark:bg-slate-800 border border-gray-200 dark:border-slate-600 rounded-xl transition-all duration-200 focus:outline-none focus:border-primary-400 focus:ring-4 focus:ring-primary-500/10 hover:border-gray-300 dark:hover:border-slate-500" />
+                        <DatePicker @bind-Value="_model.EndDate" />
                     </div>
                 </div>
 
@@ -104,7 +87,7 @@
                     <div>
                         <label for="dueDays" class="block text-sm font-medium text-gray-700 dark:text-slate-300 mb-2">Payment Due (Days)</label>
                         <InputNumber id="dueDays" @bind-Value="_model.DueDays"
-                            class="w-full px-4 py-3 text-sm text-gray-900 dark:text-slate-100 bg-white dark:bg-slate-800 border border-gray-200 dark:border-slate-600 rounded-xl transition-all duration-200 focus:outline-none focus:border-primary-400 focus:ring-4 focus:ring-primary-500/10 hover:border-gray-300 dark:hover:border-slate-500" />
+                            class="form-control" />
                         <p class="mt-1 text-xs text-gray-500 dark:text-slate-400">Days after invoice date when payment is due</p>
                     </div>
                 </div>
@@ -123,13 +106,13 @@
                                     <div class="sm:col-span-5">
                                         <label class="block text-xs font-medium text-gray-500 dark:text-slate-400 mb-1">Description</label>
                                         <InputText @bind-Value="item.Description"
-                                            class="w-full px-3 py-2 text-sm text-gray-900 dark:text-slate-100 bg-white dark:bg-slate-800 border border-gray-200 dark:border-slate-600 rounded-lg focus:outline-none focus:border-primary-400 focus:ring-2 focus:ring-primary-500/10"
+                                            class="form-control"
                                             placeholder="Product or service description" />
                                     </div>
                                     <div class="sm:col-span-2">
                                         <label class="block text-xs font-medium text-gray-500 dark:text-slate-400 mb-1">Qty</label>
                                         <InputNumber @bind-Value="item.Quantity"
-                                            class="w-full px-3 py-2 text-sm text-gray-900 dark:text-slate-100 bg-white dark:bg-slate-800 border border-gray-200 dark:border-slate-600 rounded-lg focus:outline-none focus:border-primary-400 focus:ring-2 focus:ring-primary-500/10" />
+                                            class="form-control" />
                                     </div>
                                     <div class="sm:col-span-3">
                                         <label class="block text-xs font-medium text-gray-500 dark:text-slate-400 mb-1">Unit Price</label>
@@ -138,7 +121,7 @@
                                                 <span class="text-gray-400 dark:text-slate-500 text-sm">@CurrencyExtensions.GetSymbol(_model.Currency)</span>
                                             </div>
                                             <InputNumber @bind-Value="item.UnitPrice"
-                                                class="w-full pl-7 pr-3 py-2 text-sm text-gray-900 dark:text-slate-100 bg-white dark:bg-slate-800 border border-gray-200 dark:border-slate-600 rounded-lg focus:outline-none focus:border-primary-400 focus:ring-2 focus:ring-primary-500/10" />
+                                                class="form-control pl-7" />
                                         </div>
                                     </div>
                                     <div class="sm:col-span-2 flex items-end">
@@ -160,14 +143,9 @@
                             @if (_products.Any())
                             {
                                 <div>
-                                    <select @onchange="e => AddProductToLine(index, e)"
-                                        class="text-xs text-gray-500 dark:text-slate-400 bg-transparent border-0 p-0 focus:outline-none focus:ring-0 cursor-pointer hover:text-primary-600 dark:hover:text-primary-400">
-                                        <option value="">+ Add from products...</option>
-                                        @foreach (var product in _products)
-                                        {
-                                            <option value="@product.Id">@product.Name (@CurrencyExtensions.GetSymbol(product.Currency)@product.UnitPrice.ToString("N2"))</option>
-                                        }
-                                    </select>
+                                    <Select TValue="Guid?" Value="null" ValueChanged="@(v => AddProductToLine(index, v))"
+                                            Placeholder="+ Add from products..."
+                                            Options="@(_products.Select(p => new SelectOption<Guid?>(p.Id, $"{p.Name} ({CurrencyExtensions.GetSymbol(p.Currency)}{p.UnitPrice.ToString("N2")})")).ToList())" />
                                 </div>
                             }
                         </div>
@@ -190,7 +168,7 @@
                                     <div class="flex items-center gap-2">
                                         <span class="text-gray-600 dark:text-slate-400">Tax</span>
                                         <InputNumber @bind-Value="_model.TaxRate"
-                                            class="w-16 px-2 py-1 text-xs text-gray-900 dark:text-slate-100 bg-white dark:bg-slate-800 border border-gray-200 dark:border-slate-600 rounded focus:outline-none focus:border-primary-400" />
+                                            class="form-control w-20 text-center" />
                                         <span class="text-gray-400 dark:text-slate-500">%</span>
                                     </div>
                                     <span class="text-gray-900 dark:text-slate-100">@CurrencyExtensions.GetSymbol(_model.Currency)@TaxAmount.ToString("N2")</span>
@@ -211,19 +189,19 @@
                     <div>
                         <label for="notes" class="block text-sm font-medium text-gray-700 dark:text-slate-300 mb-2">Notes</label>
                         <InputTextArea id="notes" @bind-Value="_model.Notes" rows="3"
-                            class="w-full px-4 py-3 text-sm text-gray-900 dark:text-slate-100 bg-white dark:bg-slate-800 border border-gray-200 dark:border-slate-600 rounded-xl transition-all duration-200 placeholder:text-gray-400 dark:placeholder:text-slate-500 focus:outline-none focus:border-primary-400 focus:ring-4 focus:ring-primary-500/10 resize-none"
+                            class="form-control resize-none"
                             placeholder="Additional notes for the client..." />
                     </div>
                     <div>
                         <label for="terms" class="block text-sm font-medium text-gray-700 dark:text-slate-300 mb-2">Terms & Conditions</label>
                         <InputTextArea id="terms" @bind-Value="_model.Terms" rows="3"
-                            class="w-full px-4 py-3 text-sm text-gray-900 dark:text-slate-100 bg-white dark:bg-slate-800 border border-gray-200 dark:border-slate-600 rounded-xl transition-all duration-200 placeholder:text-gray-400 dark:placeholder:text-slate-500 focus:outline-none focus:border-primary-400 focus:ring-4 focus:ring-primary-500/10 resize-none"
+                            class="form-control resize-none"
                             placeholder="Terms and conditions..." />
                     </div>
                     <div>
                         <label for="footer" class="block text-sm font-medium text-gray-700 dark:text-slate-300 mb-2">Footer</label>
                         <InputTextArea id="footer" @bind-Value="_model.Footer" rows="2"
-                            class="w-full px-4 py-3 text-sm text-gray-900 dark:text-slate-100 bg-white dark:bg-slate-800 border border-gray-200 dark:border-slate-600 rounded-xl transition-all duration-200 placeholder:text-gray-400 dark:placeholder:text-slate-500 focus:outline-none focus:border-primary-400 focus:ring-4 focus:ring-primary-500/10 resize-none"
+                            class="form-control resize-none"
                             placeholder="Footer text for generated invoices..." />
                     </div>
                 </div>
@@ -241,6 +219,13 @@
                                ShowIcon="false" />
             </div>
         </EditForm>
+
+        @if (Id.HasValue)
+        {
+            <DangerZone EntityLabel="Recurring invoice" ItemName="@_model.TemplateName"
+                        WarningMessage="This permanently deletes this recurring invoice schedule. This cannot be undone."
+                        OnConfirmed="DeleteAsync" />
+        }
     }
 </div>
 
@@ -336,18 +321,32 @@
         }
     }
 
-    private void AddProductToLine(int index, ChangeEventArgs e)
+    private void AddProductToLine(int index, Guid? productId)
     {
-        if (Guid.TryParse(e.Value?.ToString(), out var productId))
+        if (productId is Guid pid)
         {
-            var product = _products.FirstOrDefault(p => p.Id == productId);
+            var product = _products.FirstOrDefault(p => p.Id == pid);
             if (product != null)
             {
-                _model.LineItems[index].ProductId = productId;
+                _model.LineItems[index].ProductId = pid;
                 _model.LineItems[index].Description = product.Name + (product.Description != null ? $" - {product.Description}" : "");
                 _model.LineItems[index].UnitPrice = product.UnitPrice;
                 _model.LineItems[index].Quantity = product.DefaultQuantity;
             }
+        }
+    }
+
+    private async Task DeleteAsync()
+    {
+        _errorMessage = null;
+        try
+        {
+            await DeleteRecurringInvoiceCall.Call(new DeleteRecurringInvoice { Id = Id!.Value });
+            NavigationManager.NavigateTo("recurring-invoices");
+        }
+        catch (Exception ex)
+        {
+            _errorMessage = $"Failed to delete recurring invoice: {ex.Message}";
         }
     }
 

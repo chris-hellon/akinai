@@ -201,20 +201,12 @@
                         </div>
                     </dl>
                 </Card>
-
-                <!-- Actions -->
-                <Card Title="Actions">
-                    <div class="space-y-3">
-                        <button @onclick="DeleteInvoiceAsync" class="flex items-center gap-2 text-sm text-red-600 dark:text-red-400 hover:underline">
-                            <svg class="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                                <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M19 7l-.867 12.142A2 2 0 0116.138 21H7.862a2 2 0 01-1.995-1.858L5 7m5 4v6m4-6v6m1-10V4a1 1 0 00-1-1h-4a1 1 0 00-1 1v3M4 7h16" />
-                            </svg>
-                            Delete Recurring Invoice
-                        </button>
-                    </div>
-                </Card>
             </div>
         </div>
+
+        <DangerZone EntityLabel="Recurring invoice" ItemName="@_invoice.TemplateName"
+                    WarningMessage="This permanently deletes this recurring invoice schedule. This cannot be undone."
+                    OnConfirmed="PerformDelete" />
     }
 </div>
 
@@ -332,20 +324,8 @@
         }
     }
 
-    private async Task DeleteInvoiceAsync()
+    private async Task PerformDelete()
     {
-        var confirmed = await ModalService.ShowAsync<bool>(
-            typeof(DeleteConfirmationModal),
-            "Delete Recurring Invoice",
-            new Dictionary<string, object>
-            {
-                { "ItemName", _invoice?.TemplateName ?? "this recurring invoice" },
-                { "WarningMessage", "This will permanently delete this recurring invoice. No new invoices will be generated." }
-            },
-            new ModalOptions { Size = ModalSize.Small });
-
-        if (!confirmed) return;
-
         try
         {
             await DeleteRecurringInvoiceCall.Call(new DeleteRecurringInvoice { Id = Id });

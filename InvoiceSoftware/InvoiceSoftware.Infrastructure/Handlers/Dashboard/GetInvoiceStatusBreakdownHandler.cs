@@ -20,50 +20,39 @@ public class GetInvoiceStatusBreakdownHandler(IDbContextFactory<ApplicationDbCon
             return HttpResult<InvoiceStatusBreakdownDto?>.Unauthorized();
 
         await using var db = await dbFactory.CreateDbContextAsync(cancellationToken);
+        var now = DateOnly.FromDateTime(DateTime.UtcNow);
 
-        // Get all user's invoices
+        var businessProfile = await db.BusinessProfiles
+            .FirstOrDefaultAsync(bp => bp.UserId == userId, cancellationToken);
+        var reporting = !string.IsNullOrWhiteSpace(request.ReportingCurrency)
+            ? request.ReportingCurrency!
+            : businessProfile?.DefaultCurrency ?? "USD";
+
         var invoices = await db.Invoices
+            .Include(i => i.CurrencyTotals)
+            .Include(i => i.LineItems)
             .Include(i => i.TimeEntries)
                 .ThenInclude(te => te.Job)
+                    .ThenInclude(j => j.Project)
+                        .ThenInclude(p => p.Client)
             .Include(i => i.Client)
             .Where(i => i.Client.UserId == userId)
             .ToListAsync(cancellationToken);
 
-        // Count by status
-        var draftCount = invoices.Count(i => i.Status == InvoiceStatus.Draft);
-        var sentCount = invoices.Count(i => i.Status == InvoiceStatus.Sent);
-        var paidCount = invoices.Count(i => i.Status == InvoiceStatus.Paid);
-        var overdueCount = invoices.Count(i => i.Status == InvoiceStatus.Overdue);
-        var voidCount = invoices.Count(i => i.Status == InvoiceStatus.Void);
+        decimal Amount(Domain.Entities.Invoice invoice) => InvoiceTotals.InReporting(invoice, reporting);
 
-        // Helper to calculate invoice total
-        decimal CalculateInvoiceTotal(Domain.Entities.Invoice invoice)
-        {
-            decimal subtotal = 0;
-            foreach (var te in invoice.TimeEntries)
-            {
-                var hourlyRate = te.Job.GetEffectiveHourlyRate();
-                subtotal += te.Hours.Value * hourlyRate;
-            }
-            return subtotal + (subtotal * invoice.TaxRate / 100);
-        }
-
-        // Calculate amounts by status
-        var draftAmount = invoices.Where(i => i.Status == InvoiceStatus.Draft).Sum(CalculateInvoiceTotal);
-        var sentAmount = invoices.Where(i => i.Status == InvoiceStatus.Sent).Sum(CalculateInvoiceTotal);
-        var paidAmount = invoices.Where(i => i.Status == InvoiceStatus.Paid).Sum(CalculateInvoiceTotal);
-        var overdueAmount = invoices.Where(i => i.Status == InvoiceStatus.Overdue).Sum(CalculateInvoiceTotal);
+        // Overdue is derived from the due date (Sent/Overdue past due), consistent with the
+        // rest of the dashboard, rather than relying solely on the Status enum.
+        bool Unpaid(Domain.Entities.Invoice i) => i.Status is InvoiceStatus.Sent or InvoiceStatus.Overdue;
+        var draft = invoices.Where(i => i.Status == InvoiceStatus.Draft).ToList();
+        var paid = invoices.Where(i => i.Status == InvoiceStatus.Paid).ToList();
+        var voided = invoices.Where(i => i.Status == InvoiceStatus.Void).ToList();
+        var overdue = invoices.Where(i => Unpaid(i) && i.DueDate < now).ToList();
+        var sent = invoices.Where(i => Unpaid(i) && i.DueDate >= now).ToList();
 
         var dto = new InvoiceStatusBreakdownDto(
-            draftCount,
-            sentCount,
-            paidCount,
-            overdueCount,
-            voidCount,
-            draftAmount,
-            sentAmount,
-            paidAmount,
-            overdueAmount);
+            draft.Count, sent.Count, paid.Count, overdue.Count, voided.Count,
+            draft.Sum(Amount), sent.Sum(Amount), paid.Sum(Amount), overdue.Sum(Amount));
 
         return HttpResult<InvoiceStatusBreakdownDto?>.Ok(dto);
     }

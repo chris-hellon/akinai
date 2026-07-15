@@ -64,17 +64,9 @@
                 </div>
             </div>
             <div class="p-6">
-                <select @bind="_selectedClientId" @bind:after="OnClientSelected"
-                        class="w-full px-4 py-3 text-sm text-gray-900 bg-white border border-gray-200 rounded-xl transition-all duration-200 focus:outline-none focus:border-primary-400 focus:ring-4 focus:ring-primary-500/10 hover:border-gray-300 cursor-pointer">
-                    <option value="">Select a client...</option>
-                    @if (_clients != null)
-                    {
-                        @foreach (var client in _clients)
-                        {
-                            <option value="@client.Id">@client.Name</option>
-                        }
-                    }
-                </select>
+                <Select TValue="string" Value="_selectedClientId" ValueChanged="OnClientChanged"
+                        Placeholder="Select a client..."
+                        Options="@(_clients?.Select(c => new SelectOption<string>(c.Id.ToString(), c.Name)).ToList() ?? new())" />
             </div>
         </div>
 
@@ -160,41 +152,28 @@
                         <div class="grid grid-cols-1 gap-5 sm:grid-cols-4">
                             <div>
                                 <label class="block text-sm font-medium text-gray-700 dark:text-slate-300 mb-2">Issue Date</label>
-                                <input type="date" @bind="_issueDate"
-                                       class="w-full px-4 py-3 text-sm text-gray-900 dark:text-slate-100 bg-white dark:bg-slate-800 border border-gray-200 dark:border-slate-600 rounded-xl transition-all duration-200 focus:outline-none focus:border-primary-400 focus:ring-4 focus:ring-primary-500/10 hover:border-gray-300 dark:hover:border-slate-500" />
+                                <DatePicker TValue="DateOnly" @bind-Value="_issueDate" Clearable="false" />
                             </div>
                             <div>
                                 <label class="block text-sm font-medium text-gray-700 dark:text-slate-300 mb-2">Due Date</label>
-                                <input type="date" @bind="_dueDate"
-                                       class="w-full px-4 py-3 text-sm text-gray-900 dark:text-slate-100 bg-white dark:bg-slate-800 border border-gray-200 dark:border-slate-600 rounded-xl transition-all duration-200 focus:outline-none focus:border-primary-400 focus:ring-4 focus:ring-primary-500/10 hover:border-gray-300 dark:hover:border-slate-500" />
+                                <DatePicker TValue="DateOnly" @bind-Value="_dueDate" Clearable="false" />
                             </div>
                             <div>
                                 <label class="block text-sm font-medium text-gray-700 dark:text-slate-300 mb-2">Tax Rate (%)</label>
                                 <input type="number" step="0.01" @bind="_taxRate"
-                                       class="w-full px-4 py-3 text-sm text-gray-900 dark:text-slate-100 bg-white dark:bg-slate-800 border border-gray-200 dark:border-slate-600 rounded-xl transition-all duration-200 focus:outline-none focus:border-primary-400 focus:ring-4 focus:ring-primary-500/10 hover:border-gray-300 dark:hover:border-slate-500" />
+                                       class="form-control" />
                             </div>
                             <div>
                                 <label class="block text-sm font-medium text-gray-700 dark:text-slate-300 mb-2">Template</label>
-                                <select @bind="_selectedTemplateId"
-                                        class="w-full px-4 py-3 text-sm text-gray-900 dark:text-slate-100 bg-white dark:bg-slate-800 border border-gray-200 dark:border-slate-600 rounded-xl transition-all duration-200 focus:outline-none focus:border-primary-400 focus:ring-4 focus:ring-primary-500/10 hover:border-gray-300 dark:hover:border-slate-500 cursor-pointer">
-                                    <option value="">Default</option>
-                                    @if (_templates != null)
-                                    {
-                                        @foreach (var template in _templates)
-                                        {
-                                            <option value="@template.Id">
-                                                @template.Name @(template.IsDefault ? "(Default)" : "")
-                                            </option>
-                                        }
-                                    }
-                                </select>
+                                <Select TValue="string" @bind-Value="_selectedTemplateId"
+                                        Options="@(new List<SelectOption<string>> { new("", "Default") }.Concat(_templates?.Select(t => new SelectOption<string>(t.Id.ToString(), $"{t.Name}{(t.IsDefault ? " (Default)" : "")}")) ?? Enumerable.Empty<SelectOption<string>>()).ToList())" />
                             </div>
                         </div>
 
                         <div>
                             <label class="block text-sm font-medium text-gray-700 dark:text-slate-300 mb-2">Notes</label>
                             <textarea @bind="_notes" rows="3" placeholder="Add any notes to appear on the invoice..."
-                                      class="w-full px-4 py-3 text-sm text-gray-900 dark:text-slate-100 bg-white dark:bg-slate-800 border border-gray-200 dark:border-slate-600 rounded-xl transition-all duration-200 placeholder:text-gray-400 dark:placeholder:text-slate-500 focus:outline-none focus:border-primary-400 focus:ring-4 focus:ring-primary-500/10 hover:border-gray-300 dark:hover:border-slate-500 resize-none"></textarea>
+                                      class="form-control resize-none"></textarea>
                         </div>
                     </div>
                 </div>
@@ -363,6 +342,12 @@
         {
             _isLoading = false;
         }
+    }
+
+    private async Task OnClientChanged(string clientId)
+    {
+        _selectedClientId = clientId;
+        await OnClientSelected();
     }
 
     private async Task OnClientSelected()

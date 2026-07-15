@@ -1,5 +1,5 @@
 @{
-    var isOverdue = Status != "Paid" && Status != "Void" && DueDate < DateOnly.FromDateTime(DateTime.Today);
+    var isOverdue = Status is "Sent" or "Overdue" && DueDate < DateOnly.FromDateTime(DateTime.Today);
     var isPaid = Status == "Paid";
 }
 
@@ -644,7 +644,7 @@ else if (Status == "Void")
     [Parameter] public decimal? VndToDefaultCurrencyRate { get; set; }
 
     // Template settings
-    [Parameter] public string PrimaryColor { get; set; } = "#4f46e5";
+    [Parameter] public string PrimaryColor { get; set; } = "#0e5c66";
     [Parameter] public string AccentColor { get; set; } = "#059669";
     [Parameter] public bool ShowLogo { get; set; } = true;
     [Parameter] public bool ShowItemDescriptions { get; set; } = true;

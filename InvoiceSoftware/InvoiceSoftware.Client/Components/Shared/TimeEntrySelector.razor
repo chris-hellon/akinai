@@ -3,35 +3,23 @@
     <div class="grid grid-cols-2 sm:grid-cols-4 lg:grid-cols-6 gap-3 items-end">
         <div>
             <label class="block text-xs font-medium text-gray-500 dark:text-slate-400 mb-1.5">From</label>
-            <input type="date" @bind="filterStartDate" @bind:after="ApplyFilters"
-                   class="w-full px-3 py-2 text-sm text-gray-900 dark:text-slate-100 bg-white dark:bg-[#1a1827] border border-gray-200 dark:border-[#3d3a5c] rounded-lg focus:outline-none focus:border-primary-400 dark:focus:border-primary-500 focus:ring-2 focus:ring-primary-500/10" />
+            <DatePicker TValue="DateOnly" Value="filterStartDate" ValueChanged="@((DateOnly d) => { filterStartDate = d; ApplyFilters(); })" Clearable="false" />
         </div>
         <div>
             <label class="block text-xs font-medium text-gray-500 dark:text-slate-400 mb-1.5">To</label>
-            <input type="date" @bind="filterEndDate" @bind:after="ApplyFilters"
-                   class="w-full px-3 py-2 text-sm text-gray-900 dark:text-slate-100 bg-white dark:bg-[#1a1827] border border-gray-200 dark:border-[#3d3a5c] rounded-lg focus:outline-none focus:border-primary-400 dark:focus:border-primary-500 focus:ring-2 focus:ring-primary-500/10" />
+            <DatePicker TValue="DateOnly" Value="filterEndDate" ValueChanged="@((DateOnly d) => { filterEndDate = d; ApplyFilters(); })" Clearable="false" />
         </div>
         <div>
             <label class="block text-xs font-medium text-gray-500 dark:text-slate-400 mb-1.5">Project</label>
-            <select @bind="filterProjectName" @bind:after="ApplyFilters"
-                    class="w-full px-3 py-2 text-sm text-gray-900 dark:text-slate-100 bg-white dark:bg-[#1a1827] border border-gray-200 dark:border-[#3d3a5c] rounded-lg focus:outline-none focus:border-primary-400 dark:focus:border-primary-500 focus:ring-2 focus:ring-primary-500/10 truncate">
-                <option value="">All Projects</option>
-                @foreach (var project in AvailableProjects)
-                {
-                    <option value="@project">@project</option>
-                }
-            </select>
+            <Select TValue="string" Value="filterProjectName" ValueChanged="@((string v) => { filterProjectName = v; ApplyFilters(); })"
+                    Options="@(new List<SelectOption<string>> { new("", "All Projects") }
+                        .Concat(AvailableProjects.Select(p => new SelectOption<string>(p, p))).ToList())" />
         </div>
         <div>
             <label class="block text-xs font-medium text-gray-500 dark:text-slate-400 mb-1.5">Job</label>
-            <select @bind="filterJobName" @bind:after="ApplyFilters"
-                    class="w-full px-3 py-2 text-sm text-gray-900 dark:text-slate-100 bg-white dark:bg-[#1a1827] border border-gray-200 dark:border-[#3d3a5c] rounded-lg focus:outline-none focus:border-primary-400 dark:focus:border-primary-500 focus:ring-2 focus:ring-primary-500/10 truncate">
-                <option value="">All Jobs</option>
-                @foreach (var job in AvailableJobs)
-                {
-                    <option value="@job">@job</option>
-                }
-            </select>
+            <Select TValue="string" Value="filterJobName" ValueChanged="@((string v) => { filterJobName = v; ApplyFilters(); })"
+                    Options="@(new List<SelectOption<string>> { new("", "All Jobs") }
+                        .Concat(AvailableJobs.Select(j => new SelectOption<string>(j, j))).ToList())" />
         </div>
         <div class="col-span-2 sm:col-span-4 lg:col-span-2 flex justify-end">
             <button @onclick="ClearFilters" class="px-3 py-2 text-sm text-gray-500 dark:text-slate-400 hover:text-gray-700 dark:hover:text-slate-200 hover:bg-gray-100 dark:hover:bg-[#2d2a4a] rounded-lg transition-colors">
@@ -76,7 +64,7 @@ else
 
         <div class="border-b border-gray-100 dark:border-[#2d2a4a] last:border-b-0">
             <!-- Project Header -->
-            <div class="px-6 py-3 bg-gray-50/50 dark:bg-[#1a1827]/50 flex items-center gap-4 cursor-pointer hover:bg-gray-100/50 dark:hover:bg-[#2d2a4a]/50 transition-colors"
+            <div class="px-4 sm:px-6 py-3 bg-gray-50/50 dark:bg-[#1a1827]/50 flex items-center gap-3 sm:gap-4 cursor-pointer hover:bg-gray-100/50 dark:hover:bg-[#2d2a4a]/50 transition-colors"
                  @onclick="() => ToggleProjectExpand(projectGroup.Key)">
                 <button type="button" class="text-gray-400 dark:text-slate-500">
                     <svg class="w-4 h-4 transition-transform @(isExpanded ? "rotate-90" : "")" fill="none" stroke="currentColor" viewBox="0 0 24 24">
@@ -104,26 +92,31 @@ else
                     @foreach (var entry in projectEntries.OrderByDescending(e => e.Date))
                     {
                         var isSelected = SelectedEntryIds.Contains(entry.Id);
-                        <div class="px-6 py-3 flex items-center gap-4 hover:bg-gray-50/50 dark:hover:bg-[#2d2a4a]/50 transition-colors cursor-pointer @(isSelected ? "bg-emerald-50/50 dark:bg-emerald-900/20" : "")"
+                        <div class="px-4 sm:px-6 py-3 flex items-start sm:items-center gap-3 sm:gap-4 hover:bg-gray-50/50 dark:hover:bg-[#2d2a4a]/50 transition-colors cursor-pointer @(isSelected ? "bg-emerald-50/50 dark:bg-emerald-900/20" : "")"
                              @onclick="() => ToggleEntry(entry)">
-                            <div class="w-4"></div>
+                            <div class="hidden sm:block w-4"></div>
                             <input type="checkbox" checked="@isSelected"
                                    @onclick:stopPropagation="true"
                                    @onchange="() => ToggleEntry(entry)"
-                                   class="h-4 w-4 text-emerald-600 focus:ring-emerald-500 border-gray-300 dark:border-slate-600 rounded cursor-pointer" />
-                            <div class="w-24 text-sm text-gray-500 dark:text-slate-400">@entry.Date.ToString("MMM d")</div>
-                            <div class="flex-1">
-                                <div class="flex items-center gap-2">
+                                   class="h-4 w-4 mt-0.5 sm:mt-0 shrink-0 text-emerald-600 focus:ring-emerald-500 border-gray-300 dark:border-slate-600 rounded cursor-pointer" />
+                            <div class="hidden sm:block w-24 text-sm text-gray-500 dark:text-slate-400">@entry.Date.ToString("MMM d")</div>
+                            <div class="flex-1 min-w-0">
+                                <div class="flex items-center gap-2 flex-wrap">
                                     <span class="text-sm text-gray-900 dark:text-slate-100">@entry.JobName</span>
                                     @if (!string.IsNullOrEmpty(entry.SectionName))
                                     {
                                         <span class="inline-flex items-center px-1.5 py-0.5 rounded text-xs font-medium bg-primary-100 dark:bg-primary-900/30 text-primary-700 dark:text-primary-300">@entry.SectionName</span>
                                     }
                                 </div>
+                                <div class="sm:hidden mt-1 flex flex-wrap items-center gap-x-3 gap-y-0.5 text-xs text-gray-500 dark:text-slate-400">
+                                    <span>@entry.Date.ToString("MMM d")</span>
+                                    <span>@entry.Hours.ToString("N2") hrs</span>
+                                    <span>@CurrencyExtensions.GetSymbol(entry.Currency)@entry.HourlyRate.ToString("N2")/hr</span>
+                                </div>
                             </div>
-                            <div class="w-20 text-right text-sm text-gray-500 dark:text-slate-400">@entry.Hours.ToString("N2") hrs</div>
-                            <div class="w-24 text-right text-sm text-gray-500 dark:text-slate-400">@CurrencyExtensions.GetSymbol(entry.Currency)@entry.HourlyRate.ToString("N2")/hr</div>
-                            <div class="w-28 text-right text-sm font-medium text-gray-900 dark:text-slate-100">@CurrencyExtensions.GetSymbol(entry.Currency)@((entry.Hours * entry.HourlyRate).ToString("N2"))</div>
+                            <div class="hidden sm:block w-20 text-right text-sm text-gray-500 dark:text-slate-400">@entry.Hours.ToString("N2") hrs</div>
+                            <div class="hidden sm:block w-24 text-right text-sm text-gray-500 dark:text-slate-400">@CurrencyExtensions.GetSymbol(entry.Currency)@entry.HourlyRate.ToString("N2")/hr</div>
+                            <div class="shrink-0 text-right text-sm font-medium text-gray-900 dark:text-slate-100 w-auto sm:w-28">@CurrencyExtensions.GetSymbol(entry.Currency)@((entry.Hours * entry.HourlyRate).ToString("N2"))</div>
                         </div>
                     }
                 </div>

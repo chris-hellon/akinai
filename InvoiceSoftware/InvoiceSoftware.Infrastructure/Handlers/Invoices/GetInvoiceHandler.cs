@@ -60,7 +60,7 @@ public class GetInvoiceHandler(IDbContextFactory<ApplicationDbContext> dbFactory
                 description = $"{projectName}: {description}";
             }
             var hourlyRate = e.Job.GetEffectiveHourlyRate();
-            var billableHours = RoundToQuarterHour(e.Hours.Value);
+            var billableHours = e.BillableHours;
             var lineTotal = billableHours * hourlyRate;
             var entryCurrency = e.Job.Project.Client.Currency;
 
@@ -165,7 +165,7 @@ public class GetInvoiceHandler(IDbContextFactory<ApplicationDbContext> dbFactory
     private static (decimal Subtotal, decimal TaxAmount, decimal Total) CalculateInvoiceTotals(
         List<TimeEntry> timeEntries, List<Expense> expenses, List<InvoiceLineItem> productLineItems, decimal taxRate)
     {
-        var timeSubtotal = timeEntries.Sum(e => RoundToQuarterHour(e.Hours.Value) * e.Job.GetEffectiveHourlyRate());
+        var timeSubtotal = timeEntries.Sum(e => e.BillableHours * e.Job.GetEffectiveHourlyRate());
         var expenseSubtotal = expenses.Sum(e => e.GetTotalAmount());
         var productSubtotal = productLineItems.Sum(li => li.LineTotal.Amount);
         var subtotal = timeSubtotal + expenseSubtotal + productSubtotal;
@@ -174,11 +174,4 @@ public class GetInvoiceHandler(IDbContextFactory<ApplicationDbContext> dbFactory
         return (subtotal, taxAmount, total);
     }
 
-    /// <summary>
-    /// Rounds hours to nearest 0.25 (15-minute) increment for billing.
-    /// </summary>
-    private static decimal RoundToQuarterHour(decimal hours)
-    {
-        return Math.Round(hours * 4, MidpointRounding.AwayFromZero) / 4;
-    }
 }

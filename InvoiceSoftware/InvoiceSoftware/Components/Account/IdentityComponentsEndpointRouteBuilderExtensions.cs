@@ -43,10 +43,12 @@ internal static class IdentityComponentsEndpointRouteBuilderExtensions
             return TypedResults.Challenge(properties, [provider]);
         });
 
-        accountGroup.MapPost("/logout", async (
-            ClaimsPrincipal user,
+        // GET so the interactive layout can sign out via a plain forceLoad navigation
+        // (NavigationManager.NavigateTo("account/logout", forceLoad: true)) — a POST-only
+        // endpoint 404s that GET, which surfaces as the "Not Found" page.
+        accountGroup.MapGet("/logout", async (
             [FromServices] SignInManager<ApplicationUser> signInManager,
-            [FromForm] string returnUrl) =>
+            [FromQuery] string? returnUrl) =>
         {
             await signInManager.SignOutAsync();
             // Normalize the return URL - handle "/" and empty cases

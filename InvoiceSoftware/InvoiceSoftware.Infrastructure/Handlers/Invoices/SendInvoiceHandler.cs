@@ -16,7 +16,8 @@ public class SendInvoiceHandler(
     EmailTemplateService emailTemplateService,
     PdfGeneratorService pdfService,
     IHttpContextAccessor httpContextAccessor,
-    IInvoiceEmailSender emailSender) : IHandle<SendInvoice>
+    IInvoiceEmailSender emailSender,
+    INotificationService notifications) : IHandle<SendInvoice>
 {
     public async Task<HttpResult> Handle(SendInvoice request, CancellationToken cancellationToken)
     {
@@ -47,7 +48,7 @@ public class SendInvoiceHandler(
             .OrderBy(li => li.Order)
             .ToListAsync(cancellationToken);
 
-        var total = CalculateInvoiceTotal(timeEntries, expenses, invoice.TaxRate);
+        var total = CalculateInvoiceTotal(timeEntries, expenses, productLineItems, invoice.TaxRate);
 
         // Resolve the sender's business profile (company name for the email,
         // plus branding/currency settings for the PDF).
@@ -98,20 +99,28 @@ public class SendInvoiceHandler(
         await emailSender.SendEmailAsync(request.Email, request.Subject, html, attachments);
 
         await db.SaveChangesAsync(cancellationToken);
+
+        await notifications.CreateAsync(
+            invoice.Client?.UserId ?? userId,
+            Domain.Enums.NotificationType.InvoiceSent,
+            "Invoice sent",
+            $"{invoice.InvoiceNumber} sent to {invoice.Client?.Name ?? request.Email}",
+            link: $"/invoices/{invoice.Id}",
+            relatedEntityType: Domain.Enums.LinkedEntityType.Invoice,
+            relatedEntityId: invoice.Id,
+            cancellationToken: cancellationToken);
+
         return HttpResult.NoContent();
     }
 
-    private static decimal CalculateInvoiceTotal(List<TimeEntry> timeEntries, List<Expense> expenses, decimal taxRate)
+    private static decimal CalculateInvoiceTotal(List<TimeEntry> timeEntries, List<Expense> expenses, List<InvoiceLineItem> productLineItems, decimal taxRate)
     {
-        var timeSubtotal = timeEntries.Sum(e => RoundToQuarterHour(e.Hours.Value) * e.Job.GetEffectiveHourlyRate());
+        var timeSubtotal = timeEntries.Sum(e => e.BillableHours * e.Job.GetEffectiveHourlyRate());
         var expenseSubtotal = expenses.Sum(e => e.GetTotalAmount());
-        var subtotal = timeSubtotal + expenseSubtotal;
+        var lineItemSubtotal = productLineItems.Sum(li => li.LineTotal.Amount);
+        var subtotal = timeSubtotal + expenseSubtotal + lineItemSubtotal;
         var taxAmount = subtotal * (taxRate / 100);
         return subtotal + taxAmount;
     }
 
-    private static decimal RoundToQuarterHour(decimal hours)
-    {
-        return Math.Round(hours * 4, MidpointRounding.AwayFromZero) / 4;
-    }
 }

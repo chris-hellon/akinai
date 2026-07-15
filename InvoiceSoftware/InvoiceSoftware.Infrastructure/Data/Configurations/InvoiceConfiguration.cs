@@ -30,6 +30,10 @@ public class InvoiceConfiguration : IEntityTypeConfiguration<Invoice>
         builder.Property(i => i.Notes).HasMaxLength(2000);
         builder.Property(i => i.Currency).HasMaxLength(3).HasDefaultValue("USD");
 
+        builder.Property(i => i.Subtotal).HasPrecision(18, 2);
+        builder.Property(i => i.TaxAmount).HasPrecision(18, 2);
+        builder.Property(i => i.Total).HasPrecision(18, 2);
+
         builder.HasOne(i => i.Client)
             .WithMany()
             .HasForeignKey(i => i.ClientId)
@@ -45,6 +49,12 @@ public class InvoiceConfiguration : IEntityTypeConfiguration<Invoice>
         builder.HasMany(i => i.LineItems)
             .WithOne(li => li.Invoice)
             .HasForeignKey(li => li.InvoiceId)
+            .OnDelete(DeleteBehavior.Cascade);
+
+        // Invoice has many per-currency total snapshots
+        builder.HasMany(i => i.CurrencyTotals)
+            .WithOne(ct => ct.Invoice)
+            .HasForeignKey(ct => ct.InvoiceId)
             .OnDelete(DeleteBehavior.Cascade);
 
         builder.HasIndex(i => i.ClientId);

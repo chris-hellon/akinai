@@ -3,14 +3,14 @@
 @if (!string.IsNullOrEmpty(Href))
 {
     <a href="@Href" @onclick:stopPropagation="@StopPropagation"
-       class="@GetButtonClasses()" title="@Title">
+       class="@GetButtonClasses()" data-tooltip="@Title" aria-label="@Title">
         @ChildContent
     </a>
 }
 else
 {
-    <button type="button" @onclick="OnClick" @onclick:stopPropagation="@StopPropagation"
-            disabled="@Disabled" class="@GetButtonClasses()" title="@Title">
+    <button type="button" @onclick="OnClick" @onclick:stopPropagation="@StopPropagation" @onclick:preventDefault="true"
+            disabled="@Disabled" class="@GetButtonClasses()" data-tooltip="@Title" aria-label="@Title">
         @ChildContent
     </button>
 }

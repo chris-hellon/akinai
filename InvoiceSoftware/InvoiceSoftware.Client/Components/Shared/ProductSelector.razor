@@ -31,13 +31,13 @@ else
                             <div class="sm:col-span-5">
                                 <label class="block text-xs font-medium text-gray-500 dark:text-slate-400 mb-1">Description</label>
                                 <input type="text" @bind="item.Description" @bind:event="oninput" @bind:after="NotifyChanged"
-                                    class="w-full px-3 py-2 text-sm text-gray-900 dark:text-slate-100 bg-white dark:bg-slate-800 border border-gray-200 dark:border-slate-600 rounded-lg focus:outline-none focus:border-primary-400 focus:ring-2 focus:ring-primary-500/10"
+                                    class="form-control"
                                     placeholder="Product or service description" />
                             </div>
                             <div class="sm:col-span-2">
                                 <label class="block text-xs font-medium text-gray-500 dark:text-slate-400 mb-1">Qty</label>
                                 <input type="number" step="0.01" @bind="item.Quantity" @bind:event="oninput" @bind:after="NotifyChanged"
-                                    class="w-full px-3 py-2 text-sm text-gray-900 dark:text-slate-100 bg-white dark:bg-slate-800 border border-gray-200 dark:border-slate-600 rounded-lg focus:outline-none focus:border-primary-400 focus:ring-2 focus:ring-primary-500/10" />
+                                    class="form-control" />
                             </div>
                             <div class="sm:col-span-3">
                                 <label class="block text-xs font-medium text-gray-500 dark:text-slate-400 mb-1">Unit Price</label>
@@ -46,7 +46,7 @@ else
                                         <span class="text-gray-400 dark:text-slate-500 text-sm">@CurrencyExtensions.GetSymbol(Currency)</span>
                                     </div>
                                     <input type="number" step="0.01" @bind="item.UnitPrice" @bind:event="oninput" @bind:after="NotifyChanged"
-                                        class="w-full pl-7 pr-3 py-2 text-sm text-gray-900 dark:text-slate-100 bg-white dark:bg-slate-800 border border-gray-200 dark:border-slate-600 rounded-lg focus:outline-none focus:border-primary-400 focus:ring-2 focus:ring-primary-500/10" />
+                                        class="form-control pl-7" />
                                 </div>
                             </div>
                             <div class="sm:col-span-2 flex items-end">
@@ -66,14 +66,9 @@ else
 
                     <!-- Product Quick Add -->
                     <div>
-                        <select @onchange="e => AddProductToLine(index, e)"
-                            class="text-xs text-gray-500 dark:text-slate-400 bg-transparent border-0 p-0 focus:outline-none focus:ring-0 cursor-pointer hover:text-primary-600 dark:hover:text-primary-400">
-                            <option value="">+ Fill from product catalog...</option>
-                            @foreach (var product in Products)
-                            {
-                                <option value="@product.Id">@product.Name (@CurrencyExtensions.GetSymbol(product.Currency)@product.UnitPrice.ToString("N2"))</option>
-                            }
-                        </select>
+                        <Select TValue="Guid?" Value="null" ValueChanged="@(v => AddProductToLine(index, v))"
+                                Placeholder="+ Fill from product catalog..." Class="max-w-xs"
+                                Options="@(Products.Select(p => new SelectOption<Guid?>(p.Id, $"{p.Name} ({CurrencyExtensions.GetSymbol(p.Currency)}{p.UnitPrice:N2})")).ToList())" />
                     </div>
                 </div>
             }
@@ -143,11 +138,11 @@ else
         _ = LineItemsChanged.InvokeAsync(LineItems);
     }
 
-    private void AddProductToLine(int index, ChangeEventArgs e)
+    private void AddProductToLine(int index, Guid? productId)
     {
-        if (Products != null && Guid.TryParse(e.Value?.ToString(), out var productId))
+        if (Products != null && productId is Guid pid)
         {
-            var product = Products.FirstOrDefault(p => p.Id == productId);
+            var product = Products.FirstOrDefault(p => p.Id == pid);
             if (product != null)
             {
                 LineItems[index].ProductId = productId;

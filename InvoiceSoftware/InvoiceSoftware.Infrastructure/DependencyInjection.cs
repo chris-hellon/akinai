@@ -55,7 +55,38 @@ public static class DependencyInjection
         services.AddScoped<ICurrentUserService, CurrentUserService>();
         services.AddScoped<PdfGeneratorService>();
         services.AddScoped<EmailTemplateService>();
+        services.AddScoped<INotificationService, NotificationService>();
+
+        // Multi-currency invoice totals: live FX (exchangerate-api.com) + snapshot service.
+        services.Configure<ExchangeRateOptions>(configuration.GetSection(ExchangeRateOptions.SectionName));
+        services.AddHttpClient<IExchangeRateService, ExchangeRateService>();
+        services.AddScoped<IInvoiceTotalService, InvoiceTotalService>();
+        services.AddHostedService<InvoiceTotalBackfillService>();
+
+        // Open-banking data feeds. All providers are registered and routed by country via
+        // IBankProviderRegistry — Plaid (US/CA/UK/EU), TrueLayer + GoCardless (UK/EU).
+        // Unconfigured providers are simply skipped. CSV import covers everywhere else.
+        services.Configure<Banking.GoCardlessOptions>(configuration.GetSection(Banking.GoCardlessOptions.SectionName));
+        services.Configure<Banking.TrueLayerOptions>(configuration.GetSection(Banking.TrueLayerOptions.SectionName));
+        services.Configure<Banking.PlaidOptions>(configuration.GetSection(Banking.PlaidOptions.SectionName));
+
+        services.AddHttpClient<Banking.IBankDataProvider, Banking.GoCardlessBankDataProvider>((sp, client) =>
+        {
+            var opts = sp.GetRequiredService<Microsoft.Extensions.Options.IOptions<Banking.GoCardlessOptions>>().Value;
+            client.BaseAddress = new Uri(string.IsNullOrWhiteSpace(opts.BaseUrl)
+                ? "https://bankaccountdata.gocardless.com"
+                : opts.BaseUrl);
+        });
+        // TrueLayer and Plaid use multiple absolute hosts (auth/api, sandbox/live), so no BaseAddress.
+        services.AddHttpClient<Banking.IBankDataProvider, Banking.TrueLayerBankDataProvider>();
+        services.AddHttpClient<Banking.IBankDataProvider, Banking.PlaidBankDataProvider>();
+
+        services.AddScoped<Banking.IBankProviderRegistry, Banking.BankProviderRegistry>();
+        services.AddScoped<Banking.BankSyncService>();
+
         services.AddHostedService<RecurringExpenseGeneratorService>();
+
+        services.AddHostedService<OverdueInvoiceService>();
 
         return services;
     }

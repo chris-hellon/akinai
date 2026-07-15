@@ -31,6 +31,8 @@ public class GetClientPortalSummaryHandler(IDbContextFactory<ApplicationDbContex
         var invoices = await db.Invoices
             .Include(i => i.TimeEntries)
                 .ThenInclude(te => te.Job)
+                    .ThenInclude(j => j.Project)
+                        .ThenInclude(p => p.Client)
             .Where(i => i.ClientId == client.Id &&
                        (i.Status == InvoiceStatus.Sent ||
                         i.Status == InvoiceStatus.Overdue ||

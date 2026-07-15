@@ -31,6 +31,7 @@ public class GetPublicInvoiceHandler(IDbContextFactory<ApplicationDbContext> dbF
         var timeEntries = await db.TimeEntries
             .Include(e => e.Job)
                 .ThenInclude(j => j.Project)
+                    .ThenInclude(p => p.Client)
             .Include(e => e.Job)
                 .ThenInclude(j => j.Section)
             .Where(e => e.InvoiceId == invoice.Id)
@@ -58,7 +59,7 @@ public class GetPublicInvoiceHandler(IDbContextFactory<ApplicationDbContext> dbF
             .FirstOrDefaultAsync(c => c.UserId == invoice.CreatedBy && c.CurrencyCode == invoice.Currency, cancellationToken);
 
         // Calculate totals (same as in GetInvoiceHandler)
-        var timeEntriesSubtotal = timeEntries.Sum(e => RoundToQuarterHour(e.Hours.Value) * e.Job.GetEffectiveHourlyRate());
+        var timeEntriesSubtotal = timeEntries.Sum(e => e.BillableHours * e.Job.GetEffectiveHourlyRate());
         var expensesSubtotal = expenses.Sum(e => e.GetTotalAmount());
         var productsSubtotal = productLineItems.Sum(p => p.LineTotal.Amount);
         var subtotal = timeEntriesSubtotal + expensesSubtotal + productsSubtotal;
@@ -70,7 +71,7 @@ public class GetPublicInvoiceHandler(IDbContextFactory<ApplicationDbContext> dbF
         {
             var projectName = e.Job.Project.Name;
             var description = e.Description ?? e.Job.Name;
-            var billedHours = RoundToQuarterHour(e.Hours.Value);
+            var billedHours = e.BillableHours;
             var rate = e.Job.GetEffectiveHourlyRate();
 
             return new InvoiceLineItemDto(
@@ -233,8 +234,4 @@ public class GetPublicInvoiceHandler(IDbContextFactory<ApplicationDbContext> dbF
         return HttpResult<PublicInvoiceDto?>.Ok(result);
     }
 
-    private static decimal RoundToQuarterHour(decimal hours)
-    {
-        return Math.Round(hours * 4, MidpointRounding.AwayFromZero) / 4;
-    }
 }

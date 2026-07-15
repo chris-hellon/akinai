@@ -4,6 +4,7 @@
 @inject ICall<GetProduct, ProductDetailDto> GetProductCall
 @inject ICall<CreateProduct, Guid> CreateProductCall
 @inject ICall<UpdateProduct> UpdateProductCall
+@inject ICall<DeleteProduct> DeleteProductCall
 
 <PageTitle>@(Id.HasValue ? "Edit Product" : "New Product") - InvoicePro</PageTitle>
 
@@ -28,7 +29,7 @@
                     <div class="sm:col-span-2">
                         <label for="name" class="block text-sm font-medium text-gray-700 dark:text-slate-300 mb-2">Product Name <span class="text-red-500">*</span></label>
                         <InputText id="name" @bind-Value="_model.Name"
-                            class="w-full px-4 py-3 text-sm text-gray-900 dark:text-slate-100 bg-white dark:bg-slate-800 border border-gray-200 dark:border-slate-600 rounded-xl transition-all duration-200 placeholder:text-gray-400 dark:placeholder:text-slate-500 focus:outline-none focus:border-primary-400 focus:ring-4 focus:ring-primary-500/10 hover:border-gray-300 dark:hover:border-slate-500"
+                            class="form-control"
                             placeholder="Website Design Package" />
                         <ValidationMessage For="@(() => _model.Name)" class="mt-1.5 text-xs text-red-600" />
                     </div>
@@ -36,21 +37,21 @@
                     <div class="sm:col-span-2">
                         <label for="description" class="block text-sm font-medium text-gray-700 dark:text-slate-300 mb-2">Description</label>
                         <InputTextArea id="description" @bind-Value="_model.Description" rows="3"
-                            class="w-full px-4 py-3 text-sm text-gray-900 dark:text-slate-100 bg-white dark:bg-slate-800 border border-gray-200 dark:border-slate-600 rounded-xl transition-all duration-200 placeholder:text-gray-400 dark:placeholder:text-slate-500 focus:outline-none focus:border-primary-400 focus:ring-4 focus:ring-primary-500/10 hover:border-gray-300 dark:hover:border-slate-500 resize-none"
+                            class="form-control resize-none"
                             placeholder="Complete website design including mockups, development, and deployment..." />
                     </div>
 
                     <div>
                         <label for="category" class="block text-sm font-medium text-gray-700 dark:text-slate-300 mb-2">Category</label>
                         <InputText id="category" @bind-Value="_model.Category"
-                            class="w-full px-4 py-3 text-sm text-gray-900 dark:text-slate-100 bg-white dark:bg-slate-800 border border-gray-200 dark:border-slate-600 rounded-xl transition-all duration-200 placeholder:text-gray-400 dark:placeholder:text-slate-500 focus:outline-none focus:border-primary-400 focus:ring-4 focus:ring-primary-500/10 hover:border-gray-300 dark:hover:border-slate-500"
+                            class="form-control"
                             placeholder="Design Services" />
                     </div>
 
                     <div>
                         <label for="sku" class="block text-sm font-medium text-gray-700 dark:text-slate-300 mb-2">SKU</label>
                         <InputText id="sku" @bind-Value="_model.Sku"
-                            class="w-full px-4 py-3 text-sm text-gray-900 dark:text-slate-100 bg-white dark:bg-slate-800 border border-gray-200 dark:border-slate-600 rounded-xl transition-all duration-200 placeholder:text-gray-400 dark:placeholder:text-slate-500 focus:outline-none focus:border-primary-400 focus:ring-4 focus:ring-primary-500/10 hover:border-gray-300 dark:hover:border-slate-500 font-mono"
+                            class="form-control font-mono"
                             placeholder="WEB-001" />
                     </div>
                 </div>
@@ -60,13 +61,8 @@
                 <div class="grid grid-cols-1 sm:grid-cols-3 gap-5">
                     <div>
                         <label for="currency" class="block text-sm font-medium text-gray-700 dark:text-slate-300 mb-2">Currency <span class="text-red-500">*</span></label>
-                        <InputSelect id="currency" @bind-Value="_model.Currency"
-                            class="w-full px-4 py-3 text-sm text-gray-900 dark:text-slate-100 bg-white dark:bg-slate-800 border border-gray-200 dark:border-slate-600 rounded-xl transition-all duration-200 focus:outline-none focus:border-primary-400 focus:ring-4 focus:ring-primary-500/10 hover:border-gray-300 dark:hover:border-slate-500 cursor-pointer">
-                            @foreach (var currency in Enum.GetValues<Currency>())
-                            {
-                                <option value="@currency.ToString()">@currency.ToString() (@currency.GetSymbol())</option>
-                            }
-                        </InputSelect>
+                        <Select @bind-Value="_model.Currency"
+                                Options="@(Enum.GetValues<Currency>().Select(c => new SelectOption<string>(c.ToString(), $"{c} ({c.GetSymbol()})")).ToList())" />
                     </div>
 
                     <div>
@@ -76,7 +72,7 @@
                                 <span class="text-gray-500 dark:text-slate-400 text-sm">@CurrencyExtensions.GetSymbol(_model.Currency)</span>
                             </div>
                             <InputNumber id="unitPrice" @bind-Value="_model.UnitPrice"
-                                class="w-full pl-8 pr-4 py-3 text-sm text-gray-900 dark:text-slate-100 bg-white dark:bg-slate-800 border border-gray-200 dark:border-slate-600 rounded-xl transition-all duration-200 focus:outline-none focus:border-primary-400 focus:ring-4 focus:ring-primary-500/10 hover:border-gray-300 dark:hover:border-slate-500" />
+                                class="form-control pl-8" />
                         </div>
                         <ValidationMessage For="@(() => _model.UnitPrice)" class="mt-1.5 text-xs text-red-600" />
                     </div>
@@ -84,7 +80,7 @@
                     <div>
                         <label for="defaultQuantity" class="block text-sm font-medium text-gray-700 dark:text-slate-300 mb-2">Default Quantity</label>
                         <InputNumber id="defaultQuantity" @bind-Value="_model.DefaultQuantity"
-                            class="w-full px-4 py-3 text-sm text-gray-900 dark:text-slate-100 bg-white dark:bg-slate-800 border border-gray-200 dark:border-slate-600 rounded-xl transition-all duration-200 focus:outline-none focus:border-primary-400 focus:ring-4 focus:ring-primary-500/10 hover:border-gray-300 dark:hover:border-slate-500" />
+                            class="form-control" />
                     </div>
                 </div>
 
@@ -95,7 +91,7 @@
                         <label for="taxRate" class="block text-sm font-medium text-gray-700 dark:text-slate-300 mb-2">Tax Rate (%)</label>
                         <div class="relative">
                             <InputNumber id="taxRate" @bind-Value="_model.TaxRate"
-                                class="w-full pr-8 px-4 py-3 text-sm text-gray-900 dark:text-slate-100 bg-white dark:bg-slate-800 border border-gray-200 dark:border-slate-600 rounded-xl transition-all duration-200 focus:outline-none focus:border-primary-400 focus:ring-4 focus:ring-primary-500/10 hover:border-gray-300 dark:hover:border-slate-500" />
+                                class="form-control pr-8" />
                             <div class="absolute inset-y-0 right-0 pr-4 flex items-center pointer-events-none">
                                 <span class="text-gray-400 dark:text-slate-500 text-sm">%</span>
                             </div>
@@ -126,6 +122,13 @@
                                ShowIcon="false" />
             </div>
         </EditForm>
+
+        @if (Id.HasValue)
+        {
+            <DangerZone EntityLabel="Product" ItemName="@_model.Name"
+                        WarningMessage="This will deactivate the product so it no longer appears in product selections."
+                        OnConfirmed="DeleteAsync" />
+        }
     }
 </div>
 
@@ -182,6 +185,20 @@
         {
             _model.IsActive = true;
             _model.DefaultQuantity = 1;
+        }
+    }
+
+    private async Task DeleteAsync()
+    {
+        _errorMessage = null;
+        try
+        {
+            await DeleteProductCall.Call(new DeleteProduct { Id = Id!.Value });
+            NavigationManager.NavigateTo("products");
+        }
+        catch (Exception ex)
+        {
+            _errorMessage = $"Failed to delete product: {ex.Message}";
         }
     }
 

@@ -25,9 +25,6 @@ public class DeleteEstimateHandler(IDbContextFactory<ApplicationDbContext> dbFac
         if (estimate == null)
             return HttpResult.NotFound();
 
-        if (estimate.Status != EstimateStatus.Draft)
-            return HttpResult.NotFound();
-
         db.EstimateLineItems.RemoveRange(estimate.LineItems);
         db.Estimates.Remove(estimate);
         await db.SaveChangesAsync(cancellationToken);

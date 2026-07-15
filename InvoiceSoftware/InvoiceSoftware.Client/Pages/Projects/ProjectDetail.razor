@@ -22,20 +22,6 @@
                     </svg>
                     Edit Project
                 </a>
-                <button @onclick="DeleteProjectAsync" disabled="@_isDeleting"
-                        class="inline-flex items-center gap-2 px-4 py-2.5 text-sm font-medium text-red-700 dark:text-red-300 bg-red-50 dark:bg-red-900/30 border border-red-200 dark:border-red-800 rounded-xl hover:bg-red-100 dark:hover:bg-red-900/50 transition-all duration-200 disabled:opacity-50 disabled:cursor-not-allowed">
-                    @if (_isDeleting)
-                    {
-                        <div class="w-4 h-4 border-2 border-red-300 border-t-red-600 rounded-full animate-spin"></div>
-                    }
-                    else
-                    {
-                        <svg class="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                            <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M19 7l-.867 12.142A2 2 0 0116.138 21H7.862a2 2 0 01-1.995-1.858L5 7m5 4v6m4-6v6m1-10V4a1 1 0 00-1-1h-4a1 1 0 00-1 1v3M4 7h16" />
-                        </svg>
-                    }
-                    Delete
-                </button>
             </div>
         }
     </PageHeader>
@@ -48,7 +34,7 @@
     }
     else if (_project == null)
     {
-        <div class="bg-white rounded-lg border border-gray-100">
+        <div class="card">
             <div class="text-center py-16 px-6">
                 <div class="mx-auto w-16 h-16 rounded-lg flex items-center justify-center mb-4 bg-red-50">
                     <svg class="h-8 w-8 text-red-400" fill="none" stroke="currentColor" viewBox="0 0 24 24">
@@ -68,76 +54,38 @@
     else
     {
         <!-- Status Banner -->
-        @if (_project.Status == "Active")
-        {
-            <div class="bg-gradient-to-r from-emerald-50 to-teal-50 dark:from-emerald-900/30 dark:to-teal-900/30 border border-emerald-100 dark:border-emerald-800 rounded-lg px-6 py-4">
-                <div class="flex items-center justify-center gap-3">
-                    <div class="w-8 h-8 rounded-full bg-emerald-100 dark:bg-emerald-800 flex items-center justify-center">
-                        <svg class="w-4 h-4 text-emerald-600 dark:text-emerald-400" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                            <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M5 13l4 4L19 7" />
-                        </svg>
-                    </div>
-                    <div>
-                        <span class="text-sm font-semibold text-emerald-800 dark:text-emerald-200">Active</span>
-                        <span class="text-sm text-emerald-600 dark:text-emerald-400 ml-2">Project is currently in progress</span>
-                    </div>
+        <div class="card px-6 py-4">
+            <div class="flex items-center gap-3">
+                <div class="w-9 h-9 rounded-xl flex items-center justify-center bg-primary-50 dark:bg-primary-900/30 text-primary-600 dark:text-primary-400 shrink-0">
+                    @if (_project.Status == "Active")
+                    {
+                        <svg class="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M5 13l4 4L19 7" /></svg>
+                    }
+                    else if (_project.Status == "OnHold")
+                    {
+                        <svg class="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M10 9v6m4-6v6m7-3a9 9 0 11-18 0 9 9 0 0118 0z" /></svg>
+                    }
+                    else if (_project.Status == "Completed")
+                    {
+                        <svg class="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M9 12l2 2 4-4m6 2a9 9 0 11-18 0 9 9 0 0118 0z" /></svg>
+                    }
+                    else
+                    {
+                        <svg class="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M5 8h14M5 8a2 2 0 110-4h14a2 2 0 110 4M5 8v10a2 2 0 002 2h10a2 2 0 002-2V8m-9 4h4" /></svg>
+                    }
+                </div>
+                <div class="flex items-center gap-2 flex-wrap">
+                    <span class="@ProjectStatusExtensions.Parse(_project.Status).GetBadgeClass()">@ProjectStatusExtensions.Parse(_project.Status).GetDisplayName()</span>
+                    <span class="text-sm text-gray-500 dark:text-slate-400">@ProjectStatusDescription(_project.Status)</span>
                 </div>
             </div>
-        }
-        else if (_project.Status == "OnHold")
-        {
-            <div class="bg-gradient-to-r from-amber-50 to-yellow-50 dark:from-amber-900/30 dark:to-yellow-900/30 border border-amber-100 dark:border-amber-800 rounded-lg px-6 py-4">
-                <div class="flex items-center justify-center gap-3">
-                    <div class="w-8 h-8 rounded-full bg-amber-100 dark:bg-amber-800 flex items-center justify-center">
-                        <svg class="w-4 h-4 text-amber-600 dark:text-amber-400" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                            <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M10 9v6m4-6v6m7-3a9 9 0 11-18 0 9 9 0 0118 0z" />
-                        </svg>
-                    </div>
-                    <div>
-                        <span class="text-sm font-semibold text-amber-800 dark:text-amber-200">On Hold</span>
-                        <span class="text-sm text-amber-600 dark:text-amber-400 ml-2">Project is temporarily paused</span>
-                    </div>
-                </div>
-            </div>
-        }
-        else if (_project.Status == "Completed")
-        {
-            <div class="bg-gradient-to-r from-blue-50 to-primary-50 dark:from-blue-900/30 dark:to-primary-900/30 border border-blue-100 dark:border-blue-800 rounded-lg px-6 py-4">
-                <div class="flex items-center justify-center gap-3">
-                    <div class="w-8 h-8 rounded-full bg-blue-100 dark:bg-blue-800 flex items-center justify-center">
-                        <svg class="w-4 h-4 text-blue-600 dark:text-blue-400" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                            <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M9 12l2 2 4-4m6 2a9 9 0 11-18 0 9 9 0 0118 0z" />
-                        </svg>
-                    </div>
-                    <div>
-                        <span class="text-sm font-semibold text-blue-800 dark:text-blue-200">Completed</span>
-                        <span class="text-sm text-blue-600 dark:text-blue-400 ml-2">Project has been finished</span>
-                    </div>
-                </div>
-            </div>
-        }
-        else if (_project.Status == "Archived")
-        {
-            <div class="bg-gradient-to-r from-gray-50 to-slate-50 dark:from-gray-900/30 dark:to-slate-900/30 border border-gray-200 dark:border-gray-700 rounded-lg px-6 py-4">
-                <div class="flex items-center justify-center gap-3">
-                    <div class="w-8 h-8 rounded-full bg-gray-100 dark:bg-gray-800 flex items-center justify-center">
-                        <svg class="w-4 h-4 text-gray-500 dark:text-gray-400" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                            <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M5 8h14M5 8a2 2 0 110-4h14a2 2 0 110 4M5 8v10a2 2 0 002 2h10a2 2 0 002-2V8m-9 4h4" />
-                        </svg>
-                    </div>
-                    <div>
-                        <span class="text-sm font-semibold text-gray-700 dark:text-gray-300">Archived</span>
-                        <span class="text-sm text-gray-500 dark:text-gray-400 ml-2">Project has been archived</span>
-                    </div>
-                </div>
-            </div>
-        }
+        </div>
 
         <div class="grid grid-cols-1 lg:grid-cols-3 gap-6">
             <!-- Project Info -->
             <div class="lg:col-span-1 space-y-6">
                 <!-- Details Card -->
-                <div class="bg-white rounded-lg border border-gray-100 overflow-hidden">
+                <div class="card overflow-hidden">
                     <div class="px-6 py-4 border-b border-gray-100 bg-gray-50/50">
                         <div class="flex items-center gap-3">
                             <div class="w-8 h-8 rounded-lg flex items-center justify-center bg-primary-50">
@@ -211,7 +159,7 @@
 
             <!-- Jobs -->
             <div class="lg:col-span-2">
-                <div class="bg-white rounded-lg border border-gray-100 overflow-hidden">
+                <div class="card overflow-hidden">
                     <div class="px-6 py-4 border-b border-gray-100 bg-gray-50/50 flex items-center justify-between">
                         <div class="flex items-center gap-3">
                             <div class="w-8 h-8 rounded-lg flex items-center justify-center bg-primary-50">
@@ -224,7 +172,7 @@
                                 <p class="text-xs text-gray-500">@(_project.Jobs.Count) jobs in this project</p>
                             </div>
                         </div>
-                        <a href="jobs/new" class="inline-flex items-center gap-1.5 px-3 py-1.5 text-xs font-medium text-primary-600 hover:text-primary-700 hover:bg-primary-50 rounded-lg transition-colors">
+                        <a href="jobs/new?projectId=@Id" class="inline-flex items-center gap-1.5 px-3 py-1.5 text-xs font-medium text-primary-600 hover:text-primary-700 hover:bg-primary-50 rounded-lg transition-colors">
                             <svg class="w-3.5 h-3.5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
                                 <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M12 6v6m0 0v6m0-6h6m-6 0H6" />
                             </svg>
@@ -242,7 +190,7 @@
                             <h3 class="text-base font-semibold text-gray-900">No jobs yet</h3>
                             <p class="mt-1 text-sm text-gray-500">Get started by adding a job to this project.</p>
                             <div class="mt-4">
-                                <a href="jobs/new" class="inline-flex items-center gap-2 px-4 py-2 text-sm font-medium text-primary-600 hover:text-primary-700 hover:bg-primary-50 rounded-lg transition-colors">
+                                <a href="jobs/new?projectId=@Id" class="inline-flex items-center gap-2 px-4 py-2 text-sm font-medium text-primary-600 hover:text-primary-700 hover:bg-primary-50 rounded-lg transition-colors">
                                     <svg class="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
                                         <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M12 6v6m0 0v6m0-6h6m-6 0H6" />
                                     </svg>
@@ -283,6 +231,10 @@
                 </div>
             </div>
         </div>
+
+        <DangerZone EntityLabel="Project" ItemName="@_project.Name"
+                    WarningMessage="This permanently deletes the project and all its jobs, tasks and time entries. This cannot be undone."
+                    OnConfirmed="PerformDelete" />
     }
 </div>
 
@@ -321,22 +273,8 @@
         }
     }
 
-    private async Task DeleteProjectAsync()
+    private async Task PerformDelete()
     {
-        var confirmed = await ModalService.ShowAsync<bool>(
-            typeof(DeleteConfirmationModal),
-            "Delete Project",
-            new Dictionary<string, object>
-            {
-                { "ItemName", _project?.Name ?? "this project" },
-                { "WarningMessage", "All jobs, tasks, and time entries associated with this project will be permanently deleted." }
-            },
-            new ModalOptions { Size = ModalSize.Small });
-
-        if (!confirmed) return;
-
-        _isDeleting = true;
-
         try
         {
             await DeleteProjectCall.Call(new DeleteProject { Id = Id });
@@ -346,9 +284,14 @@
         {
             Console.WriteLine($"Error deleting project: {ex.Message}");
         }
-        finally
-        {
-            _isDeleting = false;
-        }
     }
+
+    private static string ProjectStatusDescription(string status) => status switch
+    {
+        "Active" => "Project is currently in progress",
+        "OnHold" => "Project is temporarily paused",
+        "Completed" => "Project has been finished",
+        "Archived" => "Project has been archived",
+        _ => ""
+    };
 }

@@ -1,0 +1,200 @@
+@typeparam TValue
+@using System.Linq.Expressions
+@using System.Globalization
+
+@* Native Blazor date picker — calendar popover, mobile-friendly. Supports DateOnly and DateOnly?. *@
+<div class="idp @(Disabled ? "idp--disabled" : "") @(_open ? "idp--open" : "") @Class">
+    <button type="button" class="idp-trigger @(_date is null ? "idp-trigger--empty" : "")" @ref="_triggerRef" @onclick="Toggle" disabled="@Disabled">
+        <svg class="idp-cal" width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
+            <rect x="3" y="4" width="18" height="18" rx="2" /><path stroke-linecap="round" d="M16 2v4M8 2v4M3 10h18" />
+        </svg>
+        <span class="idp-text">@(_date is null ? Placeholder : _date.Value.ToString(DisplayFormat, CultureInfo.CurrentCulture))</span>
+        @if (_date is not null && _clearable && !Disabled)
+        {
+            <span class="idp-clear" role="button" @onclick="Clear" @onclick:stopPropagation="true">
+                <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
+                    <path stroke-linecap="round" d="M6 6l12 12M18 6L6 18" />
+                </svg>
+            </span>
+        }
+    </button>
+
+    @if (_open)
+    {
+        <div class="idp-backdrop" @onclick="Close"></div>
+        <div class="idp-panel" @ref="_panelRef">
+            <div class="idp-head">
+                <button type="button" class="idp-nav" title="Previous year" @onclick="() => Shift(-12)">&laquo;</button>
+                <button type="button" class="idp-nav" title="Previous month" @onclick="() => Shift(-1)">&lsaquo;</button>
+                <span class="idp-title">@_view.ToString("MMMM yyyy", CultureInfo.CurrentCulture)</span>
+                <button type="button" class="idp-nav" title="Next month" @onclick="() => Shift(1)">&rsaquo;</button>
+                <button type="button" class="idp-nav" title="Next year" @onclick="() => Shift(12)">&raquo;</button>
+            </div>
+            <div class="idp-weekdays">
+                @foreach (var wd in _weekdays)
+                {
+                    <span class="idp-wd">@wd</span>
+                }
+            </div>
+            <div class="idp-grid">
+                @foreach (var day in _days)
+                {
+                    <button type="button"
+                            class="idp-day @(day.InMonth ? "" : "idp-day--out") @(day.IsToday ? "idp-day--today" : "") @(day.IsSelected ? "idp-day--selected" : "")"
+                            @onclick="() => Pick(day.Date)">@day.Date.Day</button>
+                }
+            </div>
+            <div class="idp-foot">
+                <button type="button" class="idp-foot-btn" @onclick="PickToday">Today</button>
+                @if (_clearable)
+                {
+                    <button type="button" class="idp-foot-btn idp-foot-btn--muted" @onclick="Clear">Clear</button>
+                }
+            </div>
+        </div>
+    }
+</div>
+
+@code {
+    [Parameter] public TValue Value { get; set; } = default!;
+    [Parameter] public EventCallback<TValue> ValueChanged { get; set; }
+    [Parameter] public Expression<Func<TValue>>? ValueExpression { get; set; }
+
+    [Parameter] public string Placeholder { get; set; } = "Select date";
+    [Parameter] public string DisplayFormat { get; set; } = "d MMM yyyy";
+    /// <summary>Allow clearing the value. Ignored (forced off) for non-nullable date types.</summary>
+    [Parameter] public bool Clearable { get; set; } = true;
+    [Parameter] public bool Disabled { get; set; }
+    /// <summary>Extra CSS classes on the root element (e.g. width utilities).</summary>
+    [Parameter] public string? Class { get; set; }
+
+    [CascadingParameter] private EditContext? EditContext { get; set; }
+
+    private static readonly bool IsNullable = Nullable.GetUnderlyingType(typeof(TValue)) is not null;
+
+    private bool _open;
+    private bool _positioned;
+    private ElementReference _triggerRef;
+    private ElementReference _panelRef;
+    private DateOnly? _date;
+    private DateOnly _view = DateOnly.FromDateTime(DateTime.Today);
+    private readonly List<DayCell> _days = new();
+    private string[] _weekdays = Array.Empty<string>();
+
+    private bool _clearable => Clearable && IsNullable;
+
+    private readonly record struct DayCell(DateOnly Date, bool InMonth, bool IsToday, bool IsSelected);
+
+    protected override void OnParametersSet()
+    {
+        _date = ToDateOnly(Value);
+        if (!_open)
+        {
+            _view = new DateOnly((_date ?? DateOnly.FromDateTime(DateTime.Today)).Year, (_date ?? DateOnly.FromDateTime(DateTime.Today)).Month, 1);
+        }
+        BuildWeekdays();
+        BuildDays();
+    }
+
+    private static DateOnly? ToDateOnly(TValue v) => v is DateOnly d ? d : null;
+
+    private static TValue FromDateOnly(DateOnly? d)
+    {
+        if (d is null) return default!;
+        return (TValue)(object)d.Value;
+    }
+
+    private void BuildWeekdays()
+    {
+        var ci = CultureInfo.CurrentCulture;
+        var first = (int)ci.DateTimeFormat.FirstDayOfWeek;
+        var names = ci.DateTimeFormat.AbbreviatedDayNames; // Sun..Sat
+        _weekdays = Enumerable.Range(0, 7).Select(i => names[(first + i) % 7]).ToArray();
+    }
+
+    private void BuildDays()
+    {
+        _days.Clear();
+        var ci = CultureInfo.CurrentCulture;
+        var first = (int)ci.DateTimeFormat.FirstDayOfWeek;
+        var today = DateOnly.FromDateTime(DateTime.Today);
+
+        var monthStart = new DateOnly(_view.Year, _view.Month, 1);
+        var offset = ((int)monthStart.DayOfWeek - first + 7) % 7;
+        var gridStart = monthStart.AddDays(-offset);
+
+        // Render only the weeks this month actually spans (4–6 rows) so the panel
+        // stays compact and opens downward rather than flipping over the page.
+        var daysInMonth = DateTime.DaysInMonth(_view.Year, _view.Month);
+        var weeks = (int)Math.Ceiling((offset + daysInMonth) / 7.0);
+
+        for (var i = 0; i < weeks * 7; i++)
+        {
+            var d = gridStart.AddDays(i);
+            _days.Add(new DayCell(d, d.Month == _view.Month, d == today, _date is not null && d == _date.Value));
+        }
+    }
+
+    private async Task Toggle()
+    {
+        if (Disabled) return;
+        if (_open) { await Close(); return; }
+        _view = new DateOnly((_date ?? DateOnly.FromDateTime(DateTime.Today)).Year, (_date ?? DateOnly.FromDateTime(DateTime.Today)).Month, 1);
+        BuildDays();
+        _open = true;
+    }
+
+    private async Task Close()
+    {
+        _open = false;
+        if (_positioned)
+        {
+            _positioned = false;
+            try { await Js.InvokeVoidAsync("floatingPanel.detach", _panelRef); } catch { /* ignore */ }
+        }
+    }
+
+    protected override async Task OnAfterRenderAsync(bool firstRender)
+    {
+        if (_open && !_positioned)
+        {
+            _positioned = true;
+            try { await Js.InvokeVoidAsync("floatingPanel.attach", _triggerRef, _panelRef, false); } catch { /* ignore */ }
+        }
+    }
+
+    private void Shift(int months)
+    {
+        _view = _view.AddMonths(months);
+        BuildDays();
+    }
+
+    private async Task Pick(DateOnly d)
+    {
+        _date = d;
+        _view = new DateOnly(d.Year, d.Month, 1);
+        await CommitAsync();
+        await Close();
+    }
+
+    private Task PickToday() => Pick(DateOnly.FromDateTime(DateTime.Today));
+
+    private async Task Clear()
+    {
+        if (!_clearable) return;
+        _date = null;
+        await CommitAsync();
+        await Close();
+    }
+
+    private async Task CommitAsync()
+    {
+        Value = FromDateOnly(_date);
+        await ValueChanged.InvokeAsync(Value);
+        if (EditContext is not null && ValueExpression is not null)
+        {
+            EditContext.NotifyFieldChanged(FieldIdentifier.Create(ValueExpression));
+        }
+        BuildDays();
+    }
+}

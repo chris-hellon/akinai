@@ -19,6 +19,7 @@ public sealed class ApplicationDbContext : IdentityDbContext<ApplicationUser>
     public DbSet<TimeEntry> TimeEntries => Set<TimeEntry>();
     public DbSet<Invoice> Invoices => Set<Invoice>();
     public DbSet<InvoiceLineItem> InvoiceLineItems => Set<InvoiceLineItem>();
+    public DbSet<InvoiceCurrencyTotal> InvoiceCurrencyTotals => Set<InvoiceCurrencyTotal>();
     public DbSet<BusinessProfile> BusinessProfiles => Set<BusinessProfile>();
     public DbSet<CurrencyPaymentSettings> CurrencyPaymentSettings => Set<CurrencyPaymentSettings>();
     public DbSet<Expense> Expenses => Set<Expense>();
@@ -39,11 +40,15 @@ public sealed class ApplicationDbContext : IdentityDbContext<ApplicationUser>
 
     // New entities - Bank Import
     public DbSet<BankTransaction> BankTransactions => Set<BankTransaction>();
+    public DbSet<BankConnection> BankConnections => Set<BankConnection>();
 
     // New entities - Templates & Localization
     public DbSet<InvoiceTemplate> InvoiceTemplates => Set<InvoiceTemplate>();
     public DbSet<UserLanguagePreference> UserLanguagePreferences => Set<UserLanguagePreference>();
     public DbSet<ClientLanguageSetting> ClientLanguageSettings => Set<ClientLanguageSetting>();
+
+    // Notifications
+    public DbSet<Notification> Notifications => Set<Notification>();
 
     public ApplicationDbContext(DbContextOptions<ApplicationDbContext> options)
         : base(options)

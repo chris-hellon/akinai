@@ -59,6 +59,14 @@ public class TimeEntry : BaseEntity, IAuditableEntity
 
     public bool IsBilled => InvoiceId != null;
 
+    /// <summary>
+    /// Hours rounded to the nearest quarter-hour (15 min) — the unit time is billed in.
+    /// Every invoice-total path (detail view, PDF, email, list, and the stored total /
+    /// currency snapshots) must bill off this so they can never disagree. AwayFromZero
+    /// so an exact midpoint rounds up rather than using banker's rounding.
+    /// </summary>
+    public decimal BillableHours => Math.Round(Hours.Value * 4m, MidpointRounding.AwayFromZero) / 4m;
+
     public void LinkToInvoice(Guid invoiceId)
     {
         if (InvoiceId != null)

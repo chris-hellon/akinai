@@ -14,10 +14,8 @@
                 SearchValueChanged="OnSearchChanged"
                 Breadcrumbs="@(new List<PageHeader.BreadcrumbItem> { new("Clients") })">
     <Filters>
-        <select @bind="_showInactive" @bind:after="OnFilterChanged" class="py-3 px-4 text-sm text-gray-700 dark:text-slate-200 bg-gray-50 dark:bg-slate-700 border-0 rounded-xl focus:outline-none focus:ring-2 focus:ring-primary-500/20 cursor-pointer">
-            <option value="false">Active clients</option>
-            <option value="true">All clients</option>
-        </select>
+        <Select TValue="bool" Value="_showInactive" ValueChanged="OnShowInactiveChanged" Searchable="false" Class="w-full sm:w-44"
+                Options="@(new List<SelectOption<bool>> { new(false, "Active clients"), new(true, "All clients") })" />
     </Filters>
     <ChildContent>
         @if (_isLoading)
@@ -93,7 +91,8 @@
                         TotalItems="_response.TotalCount"
                         PageSize="_response.PageSize"
                         ItemName="clients"
-                        OnPageChanged="OnPageChanged" />
+                        OnPageChanged="OnPageChanged"
+                        OnPageSizeChanged="OnPageSizeChanged" />
         }
     </ChildContent>
 </ListPageLayout>
@@ -104,7 +103,7 @@
     private string _searchTerm = "";
     private bool _showInactive;
     private int _currentPage = 1;
-    private const int PageSize = 12;
+    private int PageSize = 50;
 
     private bool HasActiveFilters => !string.IsNullOrEmpty(_searchTerm);
 
@@ -143,9 +142,22 @@
         await LoadClients();
     }
 
+    private async Task OnShowInactiveChanged(bool value)
+    {
+        _showInactive = value;
+        await OnFilterChanged();
+    }
+
     private async Task OnPageChanged(int page)
     {
         _currentPage = page;
+        await LoadClients();
+    }
+
+    private async Task OnPageSizeChanged(int size)
+    {
+        PageSize = size;
+        _currentPage = 1;
         await LoadClients();
     }
 

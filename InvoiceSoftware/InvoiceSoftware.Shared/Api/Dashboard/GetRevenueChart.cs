@@ -11,4 +11,8 @@ public class GetRevenueChart : IGet<RevenueChartDataDto>
 
     [QueryStringParam]
     public int Months { get; init; } = 12;
+
+    /// <summary>Currency to report revenue in. Defaults to the business default currency.</summary>
+    [QueryStringParam]
+    public string? ReportingCurrency { get; init; }
 }

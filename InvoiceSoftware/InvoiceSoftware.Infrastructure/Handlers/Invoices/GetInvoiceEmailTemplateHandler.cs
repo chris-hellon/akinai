@@ -72,15 +72,11 @@ public class GetInvoiceEmailTemplateHandler(
 
     private static decimal CalculateInvoiceTotal(List<TimeEntry> timeEntries, List<Expense> expenses, decimal taxRate)
     {
-        var timeSubtotal = timeEntries.Sum(e => RoundToQuarterHour(e.Hours.Value) * e.Job.GetEffectiveHourlyRate());
+        var timeSubtotal = timeEntries.Sum(e => e.BillableHours * e.Job.GetEffectiveHourlyRate());
         var expenseSubtotal = expenses.Sum(e => e.GetTotalAmount());
         var subtotal = timeSubtotal + expenseSubtotal;
         var taxAmount = subtotal * (taxRate / 100);
         return subtotal + taxAmount;
     }
 
-    private static decimal RoundToQuarterHour(decimal hours)
-    {
-        return Math.Round(hours * 4, MidpointRounding.AwayFromZero) / 4;
-    }
 }

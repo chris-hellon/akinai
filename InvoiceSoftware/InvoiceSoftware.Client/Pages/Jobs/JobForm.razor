@@ -11,6 +11,7 @@
 @inject ICall<UpdateJobTask, JobTaskDto> UpdateJobTaskCall
 @inject ICall<DeleteJobTask> DeleteJobTaskCall
 @inject ICall<ToggleJobTaskComplete, JobTaskDto> ToggleJobTaskCall
+@inject ICall<DeleteJob> DeleteJobCall
 @inject NavigationManager NavigationManager
 
 <PageTitle>@(Id.HasValue ? "Edit Job" : "New Job") - InvoicePro</PageTitle>
@@ -43,30 +44,17 @@
                 <div class="p-6 space-y-5">
                     <div>
                         <label for="clientId" class="block text-sm font-medium text-gray-700 mb-2">Client <span class="text-red-500">*</span></label>
-                        <select id="clientId" value="@_selectedClientId" @onchange="OnClientChanged"
-                            class="w-full px-4 py-3 text-sm text-gray-900 bg-white border border-gray-200 rounded-xl transition-all duration-200 focus:outline-none focus:border-primary-400 focus:ring-4 focus:ring-primary-500/10 hover:border-gray-300 cursor-pointer">
-                            <option value="@Guid.Empty">Select a client...</option>
-                            @if (_clients != null)
-                            {
-                                @foreach (var client in _clients)
-                                {
-                                    <option value="@client.Id">@client.Name</option>
-                                }
-                            }
-                        </select>
+                        <Select TValue="Guid" Value="_selectedClientId" ValueChanged="OnClientChanged"
+                                Placeholder="Select a client..."
+                                Options="@(_clients?.Select(c => new SelectOption<Guid>(c.Id, c.Name)).ToList() ?? new())" />
                     </div>
 
                     <div>
                         <label for="projectId" class="block text-sm font-medium text-gray-700 mb-2">Project <span class="text-red-500">*</span></label>
-                        <InputSelect id="projectId" Value="_model.ProjectId" ValueChanged="@((Guid value) => OnProjectChanged(value))" ValueExpression="@(() => _model.ProjectId)"
-                            disabled="@(_selectedClientId == Guid.Empty)"
-                            class="w-full px-4 py-3 text-sm text-gray-900 bg-white border border-gray-200 rounded-xl transition-all duration-200 focus:outline-none focus:border-primary-400 focus:ring-4 focus:ring-primary-500/10 hover:border-gray-300 cursor-pointer disabled:bg-gray-50 disabled:text-gray-400 disabled:cursor-not-allowed">
-                            <option value="@Guid.Empty">@(_selectedClientId == Guid.Empty ? "Select a client first..." : "Select a project...")</option>
-                            @foreach (var project in FilteredProjects)
-                            {
-                                <option value="@project.Id">@project.Name</option>
-                            }
-                        </InputSelect>
+                        <Select TValue="Guid" Value="_model.ProjectId" ValueChanged="@((Guid value) => OnProjectChanged(value))" ValueExpression="@(() => _model.ProjectId)"
+                                Disabled="@(_selectedClientId == Guid.Empty)"
+                                Placeholder="@(_selectedClientId == Guid.Empty ? "Select a client first..." : "Select a project...")"
+                                Options="@(FilteredProjects.Select(p => new SelectOption<Guid>(p.Id, p.Name)).ToList())" />
                         <ValidationMessage For="@(() => _model.ProjectId)" class="mt-1.5 text-xs text-red-600" />
                     </div>
 
@@ -74,14 +62,9 @@
                     {
                         <div>
                             <label for="sectionId" class="block text-sm font-medium text-gray-700 mb-2">Section</label>
-                            <InputSelect id="sectionId" @bind-Value="_model.SectionId"
-                                class="w-full px-4 py-3 text-sm text-gray-900 bg-white border border-gray-200 rounded-xl transition-all duration-200 focus:outline-none focus:border-primary-400 focus:ring-4 focus:ring-primary-500/10 hover:border-gray-300 cursor-pointer">
-                                <option value="">No section</option>
-                                @foreach (var sec in _sections)
-                                {
-                                    <option value="@sec.Id">@sec.Name</option>
-                                }
-                            </InputSelect>
+                            <Select TValue="Guid?" @bind-Value="_model.SectionId" Placeholder="No section"
+                                    Options="@(new List<SelectOption<Guid?>> { new(null, "No section") }
+                                        .Concat(_sections.Select(sec => new SelectOption<Guid?>(sec.Id, sec.Name))).ToList())" />
                             <p class="mt-1.5 text-xs text-gray-500">Optionally group this job under a project section.</p>
                         </div>
                     }
@@ -89,7 +72,7 @@
                     <div>
                         <label for="name" class="block text-sm font-medium text-gray-700 mb-2">Job Name <span class="text-red-500">*</span></label>
                         <InputText id="name" @bind-Value="_model.Name"
-                            class="w-full px-4 py-3 text-sm text-gray-900 bg-white border border-gray-200 rounded-xl transition-all duration-200 placeholder:text-gray-400 focus:outline-none focus:border-primary-400 focus:ring-4 focus:ring-primary-500/10 hover:border-gray-300"
+                            class="form-control"
                             placeholder="Homepage Design" />
                         <ValidationMessage For="@(() => _model.Name)" class="mt-1.5 text-xs text-red-600" />
                     </div>
@@ -97,14 +80,14 @@
                     <div>
                         <label for="description" class="block text-sm font-medium text-gray-700 mb-2">Description</label>
                         <InputTextArea id="description" @bind-Value="_model.Description" rows="3"
-                            class="w-full px-4 py-3 text-sm text-gray-900 bg-white border border-gray-200 rounded-xl transition-all duration-200 placeholder:text-gray-400 focus:outline-none focus:border-primary-400 focus:ring-4 focus:ring-primary-500/10 hover:border-gray-300 resize-none"
+                            class="form-control resize-none"
                             placeholder="Brief description of the job..." />
                     </div>
 
                     <div>
                         <label for="notes" class="block text-sm font-medium text-gray-700 mb-2">Notes</label>
                         <InputTextArea id="notes" @bind-Value="_model.Notes" rows="4"
-                            class="w-full px-4 py-3 text-sm text-gray-900 bg-white border border-gray-200 rounded-xl transition-all duration-200 placeholder:text-gray-400 focus:outline-none focus:border-primary-400 focus:ring-4 focus:ring-primary-500/10 hover:border-gray-300 resize-none"
+                            class="form-control resize-none"
                             placeholder="Internal notes, comments, or additional information..." />
                         <p class="mt-1.5 text-xs text-gray-500">Add any internal notes or comments about this job.</p>
                     </div>
@@ -112,37 +95,26 @@
                     <div class="grid grid-cols-1 sm:grid-cols-2 gap-5">
                         <div>
                             <label for="status" class="block text-sm font-medium text-gray-700 mb-2">Status</label>
-                            <InputSelect id="status" @bind-Value="_model.Status"
-                                class="w-full px-4 py-3 text-sm text-gray-900 bg-white border border-gray-200 rounded-xl transition-all duration-200 focus:outline-none focus:border-primary-400 focus:ring-4 focus:ring-primary-500/10 hover:border-gray-300 cursor-pointer">
-                                <option value="Active">Active</option>
-                                <option value="OnHold">On Hold</option>
-                                <option value="Completed">Completed</option>
-                            </InputSelect>
+                            <Select TValue="string" @bind-Value="_model.Status" Searchable="false"
+                                    Options="@(new List<SelectOption<string>> { new("Active", "Active"), new("OnHold", "On Hold"), new("Completed", "Completed") })" />
                         </div>
 
                         <div>
                             <label for="priority" class="block text-sm font-medium text-gray-700 mb-2">Priority</label>
-                            <InputSelect id="priority" @bind-Value="_model.Priority"
-                                class="w-full px-4 py-3 text-sm text-gray-900 bg-white border border-gray-200 rounded-xl transition-all duration-200 focus:outline-none focus:border-primary-400 focus:ring-4 focus:ring-primary-500/10 hover:border-gray-300 cursor-pointer">
-                                <option value="Low">Low</option>
-                                <option value="Medium">Medium</option>
-                                <option value="High">High</option>
-                                <option value="Urgent">Urgent</option>
-                            </InputSelect>
+                            <Select TValue="string" @bind-Value="_model.Priority" Searchable="false"
+                                    Options="@(new List<SelectOption<string>> { new("Low", "Low"), new("Medium", "Medium"), new("High", "High"), new("Urgent", "Urgent") })" />
                         </div>
                     </div>
 
                     <div class="grid grid-cols-1 sm:grid-cols-2 gap-5">
                         <div>
                             <label for="startDate" class="block text-sm font-medium text-gray-700 mb-2">Start Date</label>
-                            <InputDate id="startDate" @bind-Value="_model.StartDate"
-                                class="w-full px-4 py-3 text-sm text-gray-900 bg-white border border-gray-200 rounded-xl transition-all duration-200 focus:outline-none focus:border-primary-400 focus:ring-4 focus:ring-primary-500/10 hover:border-gray-300" />
+                            <DatePicker @bind-Value="_model.StartDate" Placeholder="Start date" />
                         </div>
 
                         <div>
                             <label for="dueDate" class="block text-sm font-medium text-gray-700 mb-2">Due Date</label>
-                            <InputDate id="dueDate" @bind-Value="_model.DueDate"
-                                class="w-full px-4 py-3 text-sm text-gray-900 bg-white border border-gray-200 rounded-xl transition-all duration-200 focus:outline-none focus:border-primary-400 focus:ring-4 focus:ring-primary-500/10 hover:border-gray-300" />
+                            <DatePicker @bind-Value="_model.DueDate" Placeholder="Due date" />
                         </div>
                     </div>
                 </div>
@@ -160,7 +132,7 @@
                             <label for="estimatedHours" class="block text-sm font-medium text-gray-700 mb-2">Estimated Hours</label>
                             <div class="relative">
                                 <InputNumber id="estimatedHours" @bind-Value="_model.EstimatedHours"
-                                    class="w-full pr-16 px-4 py-3 text-sm text-gray-900 bg-white border border-gray-200 rounded-xl transition-all duration-200 focus:outline-none focus:border-primary-400 focus:ring-4 focus:ring-primary-500/10 hover:border-gray-300" />
+                                    class="form-control pr-16" />
                                 <div class="absolute inset-y-0 right-0 pr-4 flex items-center pointer-events-none">
                                     <span class="text-gray-400 text-sm">hours</span>
                                 </div>
@@ -174,7 +146,7 @@
                                     <span class="text-gray-500 text-sm">@CurrencyExtensions.GetSymbol(ClientCurrency)</span>
                                 </div>
                                 <InputNumber id="hourlyRate" @bind-Value="_model.HourlyRateOverride"
-                                    class="w-full pl-8 pr-16 py-3 text-sm text-gray-900 bg-white border border-gray-200 rounded-xl transition-all duration-200 focus:outline-none focus:border-primary-400 focus:ring-4 focus:ring-primary-500/10 hover:border-gray-300" />
+                                    class="form-control pl-8 pr-16" />
                                 <div class="absolute inset-y-0 right-0 pr-4 flex items-center pointer-events-none">
                                     <span class="text-gray-400 text-sm">/ hour</span>
                                 </div>
@@ -207,11 +179,11 @@
                         <div class="space-y-3">
                             <div>
                                 <input type="text" @bind="_newTaskTitle" @bind:event="oninput" placeholder="Task title..."
-                                       class="w-full px-4 py-2.5 text-sm text-gray-900 dark:text-slate-100 bg-white dark:bg-slate-800 border border-gray-200 dark:border-slate-600 rounded-xl transition-all duration-200 placeholder:text-gray-400 dark:placeholder:text-slate-500 focus:outline-none focus:border-primary-400 focus:ring-4 focus:ring-primary-500/10" />
+                                       class="form-control" />
                             </div>
                             <div>
                                 <textarea @bind="_newTaskDescription" placeholder="Description (optional)..." rows="2"
-                                          class="w-full px-4 py-2.5 text-sm text-gray-900 dark:text-slate-100 bg-white dark:bg-slate-800 border border-gray-200 dark:border-slate-600 rounded-xl transition-all duration-200 placeholder:text-gray-400 dark:placeholder:text-slate-500 focus:outline-none focus:border-primary-400 focus:ring-4 focus:ring-primary-500/10 resize-none"></textarea>
+                                          class="form-control resize-none"></textarea>
                             </div>
                             <div class="flex items-center gap-2">
                                 <button type="button" @onclick="AddTask" disabled="@(string.IsNullOrWhiteSpace(_newTaskTitle) || _isSavingTask)"
@@ -268,9 +240,9 @@
                                 {
                                     <div class="flex-1 space-y-2">
                                         <input type="text" @bind="_editTaskTitle" @bind:event="oninput"
-                                               class="w-full px-3 py-2 text-sm text-gray-900 dark:text-slate-100 bg-white dark:bg-slate-800 border border-gray-200 dark:border-slate-600 rounded-lg transition-all duration-200 focus:outline-none focus:border-primary-400 focus:ring-2 focus:ring-primary-500/10" />
+                                               class="form-control" />
                                         <textarea @bind="_editTaskDescription" rows="2"
-                                                  class="w-full px-3 py-2 text-sm text-gray-900 dark:text-slate-100 bg-white dark:bg-slate-800 border border-gray-200 dark:border-slate-600 rounded-lg transition-all duration-200 focus:outline-none focus:border-primary-400 focus:ring-2 focus:ring-primary-500/10 resize-none"></textarea>
+                                                  class="form-control resize-none"></textarea>
                                         <div class="flex items-center gap-2">
                                             <button type="button" @onclick="SaveEditTask" disabled="@(string.IsNullOrWhiteSpace(_editTaskTitle) || _isSavingTask)"
                                                     class="px-3 py-1.5 text-xs font-medium text-white bg-primary-600 hover:bg-primary-700 rounded-lg disabled:opacity-50 transition-colors">
@@ -345,12 +317,23 @@
                 </button>
             </div>
         </EditForm>
+
+        @if (Id.HasValue)
+        {
+            <DangerZone EntityLabel="Job" ItemName="@_model.Name"
+                        WarningMessage="This permanently deletes the job and all its tasks and time entries. This cannot be undone."
+                        OnConfirmed="DeleteAsync" />
+        }
     }
 </div>
 
 @code {
     [Parameter]
     public Guid? Id { get; set; }
+
+    // Pre-selects the client + project when arriving from a project page (jobs/new?projectId=…).
+    [SupplyParameterFromQuery(Name = "projectId")]
+    public Guid? ProjectIdParam { get; set; }
 
     private JobFormModel _model = new();
     private List<ClientDto>? _clients;
@@ -379,15 +362,12 @@
     private string ClientCurrency =>
         _projects?.FirstOrDefault(p => p.Id == _model.ProjectId)?.Currency ?? "USD";
 
-    private void OnClientChanged(ChangeEventArgs e)
+    private void OnClientChanged(Guid clientId)
     {
-        if (Guid.TryParse(e.Value?.ToString(), out var clientId))
-        {
-            _selectedClientId = clientId;
-            _model.ProjectId = Guid.Empty; // Reset project when client changes
-            _model.SectionId = null; // Reset section
-            _sections = null;
-        }
+        _selectedClientId = clientId;
+        _model.ProjectId = Guid.Empty; // Reset project when client changes
+        _model.SectionId = null; // Reset section
+        _sections = null;
     }
 
     private async Task OnProjectChanged(Guid projectId)
@@ -476,6 +456,14 @@
             {
                 _model.Status = "Active";
                 _model.Priority = "Medium";
+
+                // Pre-select the client + project when opened from a project page.
+                if (ProjectIdParam is { } pid && _projects?.FirstOrDefault(p => p.Id == pid) is { } proj)
+                {
+                    _selectedClientId = proj.ClientId;
+                    _model.ProjectId = pid;
+                    await LoadSectionsForProject(pid);
+                }
             }
         }
         catch (Exception ex)
@@ -485,6 +473,20 @@
         finally
         {
             _isLoading = false;
+        }
+    }
+
+    private async Task DeleteAsync()
+    {
+        _errorMessage = null;
+        try
+        {
+            await DeleteJobCall.Call(new DeleteJob { Id = Id!.Value });
+            NavigationManager.NavigateTo("jobs");
+        }
+        catch (Exception ex)
+        {
+            _errorMessage = $"Failed to delete job: {ex.Message}";
         }
     }
 

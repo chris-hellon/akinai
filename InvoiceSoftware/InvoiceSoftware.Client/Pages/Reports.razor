@@ -1,0 +1,566 @@
+@page "/reports"
+@attribute [Authorize]
+@implements IDisposable
+@inject ICall<GetFinancialReport, FinancialReportDto> GetReportCall
+@inject ICall<GetProjectProfitability, List<ProjectProfitDto>> GetProjectProfitCall
+@inject ICall<GetClientProfitability, List<ClientProfitDto>> GetClientProfitCall
+@inject ReportingCurrencyState Reporting
+@inject IJSRuntime JS
+
+<PageTitle>Reports - InvoicePro</PageTitle>
+
+<div class="space-y-6">
+    <PageHeader Title="Reports"
+                Description="@($"Profit & loss, receivables and spending — in {Reporting.Currency}.")"
+                Breadcrumbs="@_breadcrumbs">
+        <Actions>
+            <button type="button" @onclick="ExportCsvAsync" disabled="@(_report is null)"
+                    class="inline-flex items-center gap-2 px-4 py-2.5 text-sm font-medium text-gray-600 dark:text-slate-300 bg-white dark:bg-slate-800 border border-gray-200 dark:border-slate-600 rounded-xl hover:bg-gray-50 dark:hover:bg-slate-700 hover:border-gray-300 transition-colors disabled:opacity-50">
+                <svg class="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                    <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M4 16v1a3 3 0 003 3h10a3 3 0 003-3v-1m-4-4l-4 4m0 0l-4-4m4 4V4" />
+                </svg>
+                Export CSV
+            </button>
+            <button type="button" @onclick="PrintAsync"
+                    class="inline-flex items-center gap-2 px-4 py-2.5 text-sm font-medium text-gray-600 dark:text-slate-300 bg-white dark:bg-slate-800 border border-gray-200 dark:border-slate-600 rounded-xl hover:bg-gray-50 dark:hover:bg-slate-700 hover:border-gray-300 transition-colors">
+                <svg class="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                    <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M17 17h2a2 2 0 002-2v-4a2 2 0 00-2-2H5a2 2 0 00-2 2v4a2 2 0 002 2h2m2 4h6a2 2 0 002-2v-4a2 2 0 00-2-2H9a2 2 0 00-2 2v4a2 2 0 002 2zm8-12V5a2 2 0 00-2-2H9a2 2 0 00-2 2v4h10z" />
+                </svg>
+                Print
+            </button>
+        </Actions>
+    </PageHeader>
+
+    <!-- Period selector -->
+    <div class="card p-4 flex flex-col lg:flex-row lg:items-center gap-3 lg:justify-between">
+        <div class="isel-seg inline-flex rounded-xl bg-gray-50 dark:bg-slate-800 p-1 gap-1 flex-wrap">
+            @foreach (var (key, label) in _presets)
+            {
+                <button type="button" @onclick="() => SelectPeriod(key)"
+                        class="px-3 py-1.5 text-sm font-medium rounded-lg transition-colors @(_period == key ? "bg-white dark:bg-slate-700 text-gray-900 dark:text-slate-100 shadow-sm" : "text-gray-500 dark:text-slate-400 hover:text-gray-800 dark:hover:text-slate-200")">
+                    @label
+                </button>
+            }
+        </div>
+        <div class="flex items-center gap-2">
+            <DatePicker TValue="DateOnly?" Value="_from" ValueChanged="OnFromChanged" Placeholder="From" Class="w-full sm:w-40" />
+            <span class="text-gray-400">→</span>
+            <DatePicker TValue="DateOnly?" Value="_to" ValueChanged="OnToChanged" Placeholder="To" Class="w-full sm:w-40" />
+        </div>
+    </div>
+
+    @if (_isLoading)
+    {
+        <div class="flex justify-center py-24"><LoadingSpinner /></div>
+    }
+    else if (_report is null)
+    {
+        <div class="card p-16 text-center text-gray-500 dark:text-slate-400">Couldn't load the report. Try again.</div>
+    }
+    else
+    {
+        <div class="text-sm text-gray-500 dark:text-slate-400">
+            Showing <span class="font-medium text-gray-700 dark:text-slate-200">@_report.FromDate.ToString("d MMM yyyy")</span>
+            to <span class="font-medium text-gray-700 dark:text-slate-200">@_report.ToDate.ToString("d MMM yyyy")</span>
+        </div>
+
+        <!-- KPI cards -->
+        <div class="grid grid-cols-2 lg:grid-cols-4 gap-4">
+            <div class="card p-5">
+                <div class="text-xs font-medium text-gray-500 dark:text-slate-400 uppercase tracking-wide">Income</div>
+                <div class="mt-2 text-2xl font-bold text-emerald-600 dark:text-emerald-400">@Money(_report.Income)</div>
+                <div class="mt-1 text-xs text-gray-500 dark:text-slate-400">@_report.PaidInvoiceCount invoices collected</div>
+            </div>
+            <div class="card p-5">
+                <div class="text-xs font-medium text-gray-500 dark:text-slate-400 uppercase tracking-wide">Expenses</div>
+                <div class="mt-2 text-2xl font-bold text-red-600 dark:text-red-400">@Money(_report.ExpenseTotal)</div>
+                <div class="mt-1 text-xs text-gray-500 dark:text-slate-400">@_report.ExpenseCount recorded</div>
+            </div>
+            <div class="card p-5">
+                <div class="text-xs font-medium text-gray-500 dark:text-slate-400 uppercase tracking-wide">Net profit</div>
+                <div class="mt-2 text-2xl font-bold @(_report.NetProfit >= 0 ? "text-gray-900 dark:text-slate-100" : "text-red-600 dark:text-red-400")">@Money(_report.NetProfit)</div>
+                <div class="mt-1 text-xs text-gray-500 dark:text-slate-400">@(MarginLabel())</div>
+            </div>
+            <div class="card p-5">
+                <div class="text-xs font-medium text-gray-500 dark:text-slate-400 uppercase tracking-wide">Outstanding</div>
+                <div class="mt-2 text-2xl font-bold text-gray-900 dark:text-slate-100">@Money(_report.OutstandingTotal + _report.OverdueTotal)</div>
+                <div class="mt-1 text-xs text-gray-500 dark:text-slate-400">
+                    @if (_report.OverdueTotal > 0)
+                    {
+                        <span class="text-red-600 dark:text-red-400">@Money(_report.OverdueTotal) overdue</span>
+                    }
+                    else
+                    {
+                        <span>Currently receivable</span>
+                    }
+                </div>
+            </div>
+        </div>
+
+        <!-- Income vs expenses -->
+        <Card Title="Income vs expenses" Description="Money collected against money spent, by month.">
+            @if (_report.Monthly.Any(m => m.Income != 0 || m.Expenses != 0))
+            {
+                <div style="padding:4px 4px 0">
+                    <ApexChart TItem="ReportMonthlyDto" @key="_renderKey" Options="_pnlOptions" Height="280">
+                        <ApexPointSeries TItem="ReportMonthlyDto" Items="_report.Monthly" Name="Income" SeriesType="SeriesType.Bar" XValue="@(m => m.Label)" YValue="@(m => m.Income)" />
+                        <ApexPointSeries TItem="ReportMonthlyDto" Items="_report.Monthly" Name="Expenses" SeriesType="SeriesType.Bar" XValue="@(m => m.Label)" YValue="@(m => m.Expenses)" />
+                        <ApexPointSeries TItem="ReportMonthlyDto" Items="_report.Monthly" Name="Profit" SeriesType="SeriesType.Bar" XValue="@(m => m.Label)" YValue="@(m => m.Profit)" />
+                    </ApexChart>
+                </div>
+            }
+            else
+            {
+                <div class="flex items-center justify-center h-64 text-sm text-gray-500 dark:text-slate-400">No income or expenses in this period.</div>
+            }
+        </Card>
+
+        <div class="grid grid-cols-1 lg:grid-cols-2 gap-6">
+            <!-- Expenses by category -->
+            <Card Title="Expenses by category">
+                @if (_catSlices.Any())
+                {
+                    <div class="grid grid-cols-1 sm:grid-cols-2 gap-2 items-center">
+                        <ApexChart TItem="CatSlice" @key="_renderKey" Options="_donutOptions" Height="240">
+                            <ApexPointSeries TItem="CatSlice" Items="_catSlices" Name="Spend" SeriesType="SeriesType.Donut" XValue="@(c => c.Label)" YValue="@(c => c.Amount)" />
+                        </ApexChart>
+                        <div class="space-y-2">
+                            @{ var catTotal = _catSlices.Sum(c => c.Amount); }
+                            @foreach (var (slice, idx) in _catSlices.Select((s, i) => (s, i)))
+                            {
+                                <div class="flex items-center justify-between gap-2 text-sm">
+                                    <span class="flex items-center gap-2 min-w-0">
+                                        <span class="w-2.5 h-2.5 rounded-full shrink-0" style="background:@DonutColor(idx)"></span>
+                                        <span class="truncate text-gray-700 dark:text-slate-300">@slice.Label</span>
+                                    </span>
+                                    <span class="shrink-0 font-medium text-gray-900 dark:text-slate-100">@Money(slice.Amount)</span>
+                                </div>
+                            }
+                        </div>
+                    </div>
+                }
+                else
+                {
+                    <div class="flex items-center justify-center h-56 text-sm text-gray-500 dark:text-slate-400">No expenses in this period.</div>
+                }
+            </Card>
+
+            <!-- AR aging -->
+            <Card Title="Accounts receivable aging" Description="Unpaid invoices, by how overdue they are.">
+                @{ var maxAging = _report.Aging.Count > 0 ? _report.Aging.Max(a => a.Amount) : 0; }
+                @if (_report.Aging.Any(a => a.Amount != 0))
+                {
+                    <div class="space-y-4">
+                        @foreach (var bucket in _report.Aging)
+                        {
+                            var pct = maxAging > 0 ? (int)Math.Round((double)(bucket.Amount / maxAging) * 100) : 0;
+                            var isOverdue = bucket.Label != "Current";
+                            <div>
+                                <div class="flex items-center justify-between text-sm mb-1">
+                                    <span class="text-gray-600 dark:text-slate-400">@bucket.Label <span class="text-gray-400">· @bucket.Count</span></span>
+                                    <span class="font-medium text-gray-900 dark:text-slate-100">@Money(bucket.Amount)</span>
+                                </div>
+                                <div class="h-2 rounded-full bg-gray-100 dark:bg-slate-700 overflow-hidden">
+                                    <div class="h-full rounded-full @(isOverdue ? "bg-red-400" : "bg-primary-500")" style="width:@(Math.Max(bucket.Amount > 0 ? 4 : 0, pct))%"></div>
+                                </div>
+                            </div>
+                        }
+                    </div>
+                }
+                else
+                {
+                    <div class="flex items-center justify-center h-56 text-sm text-gray-500 dark:text-slate-400">Nothing outstanding — all paid up. 🎉</div>
+                }
+            </Card>
+        </div>
+
+        <div class="grid grid-cols-1 lg:grid-cols-2 gap-6">
+            <!-- Top clients -->
+            <Card Title="Top clients" Description="By revenue collected this period.">
+                @if (_report.TopClients.Any())
+                {
+                    var topRev = _report.TopClients.Max(c => c.Amount);
+                    <div class="space-y-3">
+                        @foreach (var c in _report.TopClients)
+                        {
+                            var pct = topRev > 0 ? (int)Math.Round((double)(c.Amount / topRev) * 100) : 0;
+                            <a href="clients/@c.ClientId" class="block group">
+                                <div class="flex items-center justify-between text-sm mb-1">
+                                    <span class="font-medium text-gray-800 dark:text-slate-200 group-hover:text-primary-600 truncate">@c.ClientName</span>
+                                    <span class="shrink-0 font-semibold text-gray-900 dark:text-slate-100">@Money(c.Amount)</span>
+                                </div>
+                                <div class="h-2 rounded-full bg-gray-100 dark:bg-slate-700 overflow-hidden">
+                                    <div class="h-full rounded-full bg-primary-500" style="width:@(Math.Max(6, pct))%"></div>
+                                </div>
+                            </a>
+                        }
+                    </div>
+                }
+                else
+                {
+                    <div class="flex items-center justify-center h-40 text-sm text-gray-500 dark:text-slate-400">No revenue collected in this period.</div>
+                }
+            </Card>
+
+            <!-- Tax summary -->
+            <Card Title="Tax summary" Description="Estimated, based on invoice and expense tax.">
+                <div class="divide-y divide-gray-100 dark:divide-slate-700">
+                    <div class="flex items-center justify-between py-3">
+                        <span class="text-sm text-gray-600 dark:text-slate-400">Tax collected (on income)</span>
+                        <span class="text-sm font-medium text-gray-900 dark:text-slate-100">@Money(_report.TaxCollected)</span>
+                    </div>
+                    <div class="flex items-center justify-between py-3">
+                        <span class="text-sm text-gray-600 dark:text-slate-400">Tax paid (on expenses)</span>
+                        <span class="text-sm font-medium text-gray-900 dark:text-slate-100">@Money(_report.TaxPaid)</span>
+                    </div>
+                    <div class="flex items-center justify-between py-3">
+                        <span class="text-sm font-semibold text-gray-700 dark:text-slate-200">Net tax owed</span>
+                        <span class="text-sm font-bold @((_report.TaxCollected - _report.TaxPaid) >= 0 ? "text-gray-900 dark:text-slate-100" : "text-emerald-600 dark:text-emerald-400")">@Money(_report.TaxCollected - _report.TaxPaid)</span>
+                    </div>
+                </div>
+                <p class="mt-3 text-xs text-gray-400 dark:text-slate-500">Indicative only — not a substitute for professional tax advice.</p>
+            </Card>
+        </div>
+
+        <!-- Profit by client -->
+        <Card Title="Profit by client" Description="@($"Revenue collected minus expenses, for clients billing in {Reporting.Currency}.")">
+            @if (_clients.Any())
+            {
+                <div class="overflow-x-auto -mx-1">
+                    <table class="w-full text-sm">
+                        <thead>
+                            <tr class="text-left text-xs font-semibold text-gray-500 dark:text-slate-400 uppercase tracking-wide border-b border-gray-100 dark:border-slate-700">
+                                <th class="py-2 pr-3 font-semibold">Client</th>
+                                <th class="py-2 px-3 font-semibold text-right">Revenue</th>
+                                <th class="py-2 px-3 font-semibold text-right">Expenses</th>
+                                <th class="py-2 px-3 font-semibold text-right">Outstanding</th>
+                                <th class="py-2 px-3 font-semibold text-right">Profit</th>
+                                <th class="py-2 pl-3 font-semibold text-right">Margin</th>
+                            </tr>
+                        </thead>
+                        <tbody>
+                            @foreach (var c in _clients)
+                            {
+                                var margin = c.Revenue > 0 ? (double)(c.Profit / c.Revenue) * 100 : 0;
+                                <tr class="border-b border-gray-50 dark:border-slate-700/50 last:border-0">
+                                    <td class="py-2.5 pr-3">
+                                        <a href="clients/@c.ClientId" class="font-medium text-gray-900 dark:text-slate-100 hover:text-primary-600">@c.ClientName</a>
+                                        <div class="text-xs text-gray-500 dark:text-slate-400">@c.InvoiceCount invoices collected</div>
+                                    </td>
+                                    <td class="py-2.5 px-3 text-right tabular-nums text-gray-700 dark:text-slate-300">@Money(c.Revenue)</td>
+                                    <td class="py-2.5 px-3 text-right tabular-nums text-red-600 dark:text-red-400">@Money(c.Expenses)</td>
+                                    <td class="py-2.5 px-3 text-right tabular-nums text-gray-500 dark:text-slate-400">@Money(c.Outstanding)</td>
+                                    <td class="py-2.5 px-3 text-right tabular-nums font-semibold @(c.Profit >= 0 ? "text-gray-900 dark:text-slate-100" : "text-red-600 dark:text-red-400")">@Money(c.Profit)</td>
+                                    <td class="py-2.5 pl-3 text-right tabular-nums text-gray-500 dark:text-slate-400">@(c.Revenue > 0 ? $"{margin:0.#}%" : "—")</td>
+                                </tr>
+                            }
+                        </tbody>
+                    </table>
+                </div>
+            }
+            else
+            {
+                <div class="flex items-center justify-center h-32 text-sm text-gray-500 dark:text-slate-400">No client activity in this period.</div>
+            }
+        </Card>
+
+        <!-- Profit by project -->
+        <Card Title="Profit by project" Description="@($"Billed time value minus project expenses, for clients billing in {Reporting.Currency}.")">
+            @if (_projects.Any())
+            {
+                <div class="overflow-x-auto -mx-1">
+                    <table class="w-full text-sm">
+                        <thead>
+                            <tr class="text-left text-xs font-semibold text-gray-500 dark:text-slate-400 uppercase tracking-wide border-b border-gray-100 dark:border-slate-700">
+                                <th class="py-2 pr-3 font-semibold">Project</th>
+                                <th class="py-2 px-3 font-semibold text-right">Revenue</th>
+                                <th class="py-2 px-3 font-semibold text-right">Expenses</th>
+                                <th class="py-2 px-3 font-semibold text-right">Profit</th>
+                                <th class="py-2 pl-3 font-semibold text-right">Margin</th>
+                            </tr>
+                        </thead>
+                        <tbody>
+                            @foreach (var p in _projects)
+                            {
+                                var margin = p.Revenue > 0 ? (double)(p.Profit / p.Revenue) * 100 : 0;
+                                <tr class="border-b border-gray-50 dark:border-slate-700/50 last:border-0">
+                                    <td class="py-2.5 pr-3">
+                                        <a href="projects/@p.ProjectId" class="font-medium text-gray-900 dark:text-slate-100 hover:text-primary-600">@p.ProjectName</a>
+                                        <div class="text-xs text-gray-500 dark:text-slate-400">@p.ClientName · @p.BilledHours.ToString("0.#")h billed</div>
+                                    </td>
+                                    <td class="py-2.5 px-3 text-right tabular-nums text-gray-700 dark:text-slate-300">@Money(p.Revenue)</td>
+                                    <td class="py-2.5 px-3 text-right tabular-nums text-red-600 dark:text-red-400">@Money(p.Expenses)</td>
+                                    <td class="py-2.5 px-3 text-right tabular-nums font-semibold @(p.Profit >= 0 ? "text-gray-900 dark:text-slate-100" : "text-red-600 dark:text-red-400")">@Money(p.Profit)</td>
+                                    <td class="py-2.5 pl-3 text-right tabular-nums text-gray-500 dark:text-slate-400">@(p.Revenue > 0 ? $"{margin:0.#}%" : "—")</td>
+                                </tr>
+                            }
+                        </tbody>
+                    </table>
+                </div>
+            }
+            else
+            {
+                <div class="flex items-center justify-center h-32 text-sm text-gray-500 dark:text-slate-400">No billed project activity in this period.</div>
+            }
+        </Card>
+    }
+</div>
+
+@code {
+    private FinancialReportDto? _report;
+    private List<ProjectProfitDto> _projects = new();
+    private List<ClientProfitDto> _clients = new();
+    private bool _isLoading = true;
+    private string _period = "year";
+    private DateOnly? _from;
+    private DateOnly? _to;
+    private int _renderKey;
+
+    private readonly List<PageHeader.BreadcrumbItem> _breadcrumbs = new()
+    {
+        new() { Label = "Reports", Href = "reports" }
+    };
+
+    private readonly (string key, string label)[] _presets =
+    {
+        ("month", "This month"),
+        ("quarter", "This quarter"),
+        ("year", "This year"),
+        ("last-year", "Last year")
+    };
+
+    public record CatSlice(string Label, decimal Amount);
+    private List<CatSlice> _catSlices = new();
+
+    private ApexChartOptions<ReportMonthlyDto> _pnlOptions = new();
+    private ApexChartOptions<CatSlice> _donutOptions = new();
+
+    private static readonly string[] DonutPalette =
+        { "#0e7d88", "#e0796f", "#3f9d5f", "#5b53a8", "#d99a3c", "#2b8fb0", "#9a5ba8", "#94a3b8" };
+
+    protected override async Task OnInitializedAsync()
+    {
+        Reporting.OnChange += OnReportingChanged;
+        await Reporting.InitializeAsync();
+        await LoadAsync();
+    }
+
+    private void OnReportingChanged() => _ = ReloadFromEvent();
+
+    private async Task ReloadFromEvent()
+    {
+        await LoadAsync();
+        await InvokeAsync(StateHasChanged);
+    }
+
+    private async Task LoadAsync()
+    {
+        _isLoading = true;
+        StateHasChanged();
+        try
+        {
+            var custom = _from is not null && _to is not null;
+            var reportReq = custom
+                ? new GetFinancialReport { ReportingCurrency = Reporting.Currency, FromDate = _from, ToDate = _to }
+                : new GetFinancialReport { ReportingCurrency = Reporting.Currency, Period = _period };
+            var projReq = custom
+                ? new GetProjectProfitability { ReportingCurrency = Reporting.Currency, FromDate = _from, ToDate = _to }
+                : new GetProjectProfitability { ReportingCurrency = Reporting.Currency, Period = _period };
+            var clientReq = custom
+                ? new GetClientProfitability { ReportingCurrency = Reporting.Currency, FromDate = _from, ToDate = _to }
+                : new GetClientProfitability { ReportingCurrency = Reporting.Currency, Period = _period };
+
+            var reportTask = GetReportCall.Call(reportReq);
+            var projTask = GetProjectProfitCall.Call(projReq);
+            var clientTask = GetClientProfitCall.Call(clientReq);
+            await Task.WhenAll(reportTask, projTask, clientTask);
+
+            _report = await reportTask;
+            _projects = await projTask ?? new();
+            _clients = await clientTask ?? new();
+            BuildCharts();
+            _renderKey++;
+        }
+        catch
+        {
+            _report = null;
+        }
+        finally
+        {
+            _isLoading = false;
+        }
+    }
+
+    private async Task SelectPeriod(string key)
+    {
+        _period = key;
+        _from = null;
+        _to = null;
+        await LoadAsync();
+    }
+
+    private async Task OnFromChanged(DateOnly? value)
+    {
+        _from = value;
+        if (_from is not null && _to is not null) { _period = "custom"; await LoadAsync(); }
+    }
+
+    private async Task OnToChanged(DateOnly? value)
+    {
+        _to = value;
+        if (_from is not null && _to is not null) { _period = "custom"; await LoadAsync(); }
+    }
+
+    private void BuildCharts()
+    {
+        if (_report is null) return;
+        var sym = CurrencyExtensions.GetSymbol(_report.Currency);
+
+        _catSlices = _report.ExpensesByCategory
+            .Select(c => new CatSlice(ExpenseCategoryExtensions.Parse(c.Category).GetDisplayName(), c.Amount))
+            .ToList();
+
+        _pnlOptions = new ApexChartOptions<ReportMonthlyDto>
+        {
+            Chart = new Chart { Toolbar = new Toolbar { Show = false }, Background = "transparent", FontFamily = "Inter, ui-sans-serif, sans-serif", Zoom = new Zoom { Enabled = false } },
+            Colors = new List<string> { "#0e7d88", "#e0796f", "#3f9d5f" },
+            DataLabels = new DataLabels { Enabled = false },
+            Stroke = new Stroke { Show = false },
+            PlotOptions = new PlotOptions { Bar = new PlotOptionsBar { BorderRadius = 4, ColumnWidth = "72%" } },
+            Grid = new Grid { BorderColor = "rgba(148,163,184,0.16)", StrokeDashArray = 4, Padding = new Padding { Left = 4, Right = 8 } },
+            Legend = new Legend { Show = true, Position = LegendPosition.Top, HorizontalAlign = Align.Left, FontSize = "12px" },
+            Tooltip = new ApexCharts.Tooltip { Y = new TooltipY { Formatter = CurrencyFmt(sym) } },
+            Xaxis = new XAxis
+            {
+                AxisBorder = new AxisBorder { Show = false },
+                AxisTicks = new AxisTicks { Show = false },
+                Labels = new XAxisLabels
+                {
+                    Style = new AxisLabelStyle { FontSize = "11px", Colors = "#94a3b8" },
+                    Formatter = "function (value) { return value ? String(value).split(' ')[0] : value; }"
+                }
+            },
+            Yaxis = new List<YAxis> { new YAxis { Labels = new YAxisLabels { Style = new AxisLabelStyle { FontSize = "11px", Colors = "#94a3b8" }, Formatter = ShortCurrencyFmt(sym) } } }
+        };
+
+        _donutOptions = new ApexChartOptions<CatSlice>
+        {
+            Chart = new Chart { Background = "transparent", FontFamily = "Inter, sans-serif" },
+            Colors = DonutPalette.ToList(),
+            Legend = new Legend { Show = false },
+            Stroke = new Stroke { Show = false },
+            DataLabels = new DataLabels { Enabled = false },
+            Tooltip = new ApexCharts.Tooltip { Y = new TooltipY { Formatter = CurrencyFmt(sym) } },
+            PlotOptions = new PlotOptions
+            {
+                Pie = new PlotOptionsPie
+                {
+                    Donut = new PlotOptionsDonut
+                    {
+                        Size = "68%",
+                        Labels = new DonutLabels
+                        {
+                            Show = true,
+                            Total = new DonutLabelTotal
+                            {
+                                Show = true,
+                                Label = "Total",
+                                Formatter = $"function (w) {{ var t = w.globals.seriesTotals.reduce(function (a, b) {{ return a + b; }}, 0); return t >= 1000 ? '{sym}' + (t/1000).toFixed(1) + 'k' : '{sym}' + Math.round(t); }}"
+                            }
+                        }
+                    }
+                }
+            }
+        };
+    }
+
+    private static string DonutColor(int idx) => DonutPalette[idx % DonutPalette.Length];
+
+    private string Money(decimal v)
+    {
+        var sym = CurrencyExtensions.GetSymbol(_report?.Currency ?? Reporting.Currency);
+        return $"{sym}{v:N2}";
+    }
+
+    private string MarginLabel()
+    {
+        if (_report is null || _report.Income <= 0) return "Profit margin —";
+        var margin = (double)(_report.NetProfit / _report.Income) * 100;
+        return $"{margin:0.#}% margin";
+    }
+
+    private static string CurrencyFmt(string sym)
+        => $"function (v) {{ return '{sym}' + (v ?? 0).toLocaleString(undefined, {{ minimumFractionDigits: 2, maximumFractionDigits: 2 }}); }}";
+
+    private static string ShortCurrencyFmt(string sym)
+        => $"function (v) {{ if (v >= 1000000) return '{sym}' + (v/1000000).toFixed(1) + 'M'; if (v >= 1000) return '{sym}' + (v/1000).toFixed(1) + 'k'; return '{sym}' + Math.round(v); }}";
+
+    private async Task PrintAsync() => await JS.InvokeVoidAsync("window.print");
+
+    private async Task ExportCsvAsync()
+    {
+        if (_report is null) return;
+        var csv = BuildCsv();
+        var bytes = System.Text.Encoding.UTF8.GetBytes(csv);
+        var name = $"financial-report_{_report.FromDate:yyyyMMdd}-{_report.ToDate:yyyyMMdd}.csv";
+        await JS.InvokeVoidAsync("downloadFile", name, Convert.ToBase64String(bytes), "text/csv");
+    }
+
+    private string BuildCsv()
+    {
+        var r = _report!;
+        var sb = new System.Text.StringBuilder();
+        string N(decimal v) => v.ToString("0.00", Ci);
+        string Esc(string s) => s.Contains(',') || s.Contains('"') || s.Contains('\n')
+            ? "\"" + s.Replace("\"", "\"\"") + "\"" : s;
+
+        sb.AppendLine($"Financial report,{r.FromDate:yyyy-MM-dd} to {r.ToDate:yyyy-MM-dd}");
+        sb.AppendLine($"Currency,{r.Currency}");
+        sb.AppendLine();
+
+        sb.AppendLine("Summary,Amount");
+        sb.AppendLine($"Income,{N(r.Income)}");
+        sb.AppendLine($"Expenses,{N(r.ExpenseTotal)}");
+        sb.AppendLine($"Net profit,{N(r.NetProfit)}");
+        sb.AppendLine($"Tax collected,{N(r.TaxCollected)}");
+        sb.AppendLine($"Tax paid,{N(r.TaxPaid)}");
+        sb.AppendLine($"Outstanding,{N(r.OutstandingTotal)}");
+        sb.AppendLine($"Overdue,{N(r.OverdueTotal)}");
+        sb.AppendLine();
+
+        sb.AppendLine("Month,Income,Expenses,Profit");
+        foreach (var m in r.Monthly)
+            sb.AppendLine($"{Esc(m.Label)},{N(m.Income)},{N(m.Expenses)},{N(m.Profit)}");
+        sb.AppendLine();
+
+        sb.AppendLine("Expense category,Amount");
+        foreach (var c in r.ExpensesByCategory)
+            sb.AppendLine($"{Esc(ExpenseCategoryExtensions.Parse(c.Category).GetDisplayName())},{N(c.Amount)}");
+        sb.AppendLine();
+
+        sb.AppendLine("Receivable aging,Count,Amount");
+        foreach (var a in r.Aging)
+            sb.AppendLine($"{Esc(a.Label)},{a.Count},{N(a.Amount)}");
+        sb.AppendLine();
+
+        sb.AppendLine("Top client,Revenue,Invoices");
+        foreach (var c in r.TopClients)
+            sb.AppendLine($"{Esc(c.ClientName)},{N(c.Amount)},{c.InvoiceCount}");
+        sb.AppendLine();
+
+        sb.AppendLine("Client,Revenue,Expenses,Outstanding,Profit,Invoices");
+        foreach (var c in _clients)
+            sb.AppendLine($"{Esc(c.ClientName)},{N(c.Revenue)},{N(c.Expenses)},{N(c.Outstanding)},{N(c.Profit)},{c.InvoiceCount}");
+        sb.AppendLine();
+
+        sb.AppendLine("Project,Client,Revenue,Expenses,Profit,Billed hours");
+        foreach (var p in _projects)
+            sb.AppendLine($"{Esc(p.ProjectName)},{Esc(p.ClientName)},{N(p.Revenue)},{N(p.Expenses)},{N(p.Profit)},{p.BilledHours.ToString("0.##", Ci)}");
+
+        return sb.ToString();
+    }
+
+    private static readonly System.Globalization.CultureInfo Ci = System.Globalization.CultureInfo.InvariantCulture;
+
+    public void Dispose() => Reporting.OnChange -= OnReportingChanged;
+}

@@ -15,7 +15,7 @@
                    @bind:event="oninput"
                    @onkeyup="OnSearchChanged"
                    placeholder="Search jobs, projects, or clients..."
-                   class="w-full pl-10 pr-4 py-2.5 text-sm text-gray-900 bg-white border border-gray-200 rounded-xl transition-all duration-200 placeholder:text-gray-400 focus:outline-none focus:border-primary-400 focus:ring-4 focus:ring-primary-500/10 hover:border-gray-300" />
+                   class="form-control pl-10" />
             @if (!string.IsNullOrEmpty(_searchTerm))
             {
                 <button @onclick="ClearSearch"
@@ -31,28 +31,16 @@
         <div class="flex gap-3">
             <!-- Client Filter -->
             <div class="flex-1">
-                <select @bind="_selectedClientId"
-                        @bind:after="ApplyFilters"
-                        class="w-full px-3 py-2 text-sm text-gray-700 bg-white border border-gray-200 rounded-xl focus:outline-none focus:border-primary-400 focus:ring-4 focus:ring-primary-500/10 hover:border-gray-300 transition-all duration-200">
-                    <option value="">All Clients</option>
-                    @foreach (var client in _clients)
-                    {
-                        <option value="@client.Id">@client.Name</option>
-                    }
-                </select>
+                <Select TValue="string" Value="_selectedClientId" ValueChanged="@((string v) => { _selectedClientId = v; ApplyFilters(); })"
+                        Options="@(new List<SelectOption<string>> { new("", "All Clients") }
+                            .Concat(_clients.Select(c => new SelectOption<string>(c.Id.ToString(), c.Name))).ToList())" />
             </div>
 
             <!-- Project Filter -->
             <div class="flex-1">
-                <select @bind="_selectedProjectId"
-                        @bind:after="ApplyFilters"
-                        class="w-full px-3 py-2 text-sm text-gray-700 bg-white border border-gray-200 rounded-xl focus:outline-none focus:border-primary-400 focus:ring-4 focus:ring-primary-500/10 hover:border-gray-300 transition-all duration-200">
-                    <option value="">All Projects</option>
-                    @foreach (var project in _filteredProjects)
-                    {
-                        <option value="@project.Id">@project.Name</option>
-                    }
-                </select>
+                <Select TValue="string" Value="_selectedProjectId" ValueChanged="@((string v) => { _selectedProjectId = v; ApplyFilters(); })"
+                        Options="@(new List<SelectOption<string>> { new("", "All Projects") }
+                            .Concat(_filteredProjects.Select(p => new SelectOption<string>(p.Id.ToString(), p.Name))).ToList())" />
             </div>
         </div>
 

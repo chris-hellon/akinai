@@ -1,0 +1,69 @@
+@* Reusable "Danger zone" panel for edit pages: confirms, then invokes OnConfirmed to delete. *@
+
+<div class="mt-8 rounded-2xl border border-red-200 dark:border-red-900/40 bg-red-50/40 dark:bg-red-950/20 overflow-hidden">
+    <div class="px-6 py-5 flex flex-col sm:flex-row sm:items-center sm:justify-between gap-4">
+        <div class="min-w-0">
+            <h3 class="text-sm font-semibold text-red-800 dark:text-red-300">Danger zone</h3>
+            <p class="mt-1 text-sm text-red-700/80 dark:text-red-400/70">
+                @(Description ?? $"Permanently delete this {EntityLabel.ToLowerInvariant()}. This action cannot be undone.")
+            </p>
+        </div>
+        <button type="button" @onclick="ConfirmDelete" disabled="@_deleting"
+                class="inline-flex items-center gap-2 shrink-0 px-4 py-2.5 text-sm font-medium text-white bg-red-600 rounded-xl hover:bg-red-700 transition-colors disabled:opacity-50 disabled:cursor-not-allowed">
+            @if (_deleting)
+            {
+                <div class="w-4 h-4 border-2 border-white/30 border-t-white rounded-full animate-spin"></div>
+            }
+            else
+            {
+                <svg class="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                    <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M19 7l-.867 12.142A2 2 0 0116.138 21H7.862a2 2 0 01-1.995-1.858L5 7m5 4v6m4-6v6m1-10V4a1 1 0 00-1-1h-4a1 1 0 00-1 1v3M4 7h16" />
+                </svg>
+            }
+            Delete @EntityLabel
+        </button>
+    </div>
+</div>
+
+@code {
+    [Parameter, EditorRequired] public string EntityLabel { get; set; } = "item";
+
+    /// <summary>Name shown in the confirmation dialog (e.g. the product name).</summary>
+    [Parameter] public string? ItemName { get; set; }
+
+    /// <summary>Explanatory text shown in the panel.</summary>
+    [Parameter] public string? Description { get; set; }
+
+    /// <summary>Warning shown inside the confirmation dialog.</summary>
+    [Parameter] public string? WarningMessage { get; set; }
+
+    /// <summary>Invoked after the user confirms; should perform the delete and navigate away.</summary>
+    [Parameter, EditorRequired] public EventCallback OnConfirmed { get; set; }
+
+    private bool _deleting;
+
+    private async Task ConfirmDelete()
+    {
+        var confirmed = await ModalService.ShowAsync<bool>(
+            typeof(DeleteConfirmationModal),
+            $"Delete {EntityLabel}",
+            new Dictionary<string, object>
+            {
+                { "ItemName", string.IsNullOrWhiteSpace(ItemName) ? $"this {EntityLabel.ToLowerInvariant()}" : ItemName! },
+                { "WarningMessage", WarningMessage ?? "This action cannot be undone." }
+            },
+            new ModalOptions { Size = ModalSize.Small });
+
+        if (!confirmed) return;
+
+        _deleting = true;
+        try
+        {
+            await OnConfirmed.InvokeAsync();
+        }
+        finally
+        {
+            _deleting = false;
+        }
+    }
+}

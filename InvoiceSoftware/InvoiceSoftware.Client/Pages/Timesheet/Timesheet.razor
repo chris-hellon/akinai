@@ -1,7 +1,9 @@
 @page "/timesheet"
+@implements IDisposable
 @inject ICall<GetTimesheetJobs, List<TimesheetJobDto>> GetTimesheetJobsCall
 @inject ICall<GetWeeklyTimeEntries, List<TimeEntryDto>> GetTimeEntriesCall
 @inject ICall<LogTimeEntry, Guid> LogTimeEntryCall
+@inject TimeTrackingState Tracking
 
 <PageTitle>Timesheet - InvoicePro</PageTitle>
 
@@ -108,14 +110,14 @@
                 <table class="w-full">
                     <thead>
                         <tr class="border-b border-gray-100 dark:border-slate-700">
-                            <th class="px-5 py-4 text-left text-xs font-semibold text-gray-500 dark:text-slate-400 uppercase tracking-wider bg-gray-50/50 dark:bg-slate-700/50 sticky left-0 z-10 min-w-[240px]">
+                            <th class="px-5 py-4 text-left text-xs font-semibold text-gray-500 dark:text-slate-400 uppercase tracking-wider bg-gray-50/50 dark:bg-slate-700/50 sticky left-0 z-10 min-w-[180px]">
                                 Job / Project
                             </th>
                             @foreach (var day in _weekDays)
                             {
                                 var isToday = day == DateOnly.FromDateTime(DateTime.Today);
                                 var isWeekend = day.DayOfWeek == DayOfWeek.Saturday || day.DayOfWeek == DayOfWeek.Sunday;
-                                <th class="px-2 py-4 text-center min-w-[80px] @(isWeekend ? "bg-gray-50/80 dark:bg-slate-700/80" : "bg-gray-50/50 dark:bg-slate-700/50")">
+                                <th class="px-2 py-4 text-center min-w-[64px] @(isWeekend ? "bg-gray-50/80 dark:bg-slate-700/80" : "bg-gray-50/50 dark:bg-slate-700/50")">
                                     <div class="text-xs font-semibold uppercase tracking-wider @(isToday ? "text-primary-600 dark:text-primary-400" : "text-gray-500 dark:text-slate-400")">
                                         @day.ToString("ddd")
                                     </div>
@@ -124,7 +126,7 @@
                                     </div>
                                 </th>
                             }
-                            <th class="px-5 py-4 text-center text-xs font-semibold text-gray-500 dark:text-slate-400 uppercase tracking-wider bg-gray-50/50 dark:bg-slate-700/50 min-w-[80px]">
+                            <th class="px-5 py-4 text-center text-xs font-semibold text-gray-500 dark:text-slate-400 uppercase tracking-wider bg-gray-50/50 dark:bg-slate-700/50 min-w-[64px]">
                                 Total
                             </th>
                             <th class="px-3 py-4 bg-gray-50/50 dark:bg-slate-700/50 w-12"></th>
@@ -164,7 +166,7 @@
                                             @if (isInactive)
                                             {
                                                 <!-- Read-only display for completed jobs -->
-                                                <div class="w-full max-w-[64px] mx-auto text-center border rounded-lg py-2 px-1 text-sm font-medium @(hasHours ? "bg-gray-100 dark:bg-slate-700 border-gray-200 dark:border-slate-600 text-gray-600 dark:text-slate-300" : "bg-gray-50 dark:bg-slate-800 border-gray-100 dark:border-slate-700 text-gray-400 dark:text-slate-500")">
+                                                <div class="w-full max-w-[48px] mx-auto text-center border rounded-lg py-2 px-1 text-sm font-medium @(hasHours ? "bg-gray-100 dark:bg-slate-700 border-gray-200 dark:border-slate-600 text-gray-600 dark:text-slate-300" : "bg-gray-50 dark:bg-slate-800 border-gray-100 dark:border-slate-700 text-gray-400 dark:text-slate-500")">
                                                     @FormatHoursToTime(entry?.Hours ?? 0)
                                                 </div>
                                             }
@@ -176,7 +178,7 @@
                                                        value="@FormatHoursToTime(entry?.Hours ?? 0)"
                                                        @onchange="@(e => UpdateTimeEntry(job.Id, day, e.Value?.ToString()))"
                                                        onfocus="this.select()"
-                                                       class="w-full max-w-[64px] mx-auto text-center border rounded-lg py-2 px-1 text-sm font-medium transition-all duration-200 focus:outline-none focus:ring-2 focus:ring-primary-500/20 focus:border-primary-400 @(hasHours ? "bg-primary-100 dark:bg-primary-900/50 border-primary-300 dark:border-primary-700 text-primary-700 dark:text-primary-300" : "bg-white dark:bg-slate-800 border-gray-200 dark:border-slate-600 text-gray-600 dark:text-slate-300 hover:border-gray-300 dark:hover:border-slate-500") @(isToday && !hasHours ? "ring-2 ring-primary-100 dark:ring-primary-900" : "")" />
+                                                       class="w-full max-w-[48px] mx-auto text-center border rounded-lg py-2 px-1 text-sm font-medium transition-all duration-200 focus:outline-none focus:ring-2 focus:ring-primary-500/20 focus:border-primary-400 @(hasHours ? "bg-primary-100 dark:bg-primary-900/50 border-primary-300 dark:border-primary-700 text-primary-700 dark:text-primary-300" : "bg-white dark:bg-slate-800 border-gray-200 dark:border-slate-600 text-gray-600 dark:text-slate-300 hover:border-gray-300 dark:hover:border-slate-500") @(isToday && !hasHours ? "ring-2 ring-primary-100 dark:ring-primary-900" : "")" />
                                             }
                                         </div>
                                     </td>
@@ -282,9 +284,19 @@
 
     protected override async Task OnInitializedAsync()
     {
+        Tracking.OnEntryLogged += OnEntryLogged;
         GoToCurrentWeek();
         await LoadData();
     }
+
+    // A time entry was logged elsewhere (e.g. the header timer) — refresh the current week.
+    private void OnEntryLogged() => _ = InvokeAsync(async () =>
+    {
+        await LoadDataForWeek();
+        StateHasChanged();
+    });
+
+    public void Dispose() => Tracking.OnEntryLogged -= OnEntryLogged;
 
     private void GoToCurrentWeek()
     {

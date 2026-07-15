@@ -1,3 +1,4 @@
+using ApexCharts;
 using Microsoft.AspNetCore.Components.WebAssembly.Hosting;
 using BlazorUtils.EasyApi;
 using BlazorUtils.EasyApi.Client;
@@ -29,6 +30,17 @@ class Program
 
         // Register Layout Service for JS interop
         builder.Services.AddScoped<ILayoutService, LayoutService>();
+
+        // Notifications state (loads + live SignalR updates)
+        builder.Services.AddScoped<NotificationState>();
+
+        // Dashboard reporting-currency selection (shared by header + dashboard)
+        builder.Services.AddScoped<ReportingCurrencyState>();
+
+        builder.Services.AddScoped<TimeTrackingState>();
+
+        // Interactive charts (ApexCharts)
+        builder.Services.AddApexCharts();
 
         builder.Services.AddAuthorizationCore();
         builder.Services.AddCascadingAuthenticationState();

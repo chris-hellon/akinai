@@ -28,6 +28,8 @@ public class GetClientPortalPaymentHistoryHandler(IDbContextFactory<ApplicationD
         var query = db.Invoices
             .Include(i => i.TimeEntries)
                 .ThenInclude(te => te.Job)
+                    .ThenInclude(j => j.Project)
+                        .ThenInclude(p => p.Client)
             .Where(i => i.ClientId == client.Id && i.Status == InvoiceStatus.Paid && i.PaidDate != null);
 
         var totalCount = await query.CountAsync(cancellationToken);

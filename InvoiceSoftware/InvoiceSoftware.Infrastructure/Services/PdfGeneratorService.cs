@@ -8,7 +8,7 @@ namespace InvoiceSoftware.Infrastructure.Services;
 public class PdfGeneratorService
 {
     // Modern color palette matching PublicInvoiceView
-    private const string IndigoColor = "#4f46e5";
+    private const string IndigoColor = "#0e5c66";
     private const string EmeraldColor = "#059669";
     private const string EmeraldLight = "#ecfdf5";
     private const string RedColor = "#dc2626";
@@ -47,7 +47,7 @@ public class PdfGeneratorService
             var footerLayout = template?.FooterLayout.ToString().ToLowerInvariant() ?? "standard";
 
             // Calculate totals from time entries (rounded to quarter hours for billing)
-            var timeEntriesSubtotal = timeEntries.Sum(e => RoundToQuarterHour(e.Hours.Value) * e.Job.GetEffectiveHourlyRate());
+            var timeEntriesSubtotal = timeEntries.Sum(e => e.BillableHours * e.Job.GetEffectiveHourlyRate());
 
             // Calculate totals from expenses
             var expensesSubtotal = expenses.Sum(e => e.GetTotalAmount());
@@ -66,15 +66,14 @@ public class PdfGeneratorService
                 var projectName = e.Job.Project?.Name;
                 var sectionName = e.Job.Section?.Name;
                 var hourlyRate = e.Job.GetEffectiveHourlyRate();
-                var billableHours = RoundToQuarterHour(e.Hours.Value);
+                var billableHours = e.BillableHours;
                 var lineTotal = billableHours * hourlyRate;
 
                 return new PdfLineItem(jobName, projectName, sectionName, billableHours, hourlyRate, lineTotal, e.Date);
             }).ToList();
 
             var currencySymbol = GetCurrencySymbol(invoice.Currency);
-            var isOverdue = invoice.Status != Domain.Enums.InvoiceStatus.Paid &&
-                           invoice.Status != Domain.Enums.InvoiceStatus.Void &&
+            var isOverdue = invoice.Status is Domain.Enums.InvoiceStatus.Sent or Domain.Enums.InvoiceStatus.Overdue &&
                            invoice.DueDate < DateOnly.FromDateTime(DateTime.Today);
 
             var document = Document.Create(container =>
@@ -146,10 +145,6 @@ public class PdfGeneratorService
 
     private record PdfLineItem(string JobName, string? ProjectName, string? SectionName, decimal Quantity, decimal UnitPrice, decimal LineTotal, DateOnly? Date);
 
-    private static decimal RoundToQuarterHour(decimal hours)
-    {
-        return Math.Round(hours * 4, MidpointRounding.AwayFromZero) / 4;
-    }
 
     private static string GetCurrencySymbol(string currencyCode) => currencyCode switch
     {

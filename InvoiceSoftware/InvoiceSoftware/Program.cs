@@ -1,3 +1,4 @@
+using ApexCharts;
 using Microsoft.AspNetCore.Components.Authorization;
 using Microsoft.AspNetCore.Identity;
 using Microsoft.AspNetCore.Identity.UI.Services;
@@ -69,6 +70,9 @@ public class Program
             .WithContract(typeof(GetClients).Assembly)
             .WithServer(typeof(GetClientsHandler).Assembly);
 
+        // Real-time notifications hub
+        builder.Services.AddSignalR();
+
         // Register HttpClient for server-side rendering (e.g., VietQR API calls)
         builder.Services.AddHttpClient();
         builder.Services.AddScoped(sp => sp.GetRequiredService<IHttpClientFactory>().CreateClient());
@@ -78,6 +82,14 @@ public class Program
 
         // Register Layout Service for JS interop (needed for prerendering)
         builder.Services.AddScoped<ILayoutService, LayoutService>();
+
+        // Notifications state so it resolves for interactive-server rendering too
+        builder.Services.AddScoped<InvoiceSoftware.Client.Services.NotificationState>();
+        builder.Services.AddScoped<InvoiceSoftware.Client.Services.ReportingCurrencyState>();
+        builder.Services.AddScoped<InvoiceSoftware.Client.Services.TimeTrackingState>();
+
+        // Interactive charts (ApexCharts) — registered on the server too for prerender/interactive-server
+        builder.Services.AddApexCharts();
 
         var app = builder.Build();
 
@@ -115,14 +127,21 @@ public class Program
 
         app.MapStaticAssets();
 
+        // Must sit before the auth middleware so the re-executed "/not-found" request
+        // still passes through authentication/authorization (otherwise a 404 throws
+        // "endpoint contains authorization metadata, but a middleware was not found").
+        app.UseStatusCodePagesWithReExecute("/not-found", createScopeForStatusCodePages: true);
+
         app.UseAuthentication();
         app.UseAuthorization();
-        app.UseStatusCodePagesWithReExecute("/not-found", createScopeForStatusCodePages: true);
 
         app.UseAntiforgery();
 
         // Map EasyApi endpoints
         app.MapRequests();
+
+        // Real-time notifications hub
+        app.MapHub<InvoiceSoftware.Infrastructure.Hubs.NotificationHub>("/hubs/notifications");
 
         app.MapRazorComponents<App>()
             .AddInteractiveServerRenderMode()

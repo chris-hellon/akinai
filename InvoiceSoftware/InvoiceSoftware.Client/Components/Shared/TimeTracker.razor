@@ -1,0 +1,318 @@
+@implements IDisposable
+@inject ICall<GetJobs, PaginatedResponse<JobDto>> GetJobsCall
+@inject ICall<LogTimeEntry, Guid> LogTimeEntryCall
+@inject TimeTrackingState Tracking
+@inject IJSRuntime JS
+
+<div class="relative">
+    @if (_justSaved is not null)
+    {
+        <div class="inline-flex items-center gap-2 h-9 px-3 rounded-lg bg-emerald-50 dark:bg-emerald-900/30 border border-emerald-100 dark:border-emerald-900/50 text-emerald-700 dark:text-emerald-300">
+            <svg class="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2.4" d="M5 13l4 4L19 7" /></svg>
+            <span class="text-xs font-medium">@_justSaved</span>
+        </div>
+    }
+    else if (_running || _confirming)
+    {
+        <div class="inline-flex items-center gap-2 h-9 pl-2.5 pr-1 rounded-lg @(_confirming
+                 ? "bg-amber-50 dark:bg-amber-900/30 border border-amber-200 dark:border-amber-900/50"
+                 : "bg-primary-50 dark:bg-primary-900/30 border border-primary-100 dark:border-primary-900/50")">
+            @if (_running)
+            {
+                <span class="relative flex h-2 w-2">
+                    <span class="animate-ping absolute inline-flex h-full w-full rounded-full bg-primary-400 opacity-75"></span>
+                    <span class="relative inline-flex rounded-full h-2 w-2 bg-primary-500"></span>
+                </span>
+            }
+            else
+            {
+                <span class="inline-flex rounded-full h-2 w-2 bg-amber-500"></span>
+            }
+            <span class="font-mono text-[12px] font-semibold tabular-nums @(_confirming ? "text-amber-700 dark:text-amber-300" : "text-primary-700 dark:text-primary-300")">@_elapsedText</span>
+            <span class="hidden lg:inline text-xs truncate max-w-[110px] @(_confirming ? "text-amber-600/70 dark:text-amber-400/70" : "text-primary-600/70 dark:text-primary-400/70")">@_jobName</span>
+            @if (_running)
+            {
+                <button type="button" @onclick="BeginStop" title="Stop"
+                        class="ml-1 p-1.5 rounded-md text-primary-700 dark:text-primary-300 hover:bg-primary-100 dark:hover:bg-primary-900/50">
+                    <svg class="w-3.5 h-3.5" fill="currentColor" viewBox="0 0 24 24"><rect x="6" y="6" width="12" height="12" rx="2" /></svg>
+                </button>
+            }
+        </div>
+    }
+    else
+    {
+        <button type="button" @onclick="TogglePanel" @onclick:stopPropagation="true" title="Start time tracker"
+                class="inline-flex items-center gap-2 h-9 px-3 rounded-lg border border-gray-200 dark:border-[#242b34] bg-gray-50 dark:bg-[#0b0e12] text-gray-600 dark:text-slate-300 hover:border-gray-300 dark:hover:border-slate-600 transition-colors">
+            <svg class="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M12 8v4l3 3m6-3a9 9 0 11-18 0 9 9 0 0118 0z" />
+            </svg>
+            <span class="hidden sm:inline text-[11px] font-semibold tracking-wide">Track</span>
+        </button>
+    }
+
+    @* Start panel *@
+    @if (_open && !_running && !_confirming)
+    {
+        <div class="fixed inset-0 z-40" @onclick="Close"></div>
+        <div class="absolute right-0 mt-2 w-72 bg-white dark:bg-[#14181e] rounded-xl shadow-lg ring-1 ring-black/5 dark:ring-white/10 p-4 z-50">
+            <div class="text-sm font-semibold text-gray-900 dark:text-slate-100 mb-3">Start a timer</div>
+
+            <label class="block text-xs font-medium text-gray-500 dark:text-slate-400 mb-1">Job</label>
+            @if (_loadingJobs)
+            {
+                <div class="flex justify-center py-4"><LoadingSpinner /></div>
+            }
+            else if (!_jobs.Any())
+            {
+                <p class="text-sm text-gray-500 dark:text-slate-400">No active jobs. <a href="jobs" class="text-primary-600 dark:text-primary-400 hover:underline">Create one</a> to track time.</p>
+            }
+            else
+            {
+                <Select TValue="string" @bind-Value="_selectedJobId" Placeholder="Choose a job…"
+                        Options="@(_jobs.Select(j => new SelectOption<string>(j.Id.ToString(), j.Name, $"{j.ProjectName} · {j.ClientName}")).ToList())" />
+
+                <label class="block text-xs font-medium text-gray-500 dark:text-slate-400 mt-3 mb-1">Note <span class="text-gray-400">(optional)</span></label>
+                <input @bind="_note" placeholder="What are you working on?" class="form-control w-full py-1.5 text-sm" />
+
+                <button type="button" @onclick="StartAsync" disabled="@string.IsNullOrEmpty(_selectedJobId)"
+                        class="mt-4 w-full inline-flex items-center justify-center gap-2 px-4 py-2 text-sm font-medium text-white bg-primary-600 hover:bg-primary-700 rounded-lg transition-colors disabled:opacity-50 disabled:cursor-not-allowed">
+                    <svg class="w-4 h-4" fill="currentColor" viewBox="0 0 24 24"><path d="M8 5v14l11-7z" /></svg>
+                    Start timer
+                </button>
+            }
+        </div>
+    }
+
+    @* Save-confirmation panel *@
+    @if (_confirming)
+    {
+        <div class="absolute right-0 mt-2 w-72 bg-white dark:bg-[#14181e] rounded-xl shadow-lg ring-1 ring-black/5 dark:ring-white/10 p-4 z-50">
+            <div class="text-sm font-semibold text-gray-900 dark:text-slate-100">Log this time?</div>
+            <div class="mt-2 flex items-baseline gap-2">
+                <span class="font-mono text-2xl font-bold text-gray-900 dark:text-slate-100 tabular-nums">@_elapsedText</span>
+                <span class="text-sm text-gray-500 dark:text-slate-400">@PendingHoursLabel</span>
+            </div>
+            <div class="text-sm text-gray-600 dark:text-slate-400 truncate">@_jobName</div>
+
+            <label class="block text-xs font-medium text-gray-500 dark:text-slate-400 mt-3 mb-1">Note <span class="text-gray-400">(optional)</span></label>
+            <input @bind="_note" placeholder="What did you work on?" class="form-control w-full py-1.5 text-sm" />
+
+            <div class="mt-4 flex items-center gap-2">
+                <button type="button" @onclick="DiscardAsync" disabled="@_saving"
+                        class="flex-1 px-3 py-2 text-sm font-medium text-gray-600 dark:text-slate-300 bg-white dark:bg-slate-800 border border-gray-200 dark:border-slate-600 rounded-lg hover:bg-gray-50 dark:hover:bg-slate-700 disabled:opacity-50">
+                    Discard
+                </button>
+                <button type="button" @onclick="ConfirmSaveAsync" disabled="@_saving"
+                        class="flex-1 inline-flex items-center justify-center gap-2 px-3 py-2 text-sm font-medium text-white bg-primary-600 hover:bg-primary-700 rounded-lg transition-colors disabled:opacity-50">
+                    @if (_saving)
+                    {
+                        <div class="w-4 h-4 border-2 border-white/30 border-t-white rounded-full animate-spin"></div>
+                    }
+                    Save entry
+                </button>
+            </div>
+        </div>
+    }
+</div>
+
+@code {
+    private bool _running;
+    private bool _confirming;
+    private bool _open;
+    private bool _loadingJobs;
+    private bool _saving;
+    private Guid? _jobId;
+    private string _jobName = "";
+    private string _note = "";
+    private string? _selectedJobId;
+    private DateTime _startedUtc;
+    private TimeSpan _pendingElapsed;
+    private string _elapsedText = "00:00:00";
+    private string? _justSaved;
+    private List<JobDto> _jobs = new();
+    private System.Timers.Timer? _ticker;
+    private System.Timers.Timer? _toastTimer;
+
+    private const string StorageKey = "timetracker";
+
+    private string PendingHoursLabel => $"({Math.Max(0.01m, Math.Round((decimal)_pendingElapsed.TotalHours, 2, MidpointRounding.AwayFromZero)):0.##}h)";
+
+    private record TrackerState(Guid JobId, string JobName, string? Note, DateTime StartedUtc);
+
+    protected override async Task OnAfterRenderAsync(bool firstRender)
+    {
+        if (!firstRender) return;
+        try
+        {
+            var raw = await JS.InvokeAsync<string?>("localStorage.getItem", StorageKey);
+            if (!string.IsNullOrEmpty(raw))
+            {
+                var state = System.Text.Json.JsonSerializer.Deserialize<TrackerState>(raw);
+                if (state is not null)
+                {
+                    _jobId = state.JobId;
+                    _jobName = state.JobName;
+                    _note = state.Note ?? "";
+                    _startedUtc = state.StartedUtc;
+                    _running = true;
+                    StartTicker();
+                    UpdateElapsed();
+                    StateHasChanged();
+                }
+            }
+        }
+        catch { /* no stored session */ }
+    }
+
+    private async Task TogglePanel()
+    {
+        _open = !_open;
+        if (_open && _jobs.Count == 0)
+            await LoadJobs();
+    }
+
+    private void Close() => _open = false;
+
+    private async Task LoadJobs()
+    {
+        _loadingJobs = true;
+        try
+        {
+            var resp = await GetJobsCall.Call(new GetJobs { Status = "Active", PageSize = 200 });
+            _jobs = resp?.Items?.ToList() ?? new();
+        }
+        catch { _jobs = new(); }
+        finally { _loadingJobs = false; }
+    }
+
+    private async Task StartAsync()
+    {
+        if (string.IsNullOrEmpty(_selectedJobId) || !Guid.TryParse(_selectedJobId, out var jobId)) return;
+        _jobId = jobId;
+        _jobName = _jobs.FirstOrDefault(j => j.Id == jobId)?.Name ?? "Job";
+        _startedUtc = DateTime.UtcNow;
+        _running = true;
+        _open = false;
+
+        await PersistAsync();
+        StartTicker();
+        UpdateElapsed();
+    }
+
+    // Stop → freeze the elapsed time and ask for confirmation.
+    private void BeginStop()
+    {
+        var raw = DateTime.UtcNow - _startedUtc;
+        if (raw < TimeSpan.Zero) raw = TimeSpan.Zero;
+        // Snap to whole minutes (min 1) so the confirmed value, the toast and the
+        // saved timesheet entry all agree — timesheets are stored/shown to the minute.
+        var minutes = Math.Max(1, (int)Math.Round(raw.TotalMinutes, MidpointRounding.AwayFromZero));
+        _pendingElapsed = TimeSpan.FromMinutes(minutes);
+        _elapsedText = Format(_pendingElapsed);
+        StopTicker();
+        _running = false;
+        _confirming = true;
+    }
+
+    private async Task ConfirmSaveAsync()
+    {
+        if (_saving || _jobId is null) return;
+        _saving = true;
+
+        var hours = Math.Round((decimal)_pendingElapsed.TotalHours, 2, MidpointRounding.AwayFromZero);
+        if (hours <= 0) hours = 0.01m;
+        var jobName = _jobName;
+
+        var saved = false;
+        try
+        {
+            await LogTimeEntryCall.Call(new LogTimeEntry
+            {
+                JobId = _jobId.Value,
+                Date = DateOnly.FromDateTime(DateTime.Now),
+                Hours = hours,
+                Description = string.IsNullOrWhiteSpace(_note) ? null : _note.Trim()
+            });
+            saved = true;
+        }
+        catch { /* keep UI responsive */ }
+
+        await ClearStorageAsync();
+        ResetState();
+
+        // Tell any open page (e.g. Timesheet) to refresh without a reload.
+        if (saved) Tracking.NotifyEntryLogged();
+
+        // Format the same way the timesheet renders it, so the toast matches the entry exactly.
+        var totalMinutes = (int)Math.Round(hours * 60);
+        _justSaved = $"Logged {totalMinutes / 60}:{totalMinutes % 60:D2} to {jobName}";
+        StateHasChanged();
+        ScheduleToastClear();
+    }
+
+    private async Task DiscardAsync()
+    {
+        await ClearStorageAsync();
+        ResetState();
+        StateHasChanged();
+    }
+
+    private void ResetState()
+    {
+        _running = false;
+        _confirming = false;
+        _saving = false;
+        _jobId = null;
+        _jobName = "";
+        _note = "";
+        _selectedJobId = null;
+        _pendingElapsed = TimeSpan.Zero;
+        _elapsedText = "00:00:00";
+    }
+
+    private async Task PersistAsync()
+        => await JS.InvokeVoidAsync("localStorage.setItem", StorageKey,
+            System.Text.Json.JsonSerializer.Serialize(new TrackerState(_jobId!.Value, _jobName, _note, _startedUtc)));
+
+    private async Task ClearStorageAsync()
+    {
+        try { await JS.InvokeVoidAsync("localStorage.removeItem", StorageKey); } catch { }
+    }
+
+    private void StartTicker()
+    {
+        StopTicker();
+        _ticker = new System.Timers.Timer(1000) { AutoReset = true };
+        _ticker.Elapsed += (_, _) => InvokeAsync(() => { UpdateElapsed(); StateHasChanged(); });
+        _ticker.Start();
+    }
+
+    private void StopTicker()
+    {
+        _ticker?.Stop();
+        _ticker?.Dispose();
+        _ticker = null;
+    }
+
+    private void ScheduleToastClear()
+    {
+        _toastTimer?.Dispose();
+        _toastTimer = new System.Timers.Timer(3000) { AutoReset = false };
+        _toastTimer.Elapsed += (_, _) => InvokeAsync(() => { _justSaved = null; StateHasChanged(); });
+        _toastTimer.Start();
+    }
+
+    private void UpdateElapsed() => _elapsedText = Format(DateTime.UtcNow - _startedUtc);
+
+    private static string Format(TimeSpan e)
+    {
+        if (e < TimeSpan.Zero) e = TimeSpan.Zero;
+        return $"{(int)e.TotalHours:D2}:{e.Minutes:D2}:{e.Seconds:D2}";
+    }
+
+    public void Dispose()
+    {
+        StopTicker();
+        _toastTimer?.Dispose();
+    }
+}

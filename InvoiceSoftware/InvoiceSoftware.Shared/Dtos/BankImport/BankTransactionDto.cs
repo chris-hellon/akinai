@@ -16,4 +16,6 @@ public record BankTransactionDto(
     bool IsIgnored,
     string? IgnoreReason,
     DateTime ImportedAt,
-    string SourceFileName);
+    string SourceFileName,
+    Guid? ExpenseId = null,
+    bool IsExpensed = false);

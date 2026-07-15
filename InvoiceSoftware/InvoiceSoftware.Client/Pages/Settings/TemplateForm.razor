@@ -4,6 +4,7 @@
 @inject ICall<GetInvoiceTemplate, InvoiceTemplateDto?> GetTemplateCall
 @inject ICall<CreateInvoiceTemplate, Guid> CreateTemplateCall
 @inject ICall<UpdateInvoiceTemplate> UpdateTemplateCall
+@inject ICall<DeleteInvoiceTemplate> DeleteInvoiceTemplateCall
 
 <PageTitle>@(Id.HasValue ? "Edit Template" : "New Template") - InvoicePro</PageTitle>
 
@@ -30,25 +31,21 @@
                             <div>
                                 <label class="block text-sm font-medium text-gray-700 dark:text-slate-300 mb-2">Template Name <span class="text-red-500">*</span></label>
                                 <input type="text" @bind="_model.Name" @bind:event="oninput"
-                                    class="w-full px-4 py-3 text-sm text-gray-900 dark:text-slate-100 bg-white dark:bg-slate-800 border border-gray-200 dark:border-slate-600 rounded-xl transition-all duration-200 placeholder:text-gray-400 dark:placeholder:text-slate-500 focus:outline-none focus:border-primary-400 focus:ring-4 focus:ring-primary-500/10 hover:border-gray-300 dark:hover:border-slate-500"
+                                    class="form-control"
                                     placeholder="e.g., Professional Blue" />
                             </div>
 
                             <div>
                                 <label class="block text-sm font-medium text-gray-700 dark:text-slate-300 mb-2">Description</label>
                                 <textarea @bind="_model.Description" @bind:event="oninput" rows="2"
-                                    class="w-full px-4 py-3 text-sm text-gray-900 dark:text-slate-100 bg-white dark:bg-slate-800 border border-gray-200 dark:border-slate-600 rounded-xl transition-all duration-200 placeholder:text-gray-400 dark:placeholder:text-slate-500 focus:outline-none focus:border-primary-400 focus:ring-4 focus:ring-primary-500/10 hover:border-gray-300 dark:hover:border-slate-500 resize-none"
+                                    class="form-control resize-none"
                                     placeholder="A brief description of this template..."></textarea>
                             </div>
 
                             <div>
                                 <label class="block text-sm font-medium text-gray-700 dark:text-slate-300 mb-2">Template Type</label>
-                                <select @bind="_model.TemplateType" class="w-full px-4 py-2.5 bg-gray-50 dark:bg-slate-700 border-0 rounded-xl focus:ring-2 focus:ring-primary-500/20 text-gray-900 dark:text-slate-100">
-                                    <option value="Minimal">Minimal</option>
-                                    <option value="Professional">Professional</option>
-                                    <option value="Modern">Modern</option>
-                                    <option value="Classic">Classic</option>
-                                </select>
+                                <Select TValue="string" @bind-Value="_model.TemplateType" Searchable="false"
+                                    Options="@(new List<SelectOption<string>> { new("Minimal", "Minimal"), new("Professional", "Professional"), new("Modern", "Modern"), new("Classic", "Classic") })" />
                             </div>
                         </div>
                     </Card>
@@ -60,28 +57,28 @@
                                 <label class="block text-sm font-medium text-gray-700 dark:text-slate-300 mb-2">Primary Color</label>
                                 <div class="flex items-center gap-3">
                                     <input type="color" @bind="_model.PrimaryColor" @bind:event="oninput" class="w-12 h-10 rounded-lg border border-gray-200 dark:border-slate-600 cursor-pointer" />
-                                    <input type="text" @bind="_model.PrimaryColor" @bind:event="oninput" class="flex-1 px-4 py-2 bg-gray-50 dark:bg-slate-700 border-0 rounded-xl text-sm text-gray-900 dark:text-slate-100 uppercase" />
+                                    <input type="text" @bind="_model.PrimaryColor" @bind:event="oninput" class="form-control flex-1 uppercase" />
                                 </div>
                             </div>
                             <div>
                                 <label class="block text-sm font-medium text-gray-700 dark:text-slate-300 mb-2">Accent Color</label>
                                 <div class="flex items-center gap-3">
                                     <input type="color" @bind="_model.AccentColor" @bind:event="oninput" class="w-12 h-10 rounded-lg border border-gray-200 dark:border-slate-600 cursor-pointer" />
-                                    <input type="text" @bind="_model.AccentColor" @bind:event="oninput" class="flex-1 px-4 py-2 bg-gray-50 dark:bg-slate-700 border-0 rounded-xl text-sm text-gray-900 dark:text-slate-100 uppercase" />
+                                    <input type="text" @bind="_model.AccentColor" @bind:event="oninput" class="form-control flex-1 uppercase" />
                                 </div>
                             </div>
                             <div>
                                 <label class="block text-sm font-medium text-gray-700 dark:text-slate-300 mb-2">Text Color</label>
                                 <div class="flex items-center gap-3">
                                     <input type="color" @bind="_model.TextColor" @bind:event="oninput" class="w-12 h-10 rounded-lg border border-gray-200 dark:border-slate-600 cursor-pointer" />
-                                    <input type="text" @bind="_model.TextColor" @bind:event="oninput" class="flex-1 px-4 py-2 bg-gray-50 dark:bg-slate-700 border-0 rounded-xl text-sm text-gray-900 dark:text-slate-100 uppercase" />
+                                    <input type="text" @bind="_model.TextColor" @bind:event="oninput" class="form-control flex-1 uppercase" />
                                 </div>
                             </div>
                             <div>
                                 <label class="block text-sm font-medium text-gray-700 dark:text-slate-300 mb-2">Background Color</label>
                                 <div class="flex items-center gap-3">
                                     <input type="color" @bind="_model.BackgroundColor" @bind:event="oninput" class="w-12 h-10 rounded-lg border border-gray-200 dark:border-slate-600 cursor-pointer" />
-                                    <input type="text" @bind="_model.BackgroundColor" @bind:event="oninput" class="flex-1 px-4 py-2 bg-gray-50 dark:bg-slate-700 border-0 rounded-xl text-sm text-gray-900 dark:text-slate-100 uppercase" />
+                                    <input type="text" @bind="_model.BackgroundColor" @bind:event="oninput" class="form-control flex-1 uppercase" />
                                 </div>
                             </div>
                         </div>
@@ -93,40 +90,25 @@
                             <div class="grid grid-cols-3 gap-4">
                                 <div>
                                     <label class="block text-sm font-medium text-gray-700 dark:text-slate-300 mb-2">Header Layout</label>
-                                    <select @bind="_model.HeaderLayout" class="w-full px-4 py-2.5 bg-gray-50 dark:bg-slate-700 border-0 rounded-xl focus:ring-2 focus:ring-primary-500/20 text-gray-900 dark:text-slate-100">
-                                        <option value="standard">Standard</option>
-                                        <option value="centered">Centered</option>
-                                        <option value="minimal">Minimal</option>
-                                    </select>
+                                    <Select TValue="string" @bind-Value="_model.HeaderLayout" Searchable="false"
+                                        Options="@(new List<SelectOption<string>> { new("standard", "Standard"), new("centered", "Centered"), new("minimal", "Minimal") })" />
                                 </div>
                                 <div>
                                     <label class="block text-sm font-medium text-gray-700 dark:text-slate-300 mb-2">Items Layout</label>
-                                    <select @bind="_model.ItemsLayout" class="w-full px-4 py-2.5 bg-gray-50 dark:bg-slate-700 border-0 rounded-xl focus:ring-2 focus:ring-primary-500/20 text-gray-900 dark:text-slate-100">
-                                        <option value="standard">Standard</option>
-                                        <option value="bordered">Bordered</option>
-                                        <option value="striped">Striped</option>
-                                    </select>
+                                    <Select TValue="string" @bind-Value="_model.ItemsLayout" Searchable="false"
+                                        Options="@(new List<SelectOption<string>> { new("standard", "Standard"), new("bordered", "Bordered"), new("striped", "Striped") })" />
                                 </div>
                                 <div>
                                     <label class="block text-sm font-medium text-gray-700 dark:text-slate-300 mb-2">Footer Layout</label>
-                                    <select @bind="_model.FooterLayout" class="w-full px-4 py-2.5 bg-gray-50 dark:bg-slate-700 border-0 rounded-xl focus:ring-2 focus:ring-primary-500/20 text-gray-900 dark:text-slate-100">
-                                        <option value="standard">Standard</option>
-                                        <option value="detailed">Detailed</option>
-                                        <option value="minimal">Minimal</option>
-                                    </select>
+                                    <Select TValue="string" @bind-Value="_model.FooterLayout" Searchable="false"
+                                        Options="@(new List<SelectOption<string>> { new("standard", "Standard"), new("detailed", "Detailed"), new("minimal", "Minimal") })" />
                                 </div>
                             </div>
 
                             <div>
                                 <label class="block text-sm font-medium text-gray-700 dark:text-slate-300 mb-2">Font Family (Optional)</label>
-                                <select @bind="_model.FontFamily" class="w-full px-4 py-2.5 bg-gray-50 dark:bg-slate-700 border-0 rounded-xl focus:ring-2 focus:ring-primary-500/20 text-gray-900 dark:text-slate-100">
-                                    <option value="">System Default</option>
-                                    <option value="Inter">Inter</option>
-                                    <option value="Roboto">Roboto</option>
-                                    <option value="Open Sans">Open Sans</option>
-                                    <option value="Lato">Lato</option>
-                                    <option value="Montserrat">Montserrat</option>
-                                </select>
+                                <Select TValue="string" @bind-Value="_model.FontFamily" Searchable="false" Placeholder="System Default"
+                                    Options="@(new List<SelectOption<string>> { new("", "System Default"), new("Inter", "Inter"), new("Roboto", "Roboto"), new("Open Sans", "Open Sans"), new("Lato", "Lato"), new("Montserrat", "Montserrat") })" />
                             </div>
                         </div>
                     </Card>
@@ -184,6 +166,13 @@
                 </div>
             </div>
         </form>
+
+        @if (Id.HasValue && !_model.IsSystem)
+        {
+            <DangerZone EntityLabel="Template" ItemName="@_model.Name"
+                        WarningMessage="This will permanently delete this invoice template. This cannot be undone."
+                        OnConfirmed="DeleteAsync" />
+        }
     }
 </div>
 
@@ -224,6 +213,7 @@
             {
                 _model = new TemplateModel
                 {
+                    IsSystem = template.IsSystem,
                     Name = template.Name,
                     Description = template.Description,
                     TemplateType = template.TemplateType,
@@ -249,6 +239,20 @@
         finally
         {
             _isLoading = false;
+        }
+    }
+
+    private async Task DeleteAsync()
+    {
+        _errorMessage = null;
+        try
+        {
+            await DeleteInvoiceTemplateCall.Call(new DeleteInvoiceTemplate { Id = Id!.Value });
+            NavigationManager.NavigateTo("settings/templates");
+        }
+        catch (Exception ex)
+        {
+            _errorMessage = $"Failed to delete template: {ex.Message}";
         }
     }
 
@@ -323,11 +327,12 @@
 
     private class TemplateModel
     {
+        public bool IsSystem { get; set; }
         public string Name { get; set; } = "";
         public string? Description { get; set; }
         public string TemplateType { get; set; } = "Professional";
-        public string PrimaryColor { get; set; } = "#4F46E5";
-        public string AccentColor { get; set; } = "#6366F1";
+        public string PrimaryColor { get; set; } = "#0e5c66";
+        public string AccentColor { get; set; } = "#059669";
         public string TextColor { get; set; } = "#1F2937";
         public string BackgroundColor { get; set; } = "#FFFFFF";
         public bool ShowLogo { get; set; } = true;
