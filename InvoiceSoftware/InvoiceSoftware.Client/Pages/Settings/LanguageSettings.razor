@@ -3,6 +3,8 @@
 @inject ICall<GetSupportedLanguages, List<LanguageDto>> GetLanguagesCall
 @inject ICall<GetUserLanguageSettings, UserLanguageSettingsDto?> GetSettingsCall
 @inject ICall<UpdateUserLanguageSettings> UpdateSettingsCall
+@inject InvoiceSoftware.Client.Services.EntitlementState Entitlements
+@implements IDisposable
 
 <PageTitle>Language Settings - Akinai</PageTitle>
 
@@ -19,13 +21,18 @@
     {
         <form @onsubmit="SaveAsync">
             <div class="space-y-6">
+                @if (_restricted)
+                {
+                    <PlanRestrictionNote Message="Your plan sends invoices and estimates in English. Pro unlocks all six languages, including per-client overrides." />
+                }
+
                 <Card Title="Language Preferences" Description="Choose which languages to use for different document types.">
                     <div class="space-y-6">
                         <div>
                             <label class="block text-sm font-medium text-gray-700 dark:text-slate-300 mb-2">Default Language</label>
                             <p class="text-xs text-gray-500 dark:text-slate-400 mb-2">The primary language used throughout the application.</p>
                             <Select TValue="string" @bind-Value="_defaultLanguage" Class="w-full"
-                                    Options="@(_languages?.Select(l => new SelectOption<string>(l.Code, $"{l.Name} ({l.NativeName})")).ToList() ?? new())" />
+                                    Options="@(SelectableLanguages().Select(l => new SelectOption<string>(l.Code, $"{l.Name} ({l.NativeName})")).ToList())" />
                         </div>
 
                         <div class="border-t border-gray-100 dark:border-slate-700 pt-6">
@@ -38,13 +45,13 @@
                                 <div>
                                     <label class="block text-sm font-medium text-gray-700 dark:text-slate-300 mb-2">Invoice Language</label>
                                     <Select TValue="string" @bind-Value="_invoiceLanguage" Class="w-full"
-                                            Options="@(_languages?.Select(l => new SelectOption<string>(l.Code, $"{l.Name} ({l.NativeName})")).ToList() ?? new())" />
+                                            Options="@(SelectableLanguages().Select(l => new SelectOption<string>(l.Code, $"{l.Name} ({l.NativeName})")).ToList())" />
                                 </div>
 
                                 <div>
                                     <label class="block text-sm font-medium text-gray-700 dark:text-slate-300 mb-2">Estimate Language</label>
                                     <Select TValue="string" @bind-Value="_estimateLanguage" Class="w-full"
-                                            Options="@(_languages?.Select(l => new SelectOption<string>(l.Code, $"{l.Name} ({l.NativeName})")).ToList() ?? new())" />
+                                            Options="@(SelectableLanguages().Select(l => new SelectOption<string>(l.Code, $"{l.Name} ({l.NativeName})")).ToList())" />
                                 </div>
                             </div>
                         </div>
@@ -107,7 +114,24 @@
 <ErrorAlert Message="@_errorMessage" />
 
 @code {
+    // A plan change pushed from the server (see NotificationState) re-renders
+    // this page, so the pickers widen or narrow without a reload.
+    private void OnEntitlementsChanged() => InvokeAsync(StateHasChanged);
+
+    public void Dispose() => Entitlements.OnChange -= OnEntitlementsChanged;
+
     private List<LanguageDto> _languages = new();
+
+    // Computed at render, not filtered once at load, so a plan change pushed
+    // over SignalR takes effect without reloading the page.
+    private bool _restricted => Entitlements.Current?.AllowedLanguages is { Count: > 0 };
+
+    private List<LanguageDto> SelectableLanguages()
+    {
+        var allowed = Entitlements.Current?.AllowedLanguages;
+        if (allowed is not { Count: > 0 }) return _languages;
+        return _languages.Where(l => allowed.Contains(l.Code) || l.Code == _defaultLanguage).ToList();
+    }
     private string _defaultLanguage = "en";
     private string _invoiceLanguage = "en";
     private string _estimateLanguage = "en";
@@ -118,6 +142,7 @@
 
     protected override async Task OnInitializedAsync()
     {
+        Entitlements.OnChange += OnEntitlementsChanged;
         await LoadData();
     }
 
@@ -127,6 +152,8 @@
         try
         {
             _languages = await GetLanguagesCall.Call(new GetSupportedLanguages());
+
+            await Entitlements.EnsureLoadedAsync();
 
             var settings = await GetSettingsCall.Call(new GetUserLanguageSettings());
             if (settings != null)

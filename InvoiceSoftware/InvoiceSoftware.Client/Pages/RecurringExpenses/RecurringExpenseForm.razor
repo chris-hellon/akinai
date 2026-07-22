@@ -11,253 +11,257 @@
 
 <PageTitle>@(Id.HasValue ? "Edit Recurring Expense" : "New Recurring Expense") - Akinai</PageTitle>
 
-<div class="space-y-6">
-    <PageHeader Title="@(Id.HasValue ? "Edit Recurring Expense" : "New Recurring Expense")"
-                Description="@(Id.HasValue ? "Update recurring expense details" : "Set up a new recurring expense")"
-                ShowBackButton="true"
-                BackUrl="recurring-expenses"
-                Breadcrumbs="@_breadcrumbs" />
+<PlanGate Feature="@(e => e.RecurringBilling)"
+          Title="Recurring expenses are a Pro feature"
+          Description="Track subscriptions and standing costs automatically instead of entering them every month.">
+    <div class="space-y-6">
+        <PageHeader Title="@(Id.HasValue ? "Edit Recurring Expense" : "New Recurring Expense")"
+                    Description="@(Id.HasValue ? "Update recurring expense details" : "Set up a new recurring expense")"
+                    ShowBackButton="true"
+                    BackUrl="recurring-expenses"
+                    Breadcrumbs="@_breadcrumbs" />
 
-    @if (_isLoading)
-    {
-        <div class="flex justify-center py-20">
-            <div class="w-8 h-8 border-2 border-gray-200 border-t-primary-600 rounded-full animate-spin"></div>
-        </div>
-    }
-    else
-    {
-        <EditForm Model="_model" OnValidSubmit="HandleSubmit" class="space-y-6">
-            <DataAnnotationsValidator />
-
-            <!-- Basic Details Section -->
-            <div class="card overflow-hidden">
-                <div class="card-header">
-                    <h2 class="text-sm font-semibold text-gray-900 dark:text-slate-100">Expense Details</h2>
-                    <p class="text-xs text-gray-500 dark:text-slate-400 mt-0.5">Basic information about this recurring expense.</p>
-                </div>
-                <div class="p-6 space-y-5">
-                    <div class="grid grid-cols-1 sm:grid-cols-2 gap-5">
-                        <div>
-                            <label for="category" class="block text-sm font-medium text-gray-700 dark:text-slate-300 mb-2">Category <span class="text-red-500">*</span></label>
-                            <Select TValue="string" @bind-Value="_model.Category"
-                                    Options="@(Enum.GetValues<ExpenseCategory>().Select(c => new SelectOption<string>(c.ToString(), c.GetDisplayName())).ToList())" />
-                        </div>
-
-                        <div>
-                            <label for="paymentMethod" class="block text-sm font-medium text-gray-700 dark:text-slate-300 mb-2">Payment Method <span class="text-red-500">*</span></label>
-                            <Select TValue="string" @bind-Value="_model.PaymentMethod" Searchable="false"
-                                    Options="@(Enum.GetValues<PaymentMethod>().Select(m => new SelectOption<string>(m.ToString(), m.GetDisplayName())).ToList())" />
-                        </div>
-                    </div>
-
-                    <div>
-                        <label for="merchantName" class="block text-sm font-medium text-gray-700 dark:text-slate-300 mb-2">Merchant Name <span class="text-red-500">*</span></label>
-                        <InputText id="merchantName" @bind-Value="_model.MerchantName"
-                            class="form-control"
-                            placeholder="e.g., Adobe, GitHub, AWS" />
-                        <ValidationMessage For="@(() => _model.MerchantName)" class="mt-1.5 text-xs text-red-600" />
-                    </div>
-
-                    <div>
-                        <label for="groupName" class="block text-sm font-medium text-gray-700 dark:text-slate-300 mb-2">Group / Tag</label>
-                        <InputText id="groupName" @bind-Value="_model.GroupName"
-                            class="form-control"
-                            placeholder="e.g., Software Subscriptions" />
-                    </div>
-                </div>
+        @if (_isLoading)
+        {
+            <div class="flex justify-center py-20">
+                <div class="w-8 h-8 border-2 border-gray-200 border-t-primary-600 rounded-full animate-spin"></div>
             </div>
+        }
+        else
+        {
+            <EditForm Model="_model" OnValidSubmit="HandleSubmit" class="space-y-6">
+                <DataAnnotationsValidator />
 
-            <!-- Schedule Section -->
-            <div class="card overflow-hidden">
-                <div class="card-header">
-                    <h2 class="text-sm font-semibold text-gray-900 dark:text-slate-100">Schedule</h2>
-                    <p class="text-xs text-gray-500 dark:text-slate-400 mt-0.5">How often this expense occurs.</p>
-                </div>
-                <div class="p-6 space-y-5">
-                    <div class="grid grid-cols-1 sm:grid-cols-3 gap-5">
-                        <div>
-                            <label for="frequencyInterval" class="block text-sm font-medium text-gray-700 dark:text-slate-300 mb-2">Every</label>
-                            <InputNumber id="frequencyInterval" @bind-Value="_model.FrequencyInterval" min="1" max="365"
-                                class="form-control" />
-                        </div>
-
-                        <div>
-                            <label for="frequency" class="block text-sm font-medium text-gray-700 dark:text-slate-300 mb-2">Period</label>
-                            <Select TValue="string" @bind-Value="_model.Frequency" Searchable="false"
-                                    Options="@(Enum.GetValues<RecurrenceFrequency>().Select(f => new SelectOption<string>(f.ToString(), f.GetDisplayName())).ToList())" />
-                        </div>
-
-                        <div class="pt-8">
-                            <div class="text-sm text-gray-600 dark:text-slate-400">
-                                Repeats: <span class="font-medium text-gray-900 dark:text-slate-100">@GetFrequencyDescription()</span>
-                            </div>
-                        </div>
+                <!-- Basic Details Section -->
+                <div class="card overflow-hidden">
+                    <div class="card-header">
+                        <h2 class="text-sm font-semibold text-gray-900 dark:text-slate-100">Expense Details</h2>
+                        <p class="text-xs text-gray-500 dark:text-slate-400 mt-0.5">Basic information about this recurring expense.</p>
                     </div>
-
-                    <div class="grid grid-cols-1 sm:grid-cols-2 gap-5">
-                        <div>
-                            <label for="startDate" class="block text-sm font-medium text-gray-700 dark:text-slate-300 mb-2">Start Date <span class="text-red-500">*</span></label>
-                            <DatePicker TValue="DateOnly" @bind-Value="_model.StartDate" Clearable="false" />
-                            <p class="mt-1.5 text-xs text-gray-500 dark:text-slate-400">First expense will be created on this date.</p>
-                        </div>
-
-                        <div>
-                            <label for="endDate" class="block text-sm font-medium text-gray-700 dark:text-slate-300 mb-2">End Date</label>
-                            <DatePicker @bind-Value="_model.EndDate" />
-                            <p class="mt-1.5 text-xs text-gray-500 dark:text-slate-400">Leave empty to continue indefinitely.</p>
-                        </div>
-                    </div>
-                </div>
-            </div>
-
-            <!-- Amount & Tax Section -->
-            <div class="card overflow-hidden">
-                <div class="card-header">
-                    <h2 class="text-sm font-semibold text-gray-900 dark:text-slate-100">Amount & Tax</h2>
-                    <p class="text-xs text-gray-500 dark:text-slate-400 mt-0.5">Expense amount and tax details.</p>
-                </div>
-                <div class="p-6 space-y-5">
-                    <div class="grid grid-cols-1 sm:grid-cols-2 gap-5">
-                        <div>
-                            <label for="amount" class="block text-sm font-medium text-gray-700 dark:text-slate-300 mb-2">Amount <span class="text-red-500">*</span></label>
-                            <div class="relative">
-                                <div class="absolute inset-y-0 left-0 pl-4 flex items-center pointer-events-none">
-                                    <span class="text-gray-500 dark:text-slate-400 text-sm">@CurrencyExtensions.GetSymbol(_model.Currency)</span>
-                                </div>
-                                <InputNumber id="amount" @bind-Value="_model.Amount"
-                                    class="form-control pl-8" />
-                            </div>
-                            <ValidationMessage For="@(() => _model.Amount)" class="mt-1.5 text-xs text-red-600" />
-                        </div>
-
-                        <div>
-                            <label for="currency" class="block text-sm font-medium text-gray-700 dark:text-slate-300 mb-2">Currency</label>
-                            <Select TValue="string" @bind-Value="_model.Currency" Searchable="false"
-                                    Options="@(Enum.GetValues<Currency>().Select(c => new SelectOption<string>(c.ToString(), c.GetDisplayName())).ToList())" />
-                        </div>
-                    </div>
-
-                    <div class="grid grid-cols-1 sm:grid-cols-2 gap-5">
-                        <div>
-                            <label for="taxAmount" class="block text-sm font-medium text-gray-700 dark:text-slate-300 mb-2">Tax Amount</label>
-                            <div class="relative">
-                                <div class="absolute inset-y-0 left-0 pl-4 flex items-center pointer-events-none">
-                                    <span class="text-gray-500 dark:text-slate-400 text-sm">@CurrencyExtensions.GetSymbol(_model.Currency)</span>
-                                </div>
-                                <InputNumber id="taxAmount" @bind-Value="_model.TaxAmount"
-                                    class="form-control pl-8" />
-                            </div>
-                        </div>
-
-                        <div class="flex items-center pt-8">
-                            <InputCheckbox id="isTaxInclusive" @bind-Value="_model.IsTaxInclusive"
-                                class="h-4 w-4 text-primary-600 border-gray-300 dark:border-slate-600 rounded focus:ring-primary-500" />
-                            <label for="isTaxInclusive" class="ml-3 text-sm text-gray-700 dark:text-slate-300">Tax is included in amount</label>
-                        </div>
-                    </div>
-
-                    <div>
-                        <label for="merchantTaxNumber" class="block text-sm font-medium text-gray-700 dark:text-slate-300 mb-2">Merchant Tax Number</label>
-                        <InputText id="merchantTaxNumber" @bind-Value="_model.MerchantTaxNumber"
-                            class="form-control"
-                            placeholder="e.g., VAT number, GST number" />
-                    </div>
-                </div>
-            </div>
-
-            <!-- Billing Section -->
-            <div class="card overflow-hidden">
-                <div class="card-header">
-                    <h2 class="text-sm font-semibold text-gray-900 dark:text-slate-100">Billing</h2>
-                    <p class="text-xs text-gray-500 dark:text-slate-400 mt-0.5">Link generated expenses to a client for billing.</p>
-                </div>
-                <div class="p-6 space-y-5">
-                    <div class="flex items-center gap-6">
-                        <div class="flex items-center">
-                            <InputCheckbox id="isReimbursable" @bind-Value="_model.IsReimbursable"
-                                class="h-4 w-4 text-primary-600 border-gray-300 dark:border-slate-600 rounded focus:ring-primary-500" />
-                            <label for="isReimbursable" class="ml-3 text-sm text-gray-700 dark:text-slate-300">Reimbursable</label>
-                        </div>
-                        <div class="flex items-center">
-                            <InputCheckbox id="isBillable" @bind-Value="_model.IsBillable" @bind-Value:after="OnBillableChanged"
-                                class="h-4 w-4 text-primary-600 border-gray-300 dark:border-slate-600 rounded focus:ring-primary-500" />
-                            <label for="isBillable" class="ml-3 text-sm text-gray-700 dark:text-slate-300">Billable to Client</label>
-                        </div>
-                    </div>
-
-                    @if (_model.IsBillable)
-                    {
+                    <div class="p-6 space-y-5">
                         <div class="grid grid-cols-1 sm:grid-cols-2 gap-5">
                             <div>
-                                <label for="clientId" class="block text-sm font-medium text-gray-700 dark:text-slate-300 mb-2">Client <span class="text-red-500">*</span></label>
-                                <Select TValue="Guid?" Value="_model.ClientId" ValueChanged="OnClientChanged" ValueExpression="@(() => _model.ClientId)"
-                                        Placeholder="Select a client..."
-                                        Options="@(_clients?.Select(c => new SelectOption<Guid?>(c.Id, c.Name)).ToList() ?? new())" />
+                                <label for="category" class="block text-sm font-medium text-gray-700 dark:text-slate-300 mb-2">Category <span class="text-red-500">*</span></label>
+                                <Select TValue="string" @bind-Value="_model.Category"
+                                        Options="@(Enum.GetValues<ExpenseCategory>().Select(c => new SelectOption<string>(c.ToString(), c.GetDisplayName())).ToList())" />
                             </div>
 
                             <div>
-                                <label for="projectId" class="block text-sm font-medium text-gray-700 dark:text-slate-300 mb-2">Project</label>
-                                <Select TValue="Guid?" @bind-Value="_model.ProjectId" Placeholder="Select a project..."
-                                        Options="@(_filteredProjects?.Select(p => new SelectOption<Guid?>(p.Id, p.Name)).ToList() ?? new())" />
+                                <label for="paymentMethod" class="block text-sm font-medium text-gray-700 dark:text-slate-300 mb-2">Payment Method <span class="text-red-500">*</span></label>
+                                <Select TValue="string" @bind-Value="_model.PaymentMethod" Searchable="false"
+                                        Options="@(Enum.GetValues<PaymentMethod>().Select(m => new SelectOption<string>(m.ToString(), m.GetDisplayName())).ToList())" />
                             </div>
                         </div>
-                    }
-                </div>
-            </div>
 
-            <!-- Notes Section -->
-            <div class="card overflow-hidden">
-                <div class="card-header">
-                    <h2 class="text-sm font-semibold text-gray-900 dark:text-slate-100">Notes</h2>
-                    <p class="text-xs text-gray-500 dark:text-slate-400 mt-0.5">Additional notes (will be copied to generated expenses).</p>
-                </div>
-                <div class="p-6">
-                    <InputTextArea id="notes" @bind-Value="_model.Notes" rows="4"
-                        class="form-control resize-none"
-                        placeholder="Any additional notes..." />
-                </div>
-            </div>
+                        <div>
+                            <label for="merchantName" class="block text-sm font-medium text-gray-700 dark:text-slate-300 mb-2">Merchant Name <span class="text-red-500">*</span></label>
+                            <InputText id="merchantName" @bind-Value="_model.MerchantName"
+                                class="form-control"
+                                placeholder="e.g., Adobe, GitHub, AWS" />
+                            <ValidationMessage For="@(() => _model.MerchantName)" class="mt-1.5 text-xs text-red-600" />
+                        </div>
 
-            <!-- Error Message -->
-            @if (!string.IsNullOrEmpty(_errorMessage))
-            {
-                <div class="rounded-lg bg-red-50 dark:bg-red-900/20 border border-red-100 dark:border-red-800 p-4">
-                    <div class="flex gap-3">
-                        <svg class="h-5 w-5 text-red-500 shrink-0" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                            <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M12 8v4m0 4h.01M21 12a9 9 0 11-18 0 9 9 0 0118 0z" />
-                        </svg>
-                        <p class="text-sm text-red-700 dark:text-red-400">@_errorMessage</p>
+                        <div>
+                            <label for="groupName" class="block text-sm font-medium text-gray-700 dark:text-slate-300 mb-2">Group / Tag</label>
+                            <InputText id="groupName" @bind-Value="_model.GroupName"
+                                class="form-control"
+                                placeholder="e.g., Software Subscriptions" />
+                        </div>
                     </div>
                 </div>
+
+                <!-- Schedule Section -->
+                <div class="card overflow-hidden">
+                    <div class="card-header">
+                        <h2 class="text-sm font-semibold text-gray-900 dark:text-slate-100">Schedule</h2>
+                        <p class="text-xs text-gray-500 dark:text-slate-400 mt-0.5">How often this expense occurs.</p>
+                    </div>
+                    <div class="p-6 space-y-5">
+                        <div class="grid grid-cols-1 sm:grid-cols-3 gap-5">
+                            <div>
+                                <label for="frequencyInterval" class="block text-sm font-medium text-gray-700 dark:text-slate-300 mb-2">Every</label>
+                                <InputNumber id="frequencyInterval" @bind-Value="_model.FrequencyInterval" min="1" max="365"
+                                    class="form-control" />
+                            </div>
+
+                            <div>
+                                <label for="frequency" class="block text-sm font-medium text-gray-700 dark:text-slate-300 mb-2">Period</label>
+                                <Select TValue="string" @bind-Value="_model.Frequency" Searchable="false"
+                                        Options="@(Enum.GetValues<RecurrenceFrequency>().Select(f => new SelectOption<string>(f.ToString(), f.GetDisplayName())).ToList())" />
+                            </div>
+
+                            <div class="pt-8">
+                                <div class="text-sm text-gray-600 dark:text-slate-400">
+                                    Repeats: <span class="font-medium text-gray-900 dark:text-slate-100">@GetFrequencyDescription()</span>
+                                </div>
+                            </div>
+                        </div>
+
+                        <div class="grid grid-cols-1 sm:grid-cols-2 gap-5">
+                            <div>
+                                <label for="startDate" class="block text-sm font-medium text-gray-700 dark:text-slate-300 mb-2">Start Date <span class="text-red-500">*</span></label>
+                                <DatePicker TValue="DateOnly" @bind-Value="_model.StartDate" Clearable="false" />
+                                <p class="mt-1.5 text-xs text-gray-500 dark:text-slate-400">First expense will be created on this date.</p>
+                            </div>
+
+                            <div>
+                                <label for="endDate" class="block text-sm font-medium text-gray-700 dark:text-slate-300 mb-2">End Date</label>
+                                <DatePicker @bind-Value="_model.EndDate" />
+                                <p class="mt-1.5 text-xs text-gray-500 dark:text-slate-400">Leave empty to continue indefinitely.</p>
+                            </div>
+                        </div>
+                    </div>
+                </div>
+
+                <!-- Amount & Tax Section -->
+                <div class="card overflow-hidden">
+                    <div class="card-header">
+                        <h2 class="text-sm font-semibold text-gray-900 dark:text-slate-100">Amount & Tax</h2>
+                        <p class="text-xs text-gray-500 dark:text-slate-400 mt-0.5">Expense amount and tax details.</p>
+                    </div>
+                    <div class="p-6 space-y-5">
+                        <div class="grid grid-cols-1 sm:grid-cols-2 gap-5">
+                            <div>
+                                <label for="amount" class="block text-sm font-medium text-gray-700 dark:text-slate-300 mb-2">Amount <span class="text-red-500">*</span></label>
+                                <div class="relative">
+                                    <div class="absolute inset-y-0 left-0 pl-4 flex items-center pointer-events-none">
+                                        <span class="text-gray-500 dark:text-slate-400 text-sm">@CurrencyExtensions.GetSymbol(_model.Currency)</span>
+                                    </div>
+                                    <InputNumber id="amount" @bind-Value="_model.Amount"
+                                        class="form-control pl-8" />
+                                </div>
+                                <ValidationMessage For="@(() => _model.Amount)" class="mt-1.5 text-xs text-red-600" />
+                            </div>
+
+                            <div>
+                                <label for="currency" class="block text-sm font-medium text-gray-700 dark:text-slate-300 mb-2">Currency</label>
+                                <Select TValue="string" @bind-Value="_model.Currency" Searchable="false"
+                                        Options="@(Enum.GetValues<Currency>().Select(c => new SelectOption<string>(c.ToString(), c.GetDisplayName())).ToList())" />
+                            </div>
+                        </div>
+
+                        <div class="grid grid-cols-1 sm:grid-cols-2 gap-5">
+                            <div>
+                                <label for="taxAmount" class="block text-sm font-medium text-gray-700 dark:text-slate-300 mb-2">Tax Amount</label>
+                                <div class="relative">
+                                    <div class="absolute inset-y-0 left-0 pl-4 flex items-center pointer-events-none">
+                                        <span class="text-gray-500 dark:text-slate-400 text-sm">@CurrencyExtensions.GetSymbol(_model.Currency)</span>
+                                    </div>
+                                    <InputNumber id="taxAmount" @bind-Value="_model.TaxAmount"
+                                        class="form-control pl-8" />
+                                </div>
+                            </div>
+
+                            <div class="flex items-center pt-8">
+                                <InputCheckbox id="isTaxInclusive" @bind-Value="_model.IsTaxInclusive"
+                                    class="h-4 w-4 text-primary-600 border-gray-300 dark:border-slate-600 rounded focus:ring-primary-500" />
+                                <label for="isTaxInclusive" class="ml-3 text-sm text-gray-700 dark:text-slate-300">Tax is included in amount</label>
+                            </div>
+                        </div>
+
+                        <div>
+                            <label for="merchantTaxNumber" class="block text-sm font-medium text-gray-700 dark:text-slate-300 mb-2">Merchant Tax Number</label>
+                            <InputText id="merchantTaxNumber" @bind-Value="_model.MerchantTaxNumber"
+                                class="form-control"
+                                placeholder="e.g., VAT number, GST number" />
+                        </div>
+                    </div>
+                </div>
+
+                <!-- Billing Section -->
+                <div class="card overflow-hidden">
+                    <div class="card-header">
+                        <h2 class="text-sm font-semibold text-gray-900 dark:text-slate-100">Billing</h2>
+                        <p class="text-xs text-gray-500 dark:text-slate-400 mt-0.5">Link generated expenses to a client for billing.</p>
+                    </div>
+                    <div class="p-6 space-y-5">
+                        <div class="flex items-center gap-6">
+                            <div class="flex items-center">
+                                <InputCheckbox id="isReimbursable" @bind-Value="_model.IsReimbursable"
+                                    class="h-4 w-4 text-primary-600 border-gray-300 dark:border-slate-600 rounded focus:ring-primary-500" />
+                                <label for="isReimbursable" class="ml-3 text-sm text-gray-700 dark:text-slate-300">Reimbursable</label>
+                            </div>
+                            <div class="flex items-center">
+                                <InputCheckbox id="isBillable" @bind-Value="_model.IsBillable" @bind-Value:after="OnBillableChanged"
+                                    class="h-4 w-4 text-primary-600 border-gray-300 dark:border-slate-600 rounded focus:ring-primary-500" />
+                                <label for="isBillable" class="ml-3 text-sm text-gray-700 dark:text-slate-300">Billable to Client</label>
+                            </div>
+                        </div>
+
+                        @if (_model.IsBillable)
+                        {
+                            <div class="grid grid-cols-1 sm:grid-cols-2 gap-5">
+                                <div>
+                                    <label for="clientId" class="block text-sm font-medium text-gray-700 dark:text-slate-300 mb-2">Client <span class="text-red-500">*</span></label>
+                                    <Select TValue="Guid?" Value="_model.ClientId" ValueChanged="OnClientChanged" ValueExpression="@(() => _model.ClientId)"
+                                            Placeholder="Select a client..."
+                                            Options="@(_clients?.Select(c => new SelectOption<Guid?>(c.Id, c.Name)).ToList() ?? new())" />
+                                </div>
+
+                                <div>
+                                    <label for="projectId" class="block text-sm font-medium text-gray-700 dark:text-slate-300 mb-2">Project</label>
+                                    <Select TValue="Guid?" @bind-Value="_model.ProjectId" Placeholder="Select a project..."
+                                            Options="@(_filteredProjects?.Select(p => new SelectOption<Guid?>(p.Id, p.Name)).ToList() ?? new())" />
+                                </div>
+                            </div>
+                        }
+                    </div>
+                </div>
+
+                <!-- Notes Section -->
+                <div class="card overflow-hidden">
+                    <div class="card-header">
+                        <h2 class="text-sm font-semibold text-gray-900 dark:text-slate-100">Notes</h2>
+                        <p class="text-xs text-gray-500 dark:text-slate-400 mt-0.5">Additional notes (will be copied to generated expenses).</p>
+                    </div>
+                    <div class="p-6">
+                        <InputTextArea id="notes" @bind-Value="_model.Notes" rows="4"
+                            class="form-control resize-none"
+                            placeholder="Any additional notes..." />
+                    </div>
+                </div>
+
+                <!-- Error Message -->
+                @if (!string.IsNullOrEmpty(_errorMessage))
+                {
+                    <div class="rounded-lg bg-red-50 dark:bg-red-900/20 border border-red-100 dark:border-red-800 p-4">
+                        <div class="flex gap-3">
+                            <svg class="h-5 w-5 text-red-500 shrink-0" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                                <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M12 8v4m0 4h.01M21 12a9 9 0 11-18 0 9 9 0 0118 0z" />
+                            </svg>
+                            <p class="text-sm text-red-700 dark:text-red-400">@_errorMessage</p>
+                        </div>
+                    </div>
+                }
+
+                <!-- Actions -->
+                <div class="flex items-center justify-end gap-3 pt-4">
+                    <a href="recurring-expenses" class="px-5 py-2.5 text-sm font-medium text-gray-700 dark:text-slate-300 bg-white dark:bg-slate-800 border border-gray-200 dark:border-slate-600 rounded-xl hover:bg-gray-50 dark:hover:bg-slate-700 hover:border-gray-300 dark:hover:border-slate-500 transition-all duration-200">
+                        Cancel
+                    </a>
+                    <button type="submit" disabled="@_isSaving"
+                        class="inline-flex items-center px-5 py-2.5 text-sm font-medium text-white rounded-xl disabled:opacity-50 disabled:cursor-not-allowed transition-all duration-200 hover:shadow-lg active:scale-[0.98] brand-mark">
+                        @if (_isSaving)
+                        {
+                            <svg class="animate-spin -ml-0.5 mr-2 h-4 w-4" fill="none" viewBox="0 0 24 24">
+                                <circle class="opacity-25" cx="12" cy="12" r="10" stroke="currentColor" stroke-width="4"></circle>
+                                <path class="opacity-75" fill="currentColor" d="M4 12a8 8 0 018-8V0C5.373 0 0 5.373 0 12h4zm2 5.291A7.962 7.962 0 014 12H0c0 3.042 1.135 5.824 3 7.938l3-2.647z"></path>
+                            </svg>
+                        }
+                        @(Id.HasValue ? "Save Changes" : "Create Recurring Expense")
+                    </button>
+                </div>
+            </EditForm>
+
+            @if (Id.HasValue)
+            {
+                <DangerZone EntityLabel="Recurring expense" ItemName="@_model.MerchantName"
+                            WarningMessage="This permanently deletes this recurring expense schedule. This cannot be undone."
+                            OnConfirmed="DeleteAsync" />
             }
-
-            <!-- Actions -->
-            <div class="flex items-center justify-end gap-3 pt-4">
-                <a href="recurring-expenses" class="px-5 py-2.5 text-sm font-medium text-gray-700 dark:text-slate-300 bg-white dark:bg-slate-800 border border-gray-200 dark:border-slate-600 rounded-xl hover:bg-gray-50 dark:hover:bg-slate-700 hover:border-gray-300 dark:hover:border-slate-500 transition-all duration-200">
-                    Cancel
-                </a>
-                <button type="submit" disabled="@_isSaving"
-                    class="inline-flex items-center px-5 py-2.5 text-sm font-medium text-white rounded-xl disabled:opacity-50 disabled:cursor-not-allowed transition-all duration-200 hover:shadow-lg active:scale-[0.98] brand-mark">
-                    @if (_isSaving)
-                    {
-                        <svg class="animate-spin -ml-0.5 mr-2 h-4 w-4" fill="none" viewBox="0 0 24 24">
-                            <circle class="opacity-25" cx="12" cy="12" r="10" stroke="currentColor" stroke-width="4"></circle>
-                            <path class="opacity-75" fill="currentColor" d="M4 12a8 8 0 018-8V0C5.373 0 0 5.373 0 12h4zm2 5.291A7.962 7.962 0 014 12H0c0 3.042 1.135 5.824 3 7.938l3-2.647z"></path>
-                        </svg>
-                    }
-                    @(Id.HasValue ? "Save Changes" : "Create Recurring Expense")
-                </button>
-            </div>
-        </EditForm>
-
-        @if (Id.HasValue)
-        {
-            <DangerZone EntityLabel="Recurring expense" ItemName="@_model.MerchantName"
-                        WarningMessage="This permanently deletes this recurring expense schedule. This cannot be undone."
-                        OnConfirmed="DeleteAsync" />
         }
-    }
-</div>
+    </div>
+</PlanGate>
 
 @code {
     [Parameter]

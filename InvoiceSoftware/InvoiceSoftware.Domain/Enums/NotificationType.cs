@@ -14,5 +14,6 @@ public enum NotificationType
     ReminderSent = 9,
     RecurringInvoiceGenerated = 10,
     BankTransactionMatched = 11,
-    ClientAdded = 12
+    ClientAdded = 12,
+    SubscriptionChanged = 13
 }

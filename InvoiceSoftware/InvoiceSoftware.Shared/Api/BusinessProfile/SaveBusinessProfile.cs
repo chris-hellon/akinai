@@ -88,7 +88,4 @@ public class SaveBusinessProfile : IPut
 
     [BodyParam]
     public string? VietQrBankCode { get; init; }
-
-    [BodyParam]
-    public decimal? VndToDefaultCurrencyRate { get; init; }
 }

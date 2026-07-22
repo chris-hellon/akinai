@@ -1,0 +1,37 @@
+@*
+    Shown in place of a feature the current plan does not include.
+
+    Explains what the feature is and what unlocks it, rather than letting the
+    user press a button and receive a status code. Deliberately reads as an
+    invitation, not an error: nothing has gone wrong.
+*@
+
+<div class="rounded-2xl border border-gray-200 dark:border-[#2f2924] bg-white dark:bg-[#1b1612] p-8 text-center">
+    <div class="mx-auto w-12 h-12 rounded-xl bg-primary-50 dark:bg-primary-900/30 flex items-center justify-center mb-4">
+        <svg class="w-6 h-6 text-primary-600 dark:text-primary-400" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+            <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M5 3v4M3 5h4M6 17v4m-2-2h4m5-16l2.286 6.857L21 12l-5.714 2.143L13 21l-2.286-6.857L5 12l5.714-2.143L13 3z" />
+        </svg>
+    </div>
+
+    <h3 class="text-lg font-semibold text-gray-900 dark:text-slate-100">@Title</h3>
+    <p class="mt-2 text-sm text-gray-500 dark:text-slate-400 max-w-md mx-auto">@Description</p>
+
+    @if (ChildContent is not null)
+    {
+        <div class="mt-4 text-sm text-gray-500 dark:text-slate-400">@ChildContent</div>
+    }
+
+    <div class="mt-6 flex items-center justify-center gap-3">
+        <a href="settings/billing"
+           class="inline-flex items-center px-5 py-2.5 text-sm font-medium text-white rounded-xl transition-all duration-200 hover:shadow-lg active:scale-[0.98] brand-mark">
+            @ActionLabel
+        </a>
+    </div>
+</div>
+
+@code {
+    [Parameter, EditorRequired] public string Title { get; set; } = "";
+    [Parameter, EditorRequired] public string Description { get; set; } = "";
+    [Parameter] public string ActionLabel { get; set; } = "Upgrade to Pro";
+    [Parameter] public RenderFragment? ChildContent { get; set; }
+}

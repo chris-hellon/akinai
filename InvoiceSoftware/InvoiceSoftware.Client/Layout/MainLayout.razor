@@ -1,6 +1,10 @@
 @inherits LayoutComponentBase
 
+@using InvoiceSoftware.Shared.Api.Billing
+@using InvoiceSoftware.Shared.Dtos.Billing
+
 @inject ILayoutService LayoutService
+@inject ICall<GetEntitlements, EntitlementsDto> GetEntitlementsCall
 
 @implements IAsyncDisposable
 
@@ -104,11 +108,8 @@
                             <div class="hidden sm:block h-6 w-px bg-gray-200 dark:bg-slate-700"></div>
 
                             <!-- User Menu -->
-                            @if (_userMenuOpen)
-                            {
-                                <div class="fixed inset-0 z-40" @onclick="CloseUserMenu"></div>
-                            }
-                            <div class="relative">
+                            <div class="relative" @ref="_userMenuRoot">
+                                <ClickOutside Target="_userMenuRoot" Active="_userMenuOpen" OnClose="CloseUserMenu" />
                                 <button type="button"
                                         class="flex items-center gap-3 p-1 -m-1 rounded-xl hover:bg-gray-100 dark:hover:bg-slate-800 transition-colors"
                                         @onclick="ToggleUserMenu"
@@ -242,6 +243,7 @@
     private bool _isDarkMode;
     private bool _sidebarCollapsed;
     private bool _mobileSidebarOpen;
+    private ElementReference _userMenuRoot;
     private bool _userMenuOpen;
     private bool _initialized;
     private string _search = "";
@@ -253,6 +255,32 @@
     {
         _currentPath = GetRelativePath();
         NavigationManager.LocationChanged += OnLocationChanged;
+    }
+
+    /// <summary>
+    /// Sends a brand-new account to the plan picker once.
+    ///
+    /// Done in the layout rather than on a single page because there is no one
+    /// landing page — signing in can drop you anywhere. Checked once per
+    /// session rather than per navigation, and never while already on the
+    /// picker or in checkout, so it cannot loop.
+    /// </summary>
+    private async Task RedirectToPlanPickerIfNeededAsync()
+    {
+        var path = GetRelativePath();
+        if (path.StartsWith("welcome") || path.StartsWith("billing") || path.StartsWith("settings/billing"))
+            return;
+
+        try
+        {
+            var entitlements = await GetEntitlementsCall.Call(new GetEntitlements());
+            if (entitlements is { PlanSelected: false })
+                NavigationManager.NavigateTo("welcome/plan");
+        }
+        catch
+        {
+            // Billing must never be the reason someone cannot use the app.
+        }
     }
 
     private void OnLocationChanged(object? sender, LocationChangedEventArgs e)
@@ -287,6 +315,8 @@
             {
                 // JS interop not available during prerendering
             }
+
+            await RedirectToPlanPickerIfNeededAsync();
         }
     }
 

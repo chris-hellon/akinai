@@ -9,7 +9,7 @@ using Microsoft.EntityFrameworkCore;
 
 namespace InvoiceSoftware.Infrastructure.Handlers.RecurringExpenses;
 
-public class CreateRecurringExpenseHandler(IDbContextFactory<ApplicationDbContext> dbFactory, ICurrentUserService currentUserService) : IHandle<CreateRecurringExpense, Guid>
+public class CreateRecurringExpenseHandler(IDbContextFactory<ApplicationDbContext> dbFactory, ICurrentUserService currentUserService, IEntitlementService entitlementService) : IHandle<CreateRecurringExpense, Guid>
 {
     public async Task<HttpResult<Guid>> Handle(CreateRecurringExpense request, CancellationToken cancellationToken)
     {
@@ -20,6 +20,10 @@ public class CreateRecurringExpenseHandler(IDbContextFactory<ApplicationDbContex
 
         var userId = currentUserService.UserId;
         if (string.IsNullOrEmpty(userId)) return HttpResult<Guid>.Unauthorized();
+
+        // Recurring billing is a paid feature.
+        var entitlements = await entitlementService.GetAsync(userId, cancellationToken);
+        if (!entitlements.RecurringBilling) return HttpResult<Guid>.Forbidden();
 
         var recurringExpense = RecurringExpense.Create(
             userId,

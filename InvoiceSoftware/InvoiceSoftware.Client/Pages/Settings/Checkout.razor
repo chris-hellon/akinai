@@ -1,0 +1,159 @@
+@page "/billing/checkout/{SessionId:guid}"
+
+@attribute [Authorize]
+
+@using InvoiceSoftware.Shared.Api.Billing
+@using InvoiceSoftware.Shared.Billing
+@using InvoiceSoftware.Shared.Dtos.Billing
+
+@inject ICall<GetCheckout, CheckoutSessionDto> GetCheckoutCall
+@inject ICall<CompleteCheckout, CheckoutResultDto> CompleteCheckoutCall
+@inject NavigationManager Nav
+@inject InvoiceSoftware.Client.Services.EntitlementState Entitlements
+
+@*
+    Stand-in for a hosted checkout page.
+
+    When Stripe goes in, this page disappears: StartCheckout returns Stripe's
+    URL instead of this route, and the subscription is granted by the webhook
+    rather than by the button below. The rest of the billing flow is unchanged,
+    which is the whole point of routing through a redirect even while it's fake.
+*@
+
+<PageTitle>Checkout - Akinai</PageTitle>
+
+<div class="max-w-lg mx-auto space-y-6">
+    @if (_isLoading)
+    {
+        <LoadingSpinner Padding="py-20" />
+    }
+    else if (_session is null)
+    {
+        <div class="bg-white dark:bg-[#1b1612] rounded-2xl border border-gray-200 dark:border-[#2f2924] p-6 text-center space-y-4">
+            <h1 class="text-xl font-bold text-gray-900 dark:text-slate-100">Checkout not found</h1>
+            <p class="text-sm text-gray-500 dark:text-slate-400">
+                This checkout may have expired or already been completed.
+            </p>
+            <a href="settings/billing" class="btn-secondary text-xs inline-block">Back to billing</a>
+        </div>
+    }
+    else
+    {
+        <div class="bg-white dark:bg-[#1b1612] rounded-2xl border border-gray-200 dark:border-[#2f2924] p-6 space-y-6">
+            <div class="text-center">
+                <div class="mx-auto w-14 h-14 rounded-lg flex items-center justify-center mb-4 brand-mark">
+                    <svg class="w-7 h-7 text-white" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                        <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M3 10h18M7 15h1m4 0h1m-7 4h12a3 3 0 003-3V8a3 3 0 00-3-3H6a3 3 0 00-3 3v8a3 3 0 003 3z" />
+                    </svg>
+                </div>
+                <h1 class="text-2xl font-bold text-gray-900 dark:text-slate-100 tracking-tight">Confirm your subscription</h1>
+            </div>
+
+            @if (_session.IsSimulated)
+            {
+                <div class="p-4 rounded-xl border border-amber-200 dark:border-amber-800 bg-amber-50 dark:bg-amber-900/30">
+                    <p class="text-sm text-amber-800 dark:text-amber-200">
+                        <strong>This is a simulated payment.</strong> No card is collected and no money is
+                        taken. Confirming will activate the plan immediately for testing.
+                    </p>
+                </div>
+            }
+
+            <div class="rounded-xl border border-gray-200 dark:border-[#2f2924] divide-y divide-gray-100 dark:divide-[#2f2924]">
+                <div class="p-4 flex items-center justify-between">
+                    <span class="text-sm text-gray-500 dark:text-slate-400">Plan</span>
+                    <span class="text-sm font-medium text-gray-900 dark:text-slate-100">Akinai @_session.PlanName</span>
+                </div>
+                <div class="p-4 flex items-center justify-between">
+                    <span class="text-sm text-gray-500 dark:text-slate-400">Billing</span>
+                    <span class="text-sm font-medium text-gray-900 dark:text-slate-100">
+                        @(_session.Cycle == BillingCycle.Annual ? "Annually" : "Monthly")
+                    </span>
+                </div>
+                <div class="p-4 flex items-center justify-between">
+                    <span class="text-sm font-medium text-gray-900 dark:text-slate-100">Total due today</span>
+                    <span class="text-lg font-bold text-gray-900 dark:text-slate-100">
+                        @_session.CurrencySymbol@_session.Amount.ToString("0.##")
+                    </span>
+                </div>
+            </div>
+
+            @if (!string.IsNullOrEmpty(_error))
+            {
+                <div class="p-4 rounded-xl border border-red-200 dark:border-red-800 bg-red-50 dark:bg-red-900/30">
+                    <p class="text-sm text-red-700 dark:text-red-300">@_error</p>
+                </div>
+            }
+
+            <div class="flex items-center gap-3">
+                <button type="button" disabled="@_isBusy" @onclick="PayAsync"
+                        class="flex-1 inline-flex items-center justify-center px-5 py-3 text-sm font-medium text-white rounded-xl transition-all duration-200 hover:shadow-lg active:scale-[0.98] brand-mark">
+                    @if (_isBusy)
+                    {
+                        <span>Processing…</span>
+                    }
+                    else
+                    {
+                        <span>@(_session.IsSimulated ? "Simulate payment" : "Pay now")</span>
+                    }
+                </button>
+                <a href="settings/billing" class="btn-secondary text-xs">Cancel</a>
+            </div>
+
+            <p class="text-xs text-center text-gray-500 dark:text-slate-400">
+                Expires @_session.ExpiresAtUtc.ToLocalTime().ToString("HH:mm")
+            </p>
+        </div>
+    }
+</div>
+
+@code {
+    [Parameter] public Guid SessionId { get; set; }
+
+    private CheckoutSessionDto? _session;
+    private bool _isLoading = true;
+    private bool _isBusy;
+    private string? _error;
+
+    protected override async Task OnInitializedAsync()
+    {
+        try
+        {
+            _session = await GetCheckoutCall.Call(new GetCheckout { SessionId = SessionId });
+        }
+        catch
+        {
+            // Not found, expired, or somebody else's — all the same to the page.
+            _session = null;
+        }
+        _isLoading = false;
+    }
+
+    private async Task PayAsync()
+    {
+        _isBusy = true;
+        _error = null;
+        try
+        {
+            var result = await CompleteCheckoutCall.Call(new CompleteCheckout { SessionId = SessionId });
+            if (result is null || !result.Succeeded)
+            {
+                _error = result?.Error ?? "The payment could not be completed.";
+            }
+            else
+            {
+                // The plan just changed. Entitlements are cached for the session,
+                // so without this every page keeps enforcing the old plan until a
+                // full browser refresh.
+                await Entitlements.ReloadAsync();
+                Nav.NavigateTo("settings/billing?subscribed=1", forceLoad: false);
+                return;
+            }
+        }
+        catch (Exception ex)
+        {
+            _error = ex.Message;
+        }
+        _isBusy = false;
+    }
+}

@@ -50,6 +50,10 @@ public sealed class ApplicationDbContext : IdentityDbContext<ApplicationUser>
     // Notifications
     public DbSet<Notification> Notifications => Set<Notification>();
 
+    // Billing
+    public DbSet<SubscriptionEvent> SubscriptionEvents => Set<SubscriptionEvent>();
+    public DbSet<CheckoutSession> CheckoutSessions => Set<CheckoutSession>();
+
     public ApplicationDbContext(DbContextOptions<ApplicationDbContext> options)
         : base(options)
     {
@@ -108,6 +112,18 @@ public sealed class ApplicationDbContext : IdentityDbContext<ApplicationUser>
         base.OnModelCreating(modelBuilder);
 
         modelBuilder.ApplyConfigurationsFromAssembly(typeof(ApplicationDbContext).Assembly);
+
+        // Subscription fields on the Identity user. Stored as strings so the
+        // Users table stays readable when someone is looking at a billing
+        // question directly in the database.
+        modelBuilder.Entity<ApplicationUser>(user =>
+        {
+            user.Property(u => u.Plan).HasConversion<string>().HasMaxLength(40).IsRequired();
+            user.Property(u => u.SubscriptionStatus).HasConversion<string>().HasMaxLength(40).IsRequired();
+            user.Property(u => u.BillingCycle).HasConversion<string>().HasMaxLength(20);
+            user.Property(u => u.ProviderCustomerId).HasMaxLength(200);
+            user.Property(u => u.ProviderSubscriptionId).HasMaxLength(200);
+        });
 
         // Organise tables into schemas: application tables live in the "App" schema,
         // and the ASP.NET Identity tables live in the "Identity" schema with the

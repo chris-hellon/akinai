@@ -5,110 +5,114 @@
 
 <PageTitle>Estimates - Akinai</PageTitle>
 
-<ListPageLayout Title="Estimates"
-                Description="Create and manage quotes and estimates for your clients."
-                ActionUrl="estimates/new"
-                ActionText="New Estimate"
-                SearchPlaceholder="Search by estimate number or client..."
-                SearchValue="@_searchTerm"
-                SearchValueChanged="OnSearchChanged"
-                Breadcrumbs="@(new List<PageHeader.BreadcrumbItem> { new("Estimates") })">
-    <Filters>
-        <Select TValue="string" Value="_statusFilter" ValueChanged="OnStatusFilterChanged" Searchable="false" Class="w-full sm:w-44"
-                Options="@(new List<SelectOption<string>>
-                {
-                    new("", "All statuses"),
-                    new("Draft", "Draft"),
-                    new("Sent", "Sent"),
-                    new("Accepted", "Accepted"),
-                    new("Rejected", "Rejected"),
-                    new("Expired", "Expired"),
-                    new("Converted", "Converted")
-                })" />
-    </Filters>
-    <ChildContent>
-        @if (_isLoading)
-        {
-            <LoadingGrid Variant="LoadingGrid.LoadingGridVariant.Default" />
-        }
-        else if (_response == null || !_response.Items.Any())
-        {
-            <EmptyState Title="No estimates found"
-                        Message="@(HasActiveFilters ? "No estimates match your filters. Try adjusting your search." : "Get started by creating your first estimate.")"
-                        IconType="EmptyState.EmptyStateIcon.Document"
-                        ActionUrl="@(HasActiveFilters ? null : "estimates/new")"
-                        ActionText="@(HasActiveFilters ? null : "New Estimate")" />
-        }
-        else
-        {
-            <div class="bg-white dark:bg-slate-800 rounded-lg shadow-sm border border-gray-100 dark:border-slate-700 overflow-hidden">
-                <table class="min-w-full divide-y divide-gray-100 dark:divide-slate-700">
-                    <thead class="bg-gray-50/50 dark:bg-slate-800/50">
-                        <tr>
-                            <th scope="col" class="px-6 py-4 text-left text-xs font-semibold text-gray-500 dark:text-slate-400 uppercase tracking-wider">Estimate</th>
-                            <th scope="col" class="px-6 py-4 text-left text-xs font-semibold text-gray-500 dark:text-slate-400 uppercase tracking-wider">Client</th>
-                            <th scope="col" class="px-6 py-4 text-left text-xs font-semibold text-gray-500 dark:text-slate-400 uppercase tracking-wider">Date</th>
-                            <th scope="col" class="px-6 py-4 text-left text-xs font-semibold text-gray-500 dark:text-slate-400 uppercase tracking-wider">Status</th>
-                            <th scope="col" class="px-6 py-4 text-right text-xs font-semibold text-gray-500 dark:text-slate-400 uppercase tracking-wider">Total</th>
-                            <th scope="col" class="px-6 py-4 text-right text-xs font-semibold text-gray-500 dark:text-slate-400 uppercase tracking-wider">Actions</th>
-                        </tr>
-                    </thead>
-                    <tbody class="divide-y divide-gray-100 dark:divide-slate-700">
-                        @foreach (var estimate in _response.Items)
-                        {
-                            <tr class="hover:bg-gray-50/50 dark:hover:bg-slate-700/50 transition-colors cursor-pointer" @onclick="() => NavigateTo(estimate.Id)">
-                                <td class="px-6 py-4 whitespace-nowrap">
-                                    <div class="text-sm font-semibold text-gray-900 dark:text-slate-100">@estimate.EstimateNumber</div>
-                                </td>
-                                <td class="px-6 py-4 whitespace-nowrap">
-                                    <div class="text-sm text-gray-700 dark:text-slate-300">@estimate.ClientName</div>
-                                </td>
-                                <td class="px-6 py-4 whitespace-nowrap">
-                                    <div class="text-sm text-gray-600 dark:text-slate-400">@estimate.EstimateDate.ToString("MMM dd, yyyy")</div>
-                                    @if (estimate.ExpiryDate.HasValue)
-                                    {
-                                        <div class="text-xs text-gray-400 dark:text-slate-500">Expires: @estimate.ExpiryDate.Value.ToString("MMM dd, yyyy")</div>
-                                    }
-                                </td>
-                                <td class="px-6 py-4 whitespace-nowrap">
-                                    @{
-                                        var (bgClass, textClass) = GetStatusClasses(estimate.Status);
-                                    }
-                                    <span class="inline-flex items-center px-2.5 py-1 text-xs font-medium rounded-lg @bgClass @textClass">
-                                        @estimate.Status
-                                    </span>
-                                </td>
-                                <td class="px-6 py-4 whitespace-nowrap text-right">
-                                    <div class="text-sm font-semibold text-gray-900 dark:text-slate-100">@CurrencyExtensions.GetSymbol(estimate.Currency)@estimate.Total.ToString("N2")</div>
-                                </td>
-                                <td class="px-6 py-4 whitespace-nowrap text-right" @onclick:stopPropagation="true">
-                                    <div class="flex items-center justify-end gap-2">
-                                        <IconButton Href="@($"estimates/{estimate.Id}")" Title="View">
-                                            <ViewIcon />
-                                        </IconButton>
-                                        <IconButton Href="@($"estimates/{estimate.Id}/edit")" Title="Edit">
-                                            <EditIcon />
-                                        </IconButton>
-                                        <IconButton OnClick="() => DeleteEstimateAsync(estimate)" Variant="IconButton.IconButtonVariant.Danger" Title="Delete">
-                                            <DeleteIcon />
-                                        </IconButton>
-                                    </div>
-                                </td>
+<PlanGate Feature="@(e => e.Estimates)"
+          Title="Estimates are a Pro feature"
+          Description="Send quotes your clients can accept and sign online, then turn them into invoices in one click.">
+    <ListPageLayout Title="Estimates"
+                    Description="Create and manage quotes and estimates for your clients."
+                    ActionUrl="estimates/new"
+                    ActionText="New Estimate"
+                    SearchPlaceholder="Search by estimate number or client..."
+                    SearchValue="@_searchTerm"
+                    SearchValueChanged="OnSearchChanged"
+                    Breadcrumbs="@(new List<PageHeader.BreadcrumbItem> { new("Estimates") })">
+        <Filters>
+            <Select TValue="string" Value="_statusFilter" ValueChanged="OnStatusFilterChanged" Searchable="false" Class="w-full sm:w-44"
+                    Options="@(new List<SelectOption<string>>
+                    {
+                        new("", "All statuses"),
+                        new("Draft", "Draft"),
+                        new("Sent", "Sent"),
+                        new("Accepted", "Accepted"),
+                        new("Rejected", "Rejected"),
+                        new("Expired", "Expired"),
+                        new("Converted", "Converted")
+                    })" />
+        </Filters>
+        <ChildContent>
+            @if (_isLoading)
+            {
+                <LoadingGrid Variant="LoadingGrid.LoadingGridVariant.Default" />
+            }
+            else if (_response == null || !_response.Items.Any())
+            {
+                <EmptyState Title="No estimates found"
+                            Message="@(HasActiveFilters ? "No estimates match your filters. Try adjusting your search." : "Get started by creating your first estimate.")"
+                            IconType="EmptyState.EmptyStateIcon.Document"
+                            ActionUrl="@(HasActiveFilters ? null : "estimates/new")"
+                            ActionText="@(HasActiveFilters ? null : "New Estimate")" />
+            }
+            else
+            {
+                <div class="bg-white dark:bg-slate-800 rounded-lg shadow-sm border border-gray-100 dark:border-slate-700 overflow-hidden">
+                    <table class="min-w-full divide-y divide-gray-100 dark:divide-slate-700">
+                        <thead class="bg-gray-50/50 dark:bg-slate-800/50">
+                            <tr>
+                                <th scope="col" class="px-6 py-4 text-left text-xs font-semibold text-gray-500 dark:text-slate-400 uppercase tracking-wider">Estimate</th>
+                                <th scope="col" class="px-6 py-4 text-left text-xs font-semibold text-gray-500 dark:text-slate-400 uppercase tracking-wider">Client</th>
+                                <th scope="col" class="px-6 py-4 text-left text-xs font-semibold text-gray-500 dark:text-slate-400 uppercase tracking-wider">Date</th>
+                                <th scope="col" class="px-6 py-4 text-left text-xs font-semibold text-gray-500 dark:text-slate-400 uppercase tracking-wider">Status</th>
+                                <th scope="col" class="px-6 py-4 text-right text-xs font-semibold text-gray-500 dark:text-slate-400 uppercase tracking-wider">Total</th>
+                                <th scope="col" class="px-6 py-4 text-right text-xs font-semibold text-gray-500 dark:text-slate-400 uppercase tracking-wider">Actions</th>
                             </tr>
-                        }
-                    </tbody>
-                </table>
-            </div>
+                        </thead>
+                        <tbody class="divide-y divide-gray-100 dark:divide-slate-700">
+                            @foreach (var estimate in _response.Items)
+                            {
+                                <tr class="hover:bg-gray-50/50 dark:hover:bg-slate-700/50 transition-colors cursor-pointer" @onclick="() => NavigateTo(estimate.Id)">
+                                    <td class="px-6 py-4 whitespace-nowrap">
+                                        <div class="text-sm font-semibold text-gray-900 dark:text-slate-100">@estimate.EstimateNumber</div>
+                                    </td>
+                                    <td class="px-6 py-4 whitespace-nowrap">
+                                        <div class="text-sm text-gray-700 dark:text-slate-300">@estimate.ClientName</div>
+                                    </td>
+                                    <td class="px-6 py-4 whitespace-nowrap">
+                                        <div class="text-sm text-gray-600 dark:text-slate-400">@estimate.EstimateDate.ToString("MMM dd, yyyy")</div>
+                                        @if (estimate.ExpiryDate.HasValue)
+                                        {
+                                            <div class="text-xs text-gray-400 dark:text-slate-500">Expires: @estimate.ExpiryDate.Value.ToString("MMM dd, yyyy")</div>
+                                        }
+                                    </td>
+                                    <td class="px-6 py-4 whitespace-nowrap">
+                                        @{
+                                            var (bgClass, textClass) = GetStatusClasses(estimate.Status);
+                                        }
+                                        <span class="inline-flex items-center px-2.5 py-1 text-xs font-medium rounded-lg @bgClass @textClass">
+                                            @estimate.Status
+                                        </span>
+                                    </td>
+                                    <td class="px-6 py-4 whitespace-nowrap text-right">
+                                        <div class="text-sm font-semibold text-gray-900 dark:text-slate-100">@CurrencyExtensions.GetSymbol(estimate.Currency)@estimate.Total.ToString("N2")</div>
+                                    </td>
+                                    <td class="px-6 py-4 whitespace-nowrap text-right" @onclick:stopPropagation="true">
+                                        <div class="flex items-center justify-end gap-2">
+                                            <IconButton Href="@($"estimates/{estimate.Id}")" Title="View">
+                                                <ViewIcon />
+                                            </IconButton>
+                                            <IconButton Href="@($"estimates/{estimate.Id}/edit")" Title="Edit">
+                                                <EditIcon />
+                                            </IconButton>
+                                            <IconButton OnClick="() => DeleteEstimateAsync(estimate)" Variant="IconButton.IconButtonVariant.Danger" Title="Delete">
+                                                <DeleteIcon />
+                                            </IconButton>
+                                        </div>
+                                    </td>
+                                </tr>
+                            }
+                        </tbody>
+                    </table>
+                </div>
 
-            <Pagination CurrentPage="_response.Page"
-                        TotalItems="_response.TotalCount"
-                        PageSize="_response.PageSize"
-                        ItemName="estimates"
-                        OnPageChanged="OnPageChanged"
-                        OnPageSizeChanged="OnPageSizeChanged" />
-        }
-    </ChildContent>
-</ListPageLayout>
+                <Pagination CurrentPage="_response.Page"
+                            TotalItems="_response.TotalCount"
+                            PageSize="_response.PageSize"
+                            ItemName="estimates"
+                            OnPageChanged="OnPageChanged"
+                            OnPageSizeChanged="OnPageSizeChanged" />
+            }
+        </ChildContent>
+    </ListPageLayout>
+</PlanGate>
 
 @code {
     private PaginatedResponse<EstimateSummaryDto>? _response;

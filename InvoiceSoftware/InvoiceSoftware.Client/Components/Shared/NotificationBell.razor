@@ -2,11 +2,8 @@
 @inject NotificationState Notifications
 @inject NavigationManager Nav
 
-<div class="relative">
-    @if (_open)
-    {
-        <div class="fixed inset-0 z-40" @onclick="Close"></div>
-    }
+<div class="relative" @ref="_popoverRoot">
+    <ClickOutside Target="_popoverRoot" Active="_open" OnClose="Close" />
 
     <button type="button"
             class="relative p-2 rounded-xl text-gray-400 dark:text-slate-400 hover:text-gray-600 dark:hover:text-slate-200 hover:bg-gray-100 dark:hover:bg-slate-800 transition-colors"
@@ -79,6 +76,7 @@
 </div>
 
 @code {
+    private ElementReference _popoverRoot;
     private bool _open;
 
     protected override async Task OnInitializedAsync()
@@ -120,6 +118,7 @@
         "EstimateAccepted" => ("#e2efe9", "#0f7a5a", CheckIcon),
         "EstimateViewed" => ("#ecebf6", "#5b53a8", EyeIcon),
         "EstimateDeclined" => ("#f7e4e2", "#b23b30", BellIcon),
+        "SubscriptionChanged" => ("#f3eee4", "#8a6d2f", SparkIcon),
         _ => ("#e7f2f3", "#0e5c66", DotIcon),
     };
 
@@ -127,6 +126,7 @@
     private const string SendIcon = "<svg width=\"15\" height=\"15\" fill=\"none\" stroke=\"currentColor\" viewBox=\"0 0 24 24\"><path stroke-linecap=\"round\" stroke-linejoin=\"round\" stroke-width=\"2\" d=\"M22 2L11 13M22 2l-7 20-4-9-9-4 20-7z\"/></svg>";
     private const string BellIcon = "<svg width=\"15\" height=\"15\" fill=\"none\" stroke=\"currentColor\" viewBox=\"0 0 24 24\"><path stroke-linecap=\"round\" stroke-linejoin=\"round\" stroke-width=\"2\" d=\"M18 8A6 6 0 006 8c0 7-3 9-3 9h18s-3-2-3-9M13.7 21a2 2 0 01-3.4 0\"/></svg>";
     private const string EyeIcon = "<svg width=\"15\" height=\"15\" fill=\"none\" stroke=\"currentColor\" viewBox=\"0 0 24 24\"><path stroke-linecap=\"round\" stroke-linejoin=\"round\" stroke-width=\"2\" d=\"M15 12a3 3 0 11-6 0 3 3 0 016 0z\"/><path stroke-linecap=\"round\" stroke-linejoin=\"round\" stroke-width=\"2\" d=\"M2.5 12S6 5 12 5s9.5 7 9.5 7-3.5 7-9.5 7-9.5-7-9.5-7z\"/></svg>";
+    private const string SparkIcon = "<svg width=\"15\" height=\"15\" fill=\"none\" stroke=\"currentColor\" viewBox=\"0 0 24 24\"><path stroke-linecap=\"round\" stroke-linejoin=\"round\" stroke-width=\"2\" d=\"M13 3l2.3 6.9L22 12l-6.7 2.1L13 21l-2.3-6.9L4 12l6.7-2.1L13 3z\"/></svg>";
     private const string DotIcon = "<svg width=\"15\" height=\"15\" fill=\"currentColor\" viewBox=\"0 0 24 24\"><circle cx=\"12\" cy=\"12\" r=\"5\"/></svg>";
 
     public void Dispose() => Notifications.OnChange -= OnStateChanged;

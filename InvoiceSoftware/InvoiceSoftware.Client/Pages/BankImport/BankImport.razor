@@ -22,260 +22,346 @@
 
 <PageTitle>Bank Import - Akinai</PageTitle>
 
-<div class="space-y-6">
-    <PageHeader Title="Bank Import"
-                Description="Import bank statements and match transactions to invoices."
-                Breadcrumbs="@(new List<PageHeader.BreadcrumbItem> { new("Bank Import") })">
-        <Actions>
-            @if (_response is { TotalCount: > 0 })
-            {
-                <button type="button" @onclick="ClearTransactionsAsync"
-                        class="inline-flex items-center gap-2 px-4 py-2.5 text-sm font-medium text-gray-600 dark:text-slate-300 bg-white dark:bg-slate-800 border border-gray-200 dark:border-slate-600 rounded-xl hover:bg-gray-50 dark:hover:bg-slate-700 hover:border-gray-300 transition-colors">
-                    <svg class="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                        <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M19 7l-.867 12.142A2 2 0 0116.138 21H7.862a2 2 0 01-1.995-1.858L5 7m5 4v6m4-6v6m1-10V4a1 1 0 00-1-1h-4a1 1 0 00-1 1v3M4 7h16" />
-                    </svg>
-                    @(HasActiveFilters ? "Delete filtered" : "Delete all")
-                </button>
-            }
-            <label class="cursor-pointer">
-                <InputFile OnChange="HandleFileUpload" accept=".csv,.tsv,.txt,.ofx,.qfx,.xls,.xlsx,.xlsm" class="hidden" disabled="@_isUploading" />
-                <span class="inline-flex items-center gap-2 px-4 py-2.5 text-sm font-medium text-white bg-primary-600 hover:bg-primary-700 rounded-xl transition-colors @(_isUploading ? "opacity-60 cursor-not-allowed" : "")">
-                    @if (_isUploading)
-                    {
-                        <div class="w-4 h-4 border-2 border-white/30 border-t-white rounded-full animate-spin"></div>
-                        <span>Importing…</span>
-                    }
-                    else
-                    {
-                        <svg class="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                            <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M4 16v1a3 3 0 003 3h10a3 3 0 003-3v-1m-4-8l-4-4m0 0L8 8m4-4v12" />
-                        </svg>
-                        <span>Import Statement</span>
-                    }
-                </span>
-            </label>
-        </Actions>
-    </PageHeader>
-
-    @if (_connections.Any())
-    {
-        <Card>
-            <div class="space-y-3">
-                <div class="text-sm font-semibold text-gray-900 dark:text-slate-100">Connected banks</div>
-                @foreach (var c in _connections)
+<PlanGate Feature="@(e => e.BankImport)"
+          Title="Bank import is a Pro feature"
+          Description="Import a bank statement and Akinai lines each transaction up against your open invoices.">
+    <div class="space-y-6">
+        <PageHeader Title="Bank Import"
+                    Description="Import bank statements and match transactions to invoices."
+                    Breadcrumbs="@(new List<PageHeader.BreadcrumbItem> { new("Bank Import") })">
+            <Actions>
+                @if (_response is { TotalCount: > 0 })
                 {
-                    <div class="flex items-center justify-between gap-3 py-2 border-b border-gray-50 dark:border-slate-700/50 last:border-0">
-                        <div class="min-w-0">
-                            <div class="flex items-center gap-2">
-                                <span class="font-medium text-gray-900 dark:text-slate-100 truncate">@c.InstitutionName</span>
-                                <span class="px-2 py-0.5 text-[11px] font-semibold rounded-full @ConnStatusClass(c.Status)">@c.Status</span>
-                            </div>
-                            <div class="text-xs text-gray-500 dark:text-slate-400">
-                                @(c.LastSyncedAt is { } s ? $"Last synced {s.ToLocalTime():d MMM HH:mm}" : "Not synced yet")
-                                @if (c.ConsentExpiresAt is { } e) { <span> · consent to @e.ToString("d MMM")</span> }
-                                @if (!string.IsNullOrEmpty(c.LastError)) { <span class="text-red-500"> · @c.LastError</span> }
-                            </div>
-                        </div>
-                        <div class="flex items-center gap-1 shrink-0">
-                            <IconButton OnClick="() => SyncConnectionAsync(c)" Title="Sync now" Disabled="@_syncingId.HasValue">
-                                <svg class="w-4 h-4 @(_syncingId == c.Id ? "animate-spin" : "")" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                                    <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M4 4v5h.582m15.356 2A8.001 8.001 0 004.582 9m0 0H9m11 11v-5h-.581m0 0a8.003 8.003 0 01-15.357-2m15.357 2H15" />
-                                </svg>
-                            </IconButton>
-                            <IconButton OnClick="() => DisconnectAsync(c)" Variant="IconButton.IconButtonVariant.Danger" Title="Disconnect">
-                                <svg class="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                                    <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M13.828 10.172a4 4 0 00-5.656 0l-4 4a4 4 0 105.656 5.656l1.102-1.101m-.758-4.899a4 4 0 005.656 0l4-4a4 4 0 00-5.656-5.656l-1.1 1.1" />
-                                </svg>
-                            </IconButton>
-                        </div>
-                    </div>
+                    <button type="button" @onclick="ClearTransactionsAsync"
+                            class="inline-flex items-center gap-2 px-4 py-2.5 text-sm font-medium text-gray-600 dark:text-slate-300 bg-white dark:bg-slate-800 border border-gray-200 dark:border-slate-600 rounded-xl hover:bg-gray-50 dark:hover:bg-slate-700 hover:border-gray-300 transition-colors">
+                        <svg class="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                            <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M19 7l-.867 12.142A2 2 0 0116.138 21H7.862a2 2 0 01-1.995-1.858L5 7m5 4v6m4-6v6m1-10V4a1 1 0 00-1-1h-4a1 1 0 00-1 1v3M4 7h16" />
+                        </svg>
+                        @(HasActiveFilters ? "Delete filtered" : "Delete all")
+                    </button>
                 }
-            </div>
-        </Card>
-    }
+                <label class="cursor-pointer">
+                    <InputFile OnChange="HandleFileUpload" accept=".csv,.tsv,.txt,.ofx,.qfx,.xls,.xlsx,.xlsm" class="hidden" disabled="@_isUploading" />
+                    <span class="inline-flex items-center gap-2 px-4 py-2.5 text-sm font-medium text-white bg-primary-600 hover:bg-primary-700 rounded-xl transition-colors @(_isUploading ? "opacity-60 cursor-not-allowed" : "")">
+                        @if (_isUploading)
+                        {
+                            <div class="w-4 h-4 border-2 border-white/30 border-t-white rounded-full animate-spin"></div>
+                            <span>Importing…</span>
+                        }
+                        else
+                        {
+                            <svg class="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                                <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M4 16v1a3 3 0 003 3h10a3 3 0 003-3v-1m-4-8l-4-4m0 0L8 8m4-4v12" />
+                            </svg>
+                            <span>Import Statement</span>
+                        }
+                    </span>
+                </label>
+            </Actions>
+        </PageHeader>
 
-    @if (_importResult != null)
-    {
-        <Card>
-            <div class="flex items-start gap-4">
-                <div class="flex-shrink-0 w-10 h-10 bg-emerald-100 dark:bg-emerald-900/30 rounded-xl flex items-center justify-center">
-                    <svg class="w-5 h-5 text-emerald-600 dark:text-emerald-400" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                        <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M5 13l4 4L19 7" />
-                    </svg>
-                </div>
-                <div class="flex-1">
-                    <h3 class="text-sm font-semibold text-gray-900 dark:text-slate-100">Import Complete</h3>
-                    <div class="mt-2 grid grid-cols-2 sm:grid-cols-4 gap-4 text-sm">
-                        <div>
-                            <span class="text-gray-500 dark:text-slate-400">Total:</span>
-                            <span class="ml-1 font-medium text-gray-900 dark:text-slate-100">@_importResult.TotalTransactions</span>
-                        </div>
-                        <div>
-                            <span class="text-gray-500 dark:text-slate-400">Imported:</span>
-                            <span class="ml-1 font-medium text-emerald-600 dark:text-emerald-400">@_importResult.ImportedTransactions</span>
-                        </div>
-                        <div>
-                            <span class="text-gray-500 dark:text-slate-400">Auto-matched:</span>
-                            <span class="ml-1 font-medium text-primary-600 dark:text-primary-400">@_importResult.AutoMatchedTransactions</span>
-                        </div>
-                        <div>
-                            <span class="text-gray-500 dark:text-slate-400">Skipped:</span>
-                            <span class="ml-1 font-medium text-gray-600 dark:text-slate-400">@_importResult.SkippedDuplicates</span>
-                        </div>
-                    </div>
-                    @if (_importResult.Errors.Any())
+        @if (_connections.Any())
+        {
+            <Card>
+                <div class="space-y-3">
+                    <div class="text-sm font-semibold text-gray-900 dark:text-slate-100">Connected banks</div>
+                    @foreach (var c in _connections)
                     {
-                        <div class="mt-3 p-3 bg-red-50 dark:bg-red-900/20 rounded-lg">
-                            <p class="text-sm font-medium text-red-700 dark:text-red-400">Errors:</p>
-                            <ul class="mt-1 list-disc list-inside text-sm text-red-600 dark:text-red-400">
-                                @foreach (var error in _importResult.Errors.Take(5))
-                                {
-                                    <li>@error</li>
-                                }
-                            </ul>
+                        <div class="flex items-center justify-between gap-3 py-2 border-b border-gray-50 dark:border-slate-700/50 last:border-0">
+                            <div class="min-w-0">
+                                <div class="flex items-center gap-2">
+                                    <span class="font-medium text-gray-900 dark:text-slate-100 truncate">@c.InstitutionName</span>
+                                    <span class="px-2 py-0.5 text-[11px] font-semibold rounded-full @ConnStatusClass(c.Status)">@c.Status</span>
+                                </div>
+                                <div class="text-xs text-gray-500 dark:text-slate-400">
+                                    @(c.LastSyncedAt is { } s ? $"Last synced {s.ToLocalTime():d MMM HH:mm}" : "Not synced yet")
+                                    @if (c.ConsentExpiresAt is { } e) { <span> · consent to @e.ToString("d MMM")</span> }
+                                    @if (!string.IsNullOrEmpty(c.LastError)) { <span class="text-red-500"> · @c.LastError</span> }
+                                </div>
+                            </div>
+                            <div class="flex items-center gap-1 shrink-0">
+                                <IconButton OnClick="() => SyncConnectionAsync(c)" Title="Sync now" Disabled="@_syncingId.HasValue">
+                                    <svg class="w-4 h-4 @(_syncingId == c.Id ? "animate-spin" : "")" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                                        <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M4 4v5h.582m15.356 2A8.001 8.001 0 004.582 9m0 0H9m11 11v-5h-.581m0 0a8.003 8.003 0 01-15.357-2m15.357 2H15" />
+                                    </svg>
+                                </IconButton>
+                                <IconButton OnClick="() => DisconnectAsync(c)" Variant="IconButton.IconButtonVariant.Danger" Title="Disconnect">
+                                    <svg class="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                                        <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M13.828 10.172a4 4 0 00-5.656 0l-4 4a4 4 0 105.656 5.656l1.102-1.101m-.758-4.899a4 4 0 005.656 0l4-4a4 4 0 00-5.656-5.656l-1.1 1.1" />
+                                    </svg>
+                                </IconButton>
+                            </div>
                         </div>
                     }
                 </div>
-                <button @onclick="() => _importResult = null" class="text-gray-400 hover:text-gray-600 dark:hover:text-slate-300">
-                    <svg class="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                        <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M6 18L18 6M6 6l12 12" />
-                    </svg>
-                </button>
-            </div>
-        </Card>
-    }
-
-    <!-- Filters -->
-    <SearchBar Placeholder="Search transactions..." Value="@_searchTerm" ValueChanged="OnSearchChanged">
-        <DatePicker TValue="DateOnly?" Value="_fromDate" ValueChanged="OnFromDateChanged" Placeholder="From date" Class="w-full sm:w-40" />
-        <DatePicker TValue="DateOnly?" Value="_toDate" ValueChanged="OnToDateChanged" Placeholder="To date" Class="w-full sm:w-40" />
-        <Select TValue="string" Value="_selectedStatus" ValueChanged="OnStatusChanged" Searchable="false" Class="w-full sm:w-44"
-                Options="@(new List<SelectOption<string>> {
-                    new("", "All Status"),
-                    new("unmatched", "Needs review"),
-                    new("matched", "Matched to invoice"),
-                    new("expense", "Recorded as expense"),
-                    new("ignored", "Ignored")
-                })" />
-        <Select TValue="string" Value="_selectedDirection" ValueChanged="OnDirectionChanged" Searchable="false" Class="w-full sm:w-36"
-                Options="@(new List<SelectOption<string>> {
-                    new("", "In & out"),
-                    new("in", "Money in"),
-                    new("out", "Money out")
-                })" />
-        @if (_currencies.Count > 1)
-        {
-            <Select TValue="string" Value="_selectedCurrency" ValueChanged="OnCurrencyChanged" Searchable="false" Class="w-full sm:w-40"
-                    Options="@(new List<SelectOption<string>> { new("", "All currencies") }.Concat(_currencies.Select(c => new SelectOption<string>(c, c))).ToList())" />
+            </Card>
         }
-    </SearchBar>
 
-    @if (_isLoading)
-    {
-        <LoadingTable Rows="5" Columns="6" />
-    }
-    else if (_response == null || !_response.Items.Any())
-    {
-        <EmptyState Title="No transactions found"
-                    Message="@(HasActiveFilters ? "No transactions match your filters." : "Import a bank statement to get started.")"
-                    IconType="EmptyState.EmptyStateIcon.Briefcase" />
-    }
-    else
-    {
-        <DataTable TItem="BankTransactionDto"
-                   Items="_response.Items"
-                   CurrentPage="_response.Page"
-                   TotalCount="_response.TotalCount"
-                   PageSize="_response.PageSize"
-                   ItemName="transactions"
-                   OnPageChanged="OnPageChanged"
-                   OnPageSizeChanged="OnPageSizeChanged">
-            <HeaderTemplate>
-                <th scope="col" class="px-6 py-4 text-left text-xs font-semibold text-gray-500 dark:text-slate-400 uppercase tracking-wider">Date</th>
-                <th scope="col" class="px-6 py-4 text-left text-xs font-semibold text-gray-500 dark:text-slate-400 uppercase tracking-wider">Description</th>
-                <th scope="col" class="px-6 py-4 text-right text-xs font-semibold text-gray-500 dark:text-slate-400 uppercase tracking-wider">Amount</th>
-                <th scope="col" class="px-6 py-4 text-left text-xs font-semibold text-gray-500 dark:text-slate-400 uppercase tracking-wider">Status</th>
-                <th scope="col" class="px-6 py-4 text-left text-xs font-semibold text-gray-500 dark:text-slate-400 uppercase tracking-wider">Match</th>
-                <th scope="col" class="relative px-6 py-4"><span class="sr-only">Actions</span></th>
-            </HeaderTemplate>
-            <RowTemplate Context="transaction">
-                <tr class="group hover:bg-gray-50/50 dark:hover:bg-[#2f2924]/50 transition-colors">
-                    <td class="px-6 py-4 whitespace-nowrap">
-                        <div class="text-sm font-medium text-gray-900 dark:text-slate-100">@transaction.TransactionDate.ToString("MMM d, yyyy")</div>
-                    </td>
-                    <td class="px-6 py-4">
-                        <div class="text-sm text-gray-900 dark:text-slate-100 max-w-xs truncate">@transaction.Description</div>
-                        @if (!string.IsNullOrEmpty(transaction.Reference))
+        @if (_importResult != null)
+        {
+            <Card>
+                <div class="flex items-start gap-4">
+                    <div class="flex-shrink-0 w-10 h-10 bg-emerald-100 dark:bg-emerald-900/30 rounded-xl flex items-center justify-center">
+                        <svg class="w-5 h-5 text-emerald-600 dark:text-emerald-400" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                            <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M5 13l4 4L19 7" />
+                        </svg>
+                    </div>
+                    <div class="flex-1">
+                        <h3 class="text-sm font-semibold text-gray-900 dark:text-slate-100">Import Complete</h3>
+                        <div class="mt-2 grid grid-cols-2 sm:grid-cols-4 gap-4 text-sm">
+                            <div>
+                                <span class="text-gray-500 dark:text-slate-400">Total:</span>
+                                <span class="ml-1 font-medium text-gray-900 dark:text-slate-100">@_importResult.TotalTransactions</span>
+                            </div>
+                            <div>
+                                <span class="text-gray-500 dark:text-slate-400">Imported:</span>
+                                <span class="ml-1 font-medium text-emerald-600 dark:text-emerald-400">@_importResult.ImportedTransactions</span>
+                            </div>
+                            <div>
+                                <span class="text-gray-500 dark:text-slate-400">Auto-matched:</span>
+                                <span class="ml-1 font-medium text-primary-600 dark:text-primary-400">@_importResult.AutoMatchedTransactions</span>
+                            </div>
+                            <div>
+                                <span class="text-gray-500 dark:text-slate-400">Skipped:</span>
+                                <span class="ml-1 font-medium text-gray-600 dark:text-slate-400">@_importResult.SkippedDuplicates</span>
+                            </div>
+                        </div>
+                        @if (_importResult.Errors.Any())
                         {
-                            <div class="text-xs text-gray-500 dark:text-slate-400">Ref: @transaction.Reference</div>
+                            <div class="mt-3 p-3 bg-red-50 dark:bg-red-900/20 rounded-lg">
+                                <p class="text-sm font-medium text-red-700 dark:text-red-400">Errors:</p>
+                                <ul class="mt-1 list-disc list-inside text-sm text-red-600 dark:text-red-400">
+                                    @foreach (var error in _importResult.Errors.Take(5))
+                                    {
+                                        <li>@error</li>
+                                    }
+                                </ul>
+                            </div>
                         }
-                    </td>
-                    <td class="px-6 py-4 whitespace-nowrap text-right">
-                        <span class="text-sm font-semibold @(transaction.Amount >= 0 ? "text-emerald-600 dark:text-emerald-400" : "text-red-600 dark:text-red-400")">
-                            @(transaction.Amount >= 0 ? "+" : "")@CurrencyExtensions.GetSymbol(transaction.Currency)@transaction.Amount.ToString("N2")
-                        </span>
-                    </td>
-                    <td class="px-6 py-4 whitespace-nowrap">
-                        @if (transaction.IsIgnored)
-                        {
-                            <span class="inline-flex items-center px-2.5 py-1 rounded-lg text-xs font-medium bg-gray-100 text-gray-600 dark:bg-slate-700 dark:text-slate-400">Ignored</span>
-                        }
-                        else if (transaction.IsMatched)
-                        {
-                            <span class="inline-flex items-center px-2.5 py-1 rounded-lg text-xs font-medium bg-emerald-50 text-emerald-700 dark:bg-emerald-900/30 dark:text-emerald-400">Matched</span>
-                        }
-                        else if (transaction.IsExpensed)
-                        {
-                            <span class="inline-flex items-center px-2.5 py-1 rounded-lg text-xs font-medium bg-primary-50 text-primary-700 dark:bg-primary-900/30 dark:text-primary-400">Expense</span>
-                        }
-                        else
-                        {
-                            <span class="inline-flex items-center px-2.5 py-1 rounded-lg text-xs font-medium bg-amber-50 text-amber-700 dark:bg-amber-900/30 dark:text-amber-400">Needs review</span>
-                        }
-                    </td>
-                    <td class="px-6 py-4 whitespace-nowrap">
-                        @if (transaction.IsExpensed && transaction.ExpenseId.HasValue)
-                        {
-                            <a href="@($"expenses/{transaction.ExpenseId}")" class="text-sm text-primary-600 dark:text-primary-400 hover:underline">View expense</a>
-                        }
-                        else if (transaction.IsMatched && !string.IsNullOrEmpty(transaction.MatchedInvoiceNumber))
-                        {
-                            <a href="@($"invoices/{transaction.MatchedInvoiceId}")" class="text-sm text-primary-600 dark:text-primary-400 hover:underline">
-                                @transaction.MatchedInvoiceNumber
-                            </a>
-                            @if (!string.IsNullOrEmpty(transaction.MatchConfidence))
+                    </div>
+                    <button @onclick="() => _importResult = null" class="text-gray-400 hover:text-gray-600 dark:hover:text-slate-300">
+                        <svg class="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                            <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M6 18L18 6M6 6l12 12" />
+                        </svg>
+                    </button>
+                </div>
+            </Card>
+        }
+
+        <!-- Filters -->
+        <SearchBar Placeholder="Search transactions..." Value="@_searchTerm" ValueChanged="OnSearchChanged">
+            <DatePicker TValue="DateOnly?" Value="_fromDate" ValueChanged="OnFromDateChanged" Placeholder="From date" Class="w-full sm:w-40" />
+            <DatePicker TValue="DateOnly?" Value="_toDate" ValueChanged="OnToDateChanged" Placeholder="To date" Class="w-full sm:w-40" />
+            <Select TValue="string" Value="_selectedStatus" ValueChanged="OnStatusChanged" Searchable="false" Class="w-full sm:w-44"
+                    Options="@(new List<SelectOption<string>> {
+                        new("", "All Status"),
+                        new("unmatched", "Needs review"),
+                        new("matched", "Matched to invoice"),
+                        new("expense", "Recorded as expense"),
+                        new("ignored", "Ignored")
+                    })" />
+            <Select TValue="string" Value="_selectedDirection" ValueChanged="OnDirectionChanged" Searchable="false" Class="w-full sm:w-36"
+                    Options="@(new List<SelectOption<string>> {
+                        new("", "In & out"),
+                        new("in", "Money in"),
+                        new("out", "Money out")
+                    })" />
+            @if (_currencies.Count > 1)
+            {
+                <Select TValue="string" Value="_selectedCurrency" ValueChanged="OnCurrencyChanged" Searchable="false" Class="w-full sm:w-40"
+                        Options="@(new List<SelectOption<string>> { new("", "All currencies") }.Concat(_currencies.Select(c => new SelectOption<string>(c, c))).ToList())" />
+            }
+        </SearchBar>
+
+        @if (_isLoading)
+        {
+            <LoadingTable Rows="5" Columns="6" />
+        }
+        else if (_response == null || !_response.Items.Any())
+        {
+            <EmptyState Title="No transactions found"
+                        Message="@(HasActiveFilters ? "No transactions match your filters." : "Import a bank statement to get started.")"
+                        IconType="EmptyState.EmptyStateIcon.Briefcase" />
+        }
+        else
+        {
+            <DataTable TItem="BankTransactionDto"
+                       Items="_response.Items"
+                       CurrentPage="_response.Page"
+                       TotalCount="_response.TotalCount"
+                       PageSize="_response.PageSize"
+                       ItemName="transactions"
+                       OnPageChanged="OnPageChanged"
+                       OnPageSizeChanged="OnPageSizeChanged">
+                <HeaderTemplate>
+                    <th scope="col" class="px-6 py-4 text-left text-xs font-semibold text-gray-500 dark:text-slate-400 uppercase tracking-wider">Date</th>
+                    <th scope="col" class="px-6 py-4 text-left text-xs font-semibold text-gray-500 dark:text-slate-400 uppercase tracking-wider">Description</th>
+                    <th scope="col" class="px-6 py-4 text-right text-xs font-semibold text-gray-500 dark:text-slate-400 uppercase tracking-wider">Amount</th>
+                    <th scope="col" class="px-6 py-4 text-left text-xs font-semibold text-gray-500 dark:text-slate-400 uppercase tracking-wider">Status</th>
+                    <th scope="col" class="px-6 py-4 text-left text-xs font-semibold text-gray-500 dark:text-slate-400 uppercase tracking-wider">Match</th>
+                    <th scope="col" class="relative px-6 py-4"><span class="sr-only">Actions</span></th>
+                </HeaderTemplate>
+                <RowTemplate Context="transaction">
+                    <tr class="group hover:bg-gray-50/50 dark:hover:bg-[#2f2924]/50 transition-colors">
+                        <td class="px-6 py-4 whitespace-nowrap">
+                            <div class="text-sm font-medium text-gray-900 dark:text-slate-100">@transaction.TransactionDate.ToString("MMM d, yyyy")</div>
+                        </td>
+                        <td class="px-6 py-4">
+                            <div class="text-sm text-gray-900 dark:text-slate-100 max-w-xs truncate">@transaction.Description</div>
+                            @if (!string.IsNullOrEmpty(transaction.Reference))
                             {
-                                <span class="ml-1 text-xs text-gray-500 dark:text-slate-400">(@transaction.MatchConfidence)</span>
+                                <div class="text-xs text-gray-500 dark:text-slate-400">Ref: @transaction.Reference</div>
                             }
-                        }
-                        else if (transaction.IsIgnored && !string.IsNullOrEmpty(transaction.IgnoreReason))
-                        {
-                            <span class="text-xs text-gray-500 dark:text-slate-400">@transaction.IgnoreReason</span>
-                        }
-                        else
-                        {
-                            <span class="text-sm text-gray-400 dark:text-slate-500">-</span>
-                        }
-                    </td>
-                    <td class="px-6 py-4 whitespace-nowrap text-right">
-                        <div class="flex items-center justify-end gap-1">
+                        </td>
+                        <td class="px-6 py-4 whitespace-nowrap text-right">
+                            <span class="text-sm font-semibold @(transaction.Amount >= 0 ? "text-emerald-600 dark:text-emerald-400" : "text-red-600 dark:text-red-400")">
+                                @(transaction.Amount >= 0 ? "+" : "")@CurrencyExtensions.GetSymbol(transaction.Currency)@transaction.Amount.ToString("N2")
+                            </span>
+                        </td>
+                        <td class="px-6 py-4 whitespace-nowrap">
+                            @if (transaction.IsIgnored)
+                            {
+                                <span class="inline-flex items-center px-2.5 py-1 rounded-lg text-xs font-medium bg-gray-100 text-gray-600 dark:bg-slate-700 dark:text-slate-400">Ignored</span>
+                            }
+                            else if (transaction.IsMatched)
+                            {
+                                <span class="inline-flex items-center px-2.5 py-1 rounded-lg text-xs font-medium bg-emerald-50 text-emerald-700 dark:bg-emerald-900/30 dark:text-emerald-400">Matched</span>
+                            }
+                            else if (transaction.IsExpensed)
+                            {
+                                <span class="inline-flex items-center px-2.5 py-1 rounded-lg text-xs font-medium bg-primary-50 text-primary-700 dark:bg-primary-900/30 dark:text-primary-400">Expense</span>
+                            }
+                            else
+                            {
+                                <span class="inline-flex items-center px-2.5 py-1 rounded-lg text-xs font-medium bg-amber-50 text-amber-700 dark:bg-amber-900/30 dark:text-amber-400">Needs review</span>
+                            }
+                        </td>
+                        <td class="px-6 py-4 whitespace-nowrap">
+                            @if (transaction.IsExpensed && transaction.ExpenseId.HasValue)
+                            {
+                                <a href="@($"expenses/{transaction.ExpenseId}")" class="text-sm text-primary-600 dark:text-primary-400 hover:underline">View expense</a>
+                            }
+                            else if (transaction.IsMatched && !string.IsNullOrEmpty(transaction.MatchedInvoiceNumber))
+                            {
+                                <a href="@($"invoices/{transaction.MatchedInvoiceId}")" class="text-sm text-primary-600 dark:text-primary-400 hover:underline">
+                                    @transaction.MatchedInvoiceNumber
+                                </a>
+                                @if (!string.IsNullOrEmpty(transaction.MatchConfidence))
+                                {
+                                    <span class="ml-1 text-xs text-gray-500 dark:text-slate-400">(@transaction.MatchConfidence)</span>
+                                }
+                            }
+                            else if (transaction.IsIgnored && !string.IsNullOrEmpty(transaction.IgnoreReason))
+                            {
+                                <span class="text-xs text-gray-500 dark:text-slate-400">@transaction.IgnoreReason</span>
+                            }
+                            else
+                            {
+                                <span class="text-sm text-gray-400 dark:text-slate-500">-</span>
+                            }
+                        </td>
+                        <td class="px-6 py-4 whitespace-nowrap text-right">
+                            <div class="flex items-center justify-end gap-1">
+                                @if (!transaction.IsMatched && !transaction.IsIgnored && !transaction.IsExpensed)
+                                {
+                                    @if (transaction.Amount < 0)
+                                    {
+                                        <IconButton OnClick="() => ShowExpenseModal(transaction)" Title="Record as expense">
+                                            <svg class="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                                                <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M3 10h18M7 15h1m4 0h1m-7 4h12a3 3 0 003-3V8a3 3 0 00-3-3H6a3 3 0 00-3 3v8a3 3 0 003 3z" />
+                                            </svg>
+                                        </IconButton>
+                                    }
+                                    else
+                                    {
+                                        <IconButton OnClick="() => ShowMatchModal(transaction)" Title="Match to invoice">
+                                            <svg class="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                                                <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M13.828 10.172a4 4 0 00-5.656 0l-4 4a4 4 0 105.656 5.656l1.102-1.101m-.758-4.899a4 4 0 005.656 0l4-4a4 4 0 00-5.656-5.656l-1.1 1.1" />
+                                            </svg>
+                                        </IconButton>
+                                    }
+                                    <IconButton OnClick="() => IgnoreTransactionAsync(transaction)" Title="Ignore">
+                                        <svg class="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                                            <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M18.364 18.364A9 9 0 005.636 5.636m12.728 12.728A9 9 0 015.636 5.636m12.728 12.728L5.636 5.636" />
+                                        </svg>
+                                    </IconButton>
+                                }
+                                <IconButton OnClick="() => DeleteTransactionAsync(transaction)" Variant="IconButton.IconButtonVariant.Danger" Title="Delete">
+                                    <svg class="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                                        <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M19 7l-.867 12.142A2 2 0 0116.138 21H7.862a2 2 0 01-1.995-1.858L5 7m5 4v6m4-6v6m1-10V4a1 1 0 00-1-1h-4a1 1 0 00-1 1v3M4 7h16" />
+                                    </svg>
+                                </IconButton>
+                            </div>
+                        </td>
+                    </tr>
+                </RowTemplate>
+                <CardTemplate Context="transaction">
+                    <div class="p-4">
+                        <div class="flex items-start justify-between gap-3">
+                            <div class="min-w-0">
+                                <div class="flex items-center gap-2 flex-wrap">
+                                    <span class="text-sm font-semibold text-gray-900 dark:text-slate-100 truncate">@transaction.Description</span>
+                                    @if (transaction.IsIgnored)
+                                    {
+                                        <span class="inline-flex items-center px-2.5 py-1 rounded-lg text-xs font-medium bg-gray-100 text-gray-600 dark:bg-slate-700 dark:text-slate-400">Ignored</span>
+                                    }
+                                    else if (transaction.IsMatched)
+                                    {
+                                        <span class="inline-flex items-center px-2.5 py-1 rounded-lg text-xs font-medium bg-emerald-50 text-emerald-700 dark:bg-emerald-900/30 dark:text-emerald-400">Matched</span>
+                                    }
+                                    else if (transaction.IsExpensed)
+                                    {
+                                        <span class="inline-flex items-center px-2.5 py-1 rounded-lg text-xs font-medium bg-primary-50 text-primary-700 dark:bg-primary-900/30 dark:text-primary-400">Expense</span>
+                                    }
+                                    else
+                                    {
+                                        <span class="inline-flex items-center px-2.5 py-1 rounded-lg text-xs font-medium bg-amber-50 text-amber-700 dark:bg-amber-900/30 dark:text-amber-400">Needs review</span>
+                                    }
+                                </div>
+                                <div class="mt-1 text-xs text-gray-500 dark:text-slate-400">
+                                    @transaction.TransactionDate.ToString("MMM d, yyyy")
+                                    @if (!string.IsNullOrEmpty(transaction.Reference))
+                                    {
+                                        <span> &middot; Ref: @transaction.Reference</span>
+                                    }
+                                </div>
+                                @if (transaction.IsMatched && !string.IsNullOrEmpty(transaction.MatchedInvoiceNumber))
+                                {
+                                    <div class="mt-1 text-xs">
+                                        <a href="@($"invoices/{transaction.MatchedInvoiceId}")" class="text-primary-600 dark:text-primary-400 hover:underline">@transaction.MatchedInvoiceNumber</a>
+                                        @if (!string.IsNullOrEmpty(transaction.MatchConfidence))
+                                        {
+                                            <span class="ml-1 text-gray-500 dark:text-slate-400">(@transaction.MatchConfidence)</span>
+                                        }
+                                    </div>
+                                }
+                                else if (transaction.IsIgnored && !string.IsNullOrEmpty(transaction.IgnoreReason))
+                                {
+                                    <div class="mt-1 text-xs text-gray-500 dark:text-slate-400">@transaction.IgnoreReason</div>
+                                }
+                            </div>
+                            <div class="text-right shrink-0">
+                                <div class="text-base font-semibold @(transaction.Amount >= 0 ? "text-emerald-600 dark:text-emerald-400" : "text-red-600 dark:text-red-400")">
+                                    @(transaction.Amount >= 0 ? "+" : "")@CurrencyExtensions.GetSymbol(transaction.Currency)@transaction.Amount.ToString("N2")
+                                </div>
+                            </div>
+                        </div>
+                        <div class="mt-3 pt-3 border-t border-gray-50 dark:border-[#2f2924] flex items-center justify-end gap-1">
                             @if (!transaction.IsMatched && !transaction.IsIgnored && !transaction.IsExpensed)
                             {
                                 @if (transaction.Amount < 0)
                                 {
-                                    <IconButton OnClick="() => ShowExpenseModal(transaction)" Title="Record as expense">
-                                        <svg class="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                                            <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M3 10h18M7 15h1m4 0h1m-7 4h12a3 3 0 003-3V8a3 3 0 00-3-3H6a3 3 0 00-3 3v8a3 3 0 003 3z" />
-                                        </svg>
-                                    </IconButton>
+                                    <button @onclick="() => ShowExpenseModal(transaction)" class="inline-flex items-center gap-1.5 px-3 py-1.5 text-xs font-medium text-primary-700 dark:text-primary-300 bg-primary-50 dark:bg-primary-900/30 rounded-lg">
+                                        <svg class="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M3 10h18M7 15h1m4 0h1m-7 4h12a3 3 0 003-3V8a3 3 0 00-3-3H6a3 3 0 00-3 3v8a3 3 0 003 3z" /></svg>
+                                        Record expense
+                                    </button>
                                 }
                                 else
                                 {
-                                    <IconButton OnClick="() => ShowMatchModal(transaction)" Title="Match to invoice">
-                                        <svg class="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                                            <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M13.828 10.172a4 4 0 00-5.656 0l-4 4a4 4 0 105.656 5.656l1.102-1.101m-.758-4.899a4 4 0 005.656 0l4-4a4 4 0 00-5.656-5.656l-1.1 1.1" />
-                                        </svg>
-                                    </IconButton>
+                                    <button @onclick="() => ShowMatchModal(transaction)" class="inline-flex items-center gap-1.5 px-3 py-1.5 text-xs font-medium text-primary-700 dark:text-primary-300 bg-primary-50 dark:bg-primary-900/30 rounded-lg">
+                                        <svg class="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M13.828 10.172a4 4 0 00-5.656 0l-4 4a4 4 0 105.656 5.656l1.102-1.101m-.758-4.899a4 4 0 005.656 0l4-4a4 4 0 00-5.656-5.656l-1.1 1.1" /></svg>
+                                        Match invoice
+                                    </button>
                                 }
                                 <IconButton OnClick="() => IgnoreTransactionAsync(transaction)" Title="Ignore">
                                     <svg class="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
@@ -289,94 +375,12 @@
                                 </svg>
                             </IconButton>
                         </div>
-                    </td>
-                </tr>
-            </RowTemplate>
-            <CardTemplate Context="transaction">
-                <div class="p-4">
-                    <div class="flex items-start justify-between gap-3">
-                        <div class="min-w-0">
-                            <div class="flex items-center gap-2 flex-wrap">
-                                <span class="text-sm font-semibold text-gray-900 dark:text-slate-100 truncate">@transaction.Description</span>
-                                @if (transaction.IsIgnored)
-                                {
-                                    <span class="inline-flex items-center px-2.5 py-1 rounded-lg text-xs font-medium bg-gray-100 text-gray-600 dark:bg-slate-700 dark:text-slate-400">Ignored</span>
-                                }
-                                else if (transaction.IsMatched)
-                                {
-                                    <span class="inline-flex items-center px-2.5 py-1 rounded-lg text-xs font-medium bg-emerald-50 text-emerald-700 dark:bg-emerald-900/30 dark:text-emerald-400">Matched</span>
-                                }
-                                else if (transaction.IsExpensed)
-                                {
-                                    <span class="inline-flex items-center px-2.5 py-1 rounded-lg text-xs font-medium bg-primary-50 text-primary-700 dark:bg-primary-900/30 dark:text-primary-400">Expense</span>
-                                }
-                                else
-                                {
-                                    <span class="inline-flex items-center px-2.5 py-1 rounded-lg text-xs font-medium bg-amber-50 text-amber-700 dark:bg-amber-900/30 dark:text-amber-400">Needs review</span>
-                                }
-                            </div>
-                            <div class="mt-1 text-xs text-gray-500 dark:text-slate-400">
-                                @transaction.TransactionDate.ToString("MMM d, yyyy")
-                                @if (!string.IsNullOrEmpty(transaction.Reference))
-                                {
-                                    <span> &middot; Ref: @transaction.Reference</span>
-                                }
-                            </div>
-                            @if (transaction.IsMatched && !string.IsNullOrEmpty(transaction.MatchedInvoiceNumber))
-                            {
-                                <div class="mt-1 text-xs">
-                                    <a href="@($"invoices/{transaction.MatchedInvoiceId}")" class="text-primary-600 dark:text-primary-400 hover:underline">@transaction.MatchedInvoiceNumber</a>
-                                    @if (!string.IsNullOrEmpty(transaction.MatchConfidence))
-                                    {
-                                        <span class="ml-1 text-gray-500 dark:text-slate-400">(@transaction.MatchConfidence)</span>
-                                    }
-                                </div>
-                            }
-                            else if (transaction.IsIgnored && !string.IsNullOrEmpty(transaction.IgnoreReason))
-                            {
-                                <div class="mt-1 text-xs text-gray-500 dark:text-slate-400">@transaction.IgnoreReason</div>
-                            }
-                        </div>
-                        <div class="text-right shrink-0">
-                            <div class="text-base font-semibold @(transaction.Amount >= 0 ? "text-emerald-600 dark:text-emerald-400" : "text-red-600 dark:text-red-400")">
-                                @(transaction.Amount >= 0 ? "+" : "")@CurrencyExtensions.GetSymbol(transaction.Currency)@transaction.Amount.ToString("N2")
-                            </div>
-                        </div>
                     </div>
-                    <div class="mt-3 pt-3 border-t border-gray-50 dark:border-[#2f2924] flex items-center justify-end gap-1">
-                        @if (!transaction.IsMatched && !transaction.IsIgnored && !transaction.IsExpensed)
-                        {
-                            @if (transaction.Amount < 0)
-                            {
-                                <button @onclick="() => ShowExpenseModal(transaction)" class="inline-flex items-center gap-1.5 px-3 py-1.5 text-xs font-medium text-primary-700 dark:text-primary-300 bg-primary-50 dark:bg-primary-900/30 rounded-lg">
-                                    <svg class="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M3 10h18M7 15h1m4 0h1m-7 4h12a3 3 0 003-3V8a3 3 0 00-3-3H6a3 3 0 00-3 3v8a3 3 0 003 3z" /></svg>
-                                    Record expense
-                                </button>
-                            }
-                            else
-                            {
-                                <button @onclick="() => ShowMatchModal(transaction)" class="inline-flex items-center gap-1.5 px-3 py-1.5 text-xs font-medium text-primary-700 dark:text-primary-300 bg-primary-50 dark:bg-primary-900/30 rounded-lg">
-                                    <svg class="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M13.828 10.172a4 4 0 00-5.656 0l-4 4a4 4 0 105.656 5.656l1.102-1.101m-.758-4.899a4 4 0 005.656 0l4-4a4 4 0 00-5.656-5.656l-1.1 1.1" /></svg>
-                                    Match invoice
-                                </button>
-                            }
-                            <IconButton OnClick="() => IgnoreTransactionAsync(transaction)" Title="Ignore">
-                                <svg class="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                                    <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M18.364 18.364A9 9 0 005.636 5.636m12.728 12.728A9 9 0 015.636 5.636m12.728 12.728L5.636 5.636" />
-                                </svg>
-                            </IconButton>
-                        }
-                        <IconButton OnClick="() => DeleteTransactionAsync(transaction)" Variant="IconButton.IconButtonVariant.Danger" Title="Delete">
-                            <svg class="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                                <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M19 7l-.867 12.142A2 2 0 0116.138 21H7.862a2 2 0 01-1.995-1.858L5 7m5 4v6m4-6v6m1-10V4a1 1 0 00-1-1h-4a1 1 0 00-1 1v3M4 7h16" />
-                            </svg>
-                        </IconButton>
-                    </div>
-                </div>
-            </CardTemplate>
-        </DataTable>
-    }
-</div>
+                </CardTemplate>
+            </DataTable>
+        }
+    </div>
+</PlanGate>
 
 <!-- Match Modal -->
 @if (_showMatchModal && _selectedTransaction != null)

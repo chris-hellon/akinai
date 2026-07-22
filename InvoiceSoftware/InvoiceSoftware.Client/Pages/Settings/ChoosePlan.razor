@@ -1,0 +1,110 @@
+@page "/welcome/plan"
+
+@attribute [Authorize]
+
+@using InvoiceSoftware.Shared.Api.Billing
+@using InvoiceSoftware.Shared.Billing
+@using InvoiceSoftware.Shared.Dtos.Billing
+
+@inject ICall<StartCheckout, CheckoutSessionDto> StartCheckoutCall
+@inject ICall<SelectFreePlan, SubscriptionDto> SelectFreeCall
+@inject NavigationManager Nav
+@inject InvoiceSoftware.Client.Services.EntitlementState Entitlements
+
+@*
+    Shown once, after signing up. Choosing Free is a real choice that records
+    itself — not a "maybe later" — so the picker never nags again.
+*@
+
+<PageTitle>Choose your plan - Akinai</PageTitle>
+
+<div class="max-w-4xl mx-auto space-y-8">
+    <div class="text-center">
+        <h1 class="text-3xl font-bold text-gray-900 dark:text-slate-100 tracking-tight">Welcome to Akinai</h1>
+        <p class="mt-2 text-gray-500 dark:text-slate-400">
+            Pick a plan to get started. You can change it whenever you like — nothing is locked in.
+        </p>
+    </div>
+
+    <div class="flex justify-center">
+        <SegmentedControl Options="_cycleOptions" Value="@_cycle.ToString()" ValueChanged="OnCycleChanged" />
+    </div>
+
+    @if (!string.IsNullOrEmpty(_error))
+    {
+        <div class="p-4 rounded-xl border border-red-200 dark:border-red-800 bg-red-50 dark:bg-red-900/30">
+            <p class="text-sm text-red-700 dark:text-red-300">@_error</p>
+        </div>
+    }
+
+    <PlanCards Cycle="_cycle">
+        <ActionTemplate Context="plan">
+            @if (plan.IsPaid)
+            {
+                <button type="button" disabled="@_isBusy" @onclick="() => ChoosePaidAsync(plan.Plan)"
+                        class="w-full inline-flex items-center justify-center px-5 py-3 text-sm font-medium text-white rounded-xl transition-all duration-200 hover:shadow-lg active:scale-[0.98] brand-mark">
+                    Start with @plan.Name
+                </button>
+            }
+            else
+            {
+                <button type="button" class="btn-secondary w-full text-xs" disabled="@_isBusy" @onclick="ChooseFreeAsync">
+                    Start with Free
+                </button>
+            }
+        </ActionTemplate>
+    </PlanCards>
+
+    <p class="text-xs text-center text-gray-500 dark:text-slate-400">
+        Free needs no card. Paid plans can be cancelled at any time and stay active until the period ends.
+    </p>
+</div>
+
+@code {
+    private BillingCycle _cycle = BillingCycle.Monthly;
+    private bool _isBusy;
+    private string? _error;
+
+    private readonly IReadOnlyList<(string Value, string Label)> _cycleOptions =
+    [
+        (nameof(BillingCycle.Monthly), "Monthly"),
+        (nameof(BillingCycle.Annual), "Annual"),
+    ];
+
+    private void OnCycleChanged(string value)
+    {
+        if (Enum.TryParse<BillingCycle>(value, out var cycle)) _cycle = cycle;
+    }
+
+    private async Task ChooseFreeAsync()
+    {
+        _isBusy = true;
+        try
+        {
+            await SelectFreeCall.Call(new SelectFreePlan());
+            await Entitlements.ReloadAsync();
+            Nav.NavigateTo("");
+            return;
+        }
+        catch (Exception ex) { _error = ex.Message; }
+        _isBusy = false;
+    }
+
+    private async Task ChoosePaidAsync(BillingPlan plan)
+    {
+        _isBusy = true;
+        _error = null;
+        try
+        {
+            var session = await StartCheckoutCall.Call(new StartCheckout { Plan = plan, Cycle = _cycle });
+            if (session is null) _error = "Could not start checkout.";
+            else
+            {
+                Nav.NavigateTo(session.RedirectUrl);
+                return;
+            }
+        }
+        catch (Exception ex) { _error = ex.Message; }
+        _isBusy = false;
+    }
+}

@@ -12,7 +12,8 @@ namespace InvoiceSoftware.Infrastructure.Handlers.Invoices;
 /// <summary>
 /// Handler for public invoice access - no authentication required.
 /// </summary>
-public class GetPublicInvoiceHandler(IDbContextFactory<ApplicationDbContext> dbFactory)
+public class GetPublicInvoiceHandler(IDbContextFactory<ApplicationDbContext> dbFactory,
+    Services.IExchangeRateService exchangeRates)
     : IHandle<GetPublicInvoice, PublicInvoiceDto?>
 {
     public async Task<HttpResult<PublicInvoiceDto?>> Handle(GetPublicInvoice request, CancellationToken cancellationToken)
@@ -227,7 +228,7 @@ public class GetPublicInvoiceHandler(IDbContextFactory<ApplicationDbContext> dbF
             businessProfile?.RevolutUsername,
             // VND conversion settings
             businessProfile?.DefaultCurrency,
-            businessProfile?.VndToDefaultCurrencyRate,
+            await Services.VndPaymentRate.GetAsync(exchangeRates, businessProfile?.DefaultCurrency, cancellationToken),
             currencyPaymentDto,
             templateDto);
 

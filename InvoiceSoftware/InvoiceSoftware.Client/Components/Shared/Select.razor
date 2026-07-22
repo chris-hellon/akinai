@@ -2,7 +2,8 @@
 @using System.Linq.Expressions
 
 @* Custom searchable select — mobile-friendly (bottom sheet on small screens), keyboard accessible. *@
-<div class="isel @(Disabled ? "isel--disabled" : "") @(_open ? "isel--open" : "") @Class">
+<div class="isel @(Disabled ? "isel--disabled" : "") @(_open ? "isel--open" : "") @Class" @ref="_popoverRoot">
+    <ClickOutside Target="_popoverRoot" Active="_open" OnClose="Close" />
     <button type="button" class="isel-trigger" @ref="_triggerRef" @onclick="Toggle" @onkeydown="OnTriggerKey"
             disabled="@Disabled" aria-haspopup="listbox" aria-expanded="@_open">
         <span class="isel-value @(_selected is null ? "isel-value--placeholder" : "")">@(_selected?.Label ?? Placeholder)</span>
@@ -80,6 +81,7 @@
 
     [CascadingParameter] private EditContext? EditContext { get; set; }
 
+    private ElementReference _popoverRoot;
     private bool _open;
     private string _query = "";
     private int _highlight = -1;

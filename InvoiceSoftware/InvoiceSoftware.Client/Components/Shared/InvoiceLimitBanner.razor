@@ -1,0 +1,80 @@
+@using InvoiceSoftware.Client.Services
+@implements IDisposable
+@inject EntitlementState Entitlements
+
+@*
+    Warns before the monthly invoice limit bites, and explains it once it has.
+
+    A banner rather than a full upgrade prompt, because unlike the Pro-only
+    features this is a partial limit: the page still works, the existing
+    invoices are all still there, and only creating the next one is blocked.
+*@
+
+@if (_show)
+{
+    <div class="p-4 rounded-xl border @(_atLimit
+            ? "border-red-200 dark:border-red-800 bg-red-50 dark:bg-red-900/30"
+            : "border-amber-200 dark:border-amber-800 bg-amber-50 dark:bg-amber-900/30")">
+        <div class="flex flex-wrap items-center justify-between gap-3">
+            <p class="text-sm @(_atLimit ? "text-red-700 dark:text-red-300" : "text-amber-800 dark:text-amber-200")">
+                @if (_atLimit)
+                {
+                    <span>
+                        <strong>You've used all @_limit invoices this month.</strong>
+                        Your existing invoices are unaffected — upgrade to create more, or wait until next month.
+                    </span>
+                }
+                else
+                {
+                    <span><strong>@_used of @_limit invoices used this month.</strong> Pro removes the limit.</span>
+                }
+            </p>
+            <a href="settings/billing"
+               class="shrink-0 inline-flex items-center px-4 py-2 text-xs font-medium text-white rounded-xl brand-mark">
+                Upgrade to Pro
+            </a>
+        </div>
+    </div>
+}
+
+@code {
+    /// <summary>Show the warning from this fraction of the limit onwards.</summary>
+    private const double WarnFrom = 0.6;
+
+    private bool _show;
+    private bool _atLimit;
+    private int _used;
+    private int _limit;
+
+    protected override async Task OnInitializedAsync()
+    {
+        Entitlements.OnChange += OnChanged;
+        await Entitlements.EnsureLoadedAsync();
+        Evaluate();
+    }
+
+    private void OnChanged()
+    {
+        Evaluate();
+        InvokeAsync(StateHasChanged);
+    }
+
+    private void Evaluate()
+    {
+        var current = Entitlements.Current;
+
+        // Unlimited plans, and an unknown answer, show nothing.
+        if (current?.InvoicesPerMonth is not int limit)
+        {
+            _show = false;
+            return;
+        }
+
+        _limit = limit;
+        _used = current.InvoicesUsedThisMonth;
+        _atLimit = !current.CanCreateInvoice;
+        _show = _atLimit || _used >= limit * WarnFrom;
+    }
+
+    public void Dispose() => Entitlements.OnChange -= OnChanged;
+}

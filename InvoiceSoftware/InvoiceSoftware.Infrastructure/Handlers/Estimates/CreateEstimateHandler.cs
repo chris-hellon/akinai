@@ -8,7 +8,7 @@ using Microsoft.EntityFrameworkCore;
 
 namespace InvoiceSoftware.Infrastructure.Handlers.Estimates;
 
-public class CreateEstimateHandler(IDbContextFactory<ApplicationDbContext> dbFactory, ICurrentUserService currentUserService)
+public class CreateEstimateHandler(IDbContextFactory<ApplicationDbContext> dbFactory, ICurrentUserService currentUserService, IEntitlementService entitlementService)
     : IHandle<CreateEstimate, Guid>
 {
     public async Task<HttpResult<Guid>> Handle(CreateEstimate request, CancellationToken cancellationToken)
@@ -16,6 +16,11 @@ public class CreateEstimateHandler(IDbContextFactory<ApplicationDbContext> dbFac
         var userId = currentUserService.UserId;
         if (string.IsNullOrEmpty(userId))
             return HttpResult<Guid>.Unauthorized();
+
+        // Estimates are a paid feature. Ones already sent stay viewable and signable
+        // by the client — gating them after the fact would break a live quote.
+        var entitlements = await entitlementService.GetAsync(userId, cancellationToken);
+        if (!entitlements.Estimates) return HttpResult<Guid>.Forbidden();
 
         await using var db = await dbFactory.CreateDbContextAsync(cancellationToken);
         // Generate estimate number

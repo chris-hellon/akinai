@@ -2,13 +2,15 @@ using BlazorUtils.EasyApi;
 using BlazorUtils.EasyApi.Server;
 using InvoiceSoftware.Domain.ValueObjects;
 using InvoiceSoftware.Infrastructure.Data;
+using InvoiceSoftware.Infrastructure.Services;
 using InvoiceSoftware.Shared.Api.BusinessProfile;
 using InvoiceSoftware.Shared.Services;
 using Microsoft.EntityFrameworkCore;
 
 namespace InvoiceSoftware.Infrastructure.Handlers.BusinessProfile;
 
-public class SaveBusinessProfileHandler(IDbContextFactory<ApplicationDbContext> dbFactory, ICurrentUserService currentUserService)
+public class SaveBusinessProfileHandler(IDbContextFactory<ApplicationDbContext> dbFactory, ICurrentUserService currentUserService,
+    IEntitlementService entitlementService)
     : IHandle<SaveBusinessProfile>
 {
     public async Task<HttpResult> Handle(SaveBusinessProfile request, CancellationToken cancellationToken)
@@ -19,6 +21,17 @@ public class SaveBusinessProfileHandler(IDbContextFactory<ApplicationDbContext> 
 
         await using var db = await dbFactory.CreateDbContextAsync(cancellationToken);
         var profile = await db.BusinessProfiles.FirstOrDefaultAsync(b => b.UserId == userId, cancellationToken);
+
+        // Currency is gated across every path that can introduce one —
+        // see CurrencyPolicy. Gating client creation alone would be no gate,
+        // since the same currency can arrive by editing a client, changing the
+        // default, or adding bank details for it.
+        var entitlements = await entitlementService.GetAsync(userId, cancellationToken);
+        if (!entitlements.MultiCurrency
+            && !await CurrencyPolicy.AllowsAsync(db, userId, request.DefaultCurrency, cancellationToken))
+        {
+            return HttpResult.Forbidden();
+        }
 
         Address? address = null;
         if (!string.IsNullOrWhiteSpace(request.Street))
@@ -58,8 +71,7 @@ public class SaveBusinessProfileHandler(IDbContextFactory<ApplicationDbContext> 
                 request.PayPalMeUsername,
                 request.WiseEmail,
                 request.RevolutUsername,
-                request.VietQrBankCode,
-                request.VndToDefaultCurrencyRate);
+                request.VietQrBankCode);
             db.BusinessProfiles.Add(profile);
         }
         else
@@ -88,8 +100,7 @@ public class SaveBusinessProfileHandler(IDbContextFactory<ApplicationDbContext> 
                 request.PayPalMeUsername,
                 request.WiseEmail,
                 request.RevolutUsername,
-                request.VietQrBankCode,
-                request.VndToDefaultCurrencyRate);
+                request.VietQrBankCode);
         }
 
         await db.SaveChangesAsync(cancellationToken);

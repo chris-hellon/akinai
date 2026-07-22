@@ -12,6 +12,7 @@ namespace InvoiceSoftware.Infrastructure.Handlers.Invoices;
 public class CreateInvoiceHandler(
     IDbContextFactory<ApplicationDbContext> dbFactory,
     ICurrentUserService currentUserService,
+    IEntitlementService entitlementService,
     IInvoiceTotalService totalService) : IHandle<CreateInvoice, Guid>
 {
     public async Task<HttpResult<Guid>> Handle(CreateInvoice request, CancellationToken cancellationToken)
@@ -19,6 +20,12 @@ public class CreateInvoiceHandler(
         await using var db = await dbFactory.CreateDbContextAsync(cancellationToken);
         var userId = currentUserService.UserId;
         if (string.IsNullOrEmpty(userId)) return HttpResult<Guid>.Unauthorized();
+
+        // Plan limits are enforced here, not in the UI. Only creation is
+        // limited — existing invoices stay fully readable and exportable on
+        // every plan, because they are financial records the account owns.
+        var entitlements = await entitlementService.GetAsync(userId, cancellationToken);
+        if (!entitlements.CanCreateInvoice) return HttpResult<Guid>.Forbidden();
 
         var client = await db.Clients.FirstOrDefaultAsync(c => c.Id == request.ClientId && c.UserId == userId, cancellationToken);
         var currency = client != null ? client.Currency : "USD";

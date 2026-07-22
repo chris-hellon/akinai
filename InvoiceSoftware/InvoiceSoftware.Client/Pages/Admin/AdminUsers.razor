@@ -8,6 +8,10 @@
 @inject ICall<SendPasswordResetLink> ResetLinkCall
 @inject ICall<ResendConfirmationEmail> ResendConfirmCall
 @inject ICall<DeleteUser> DeleteUserCall
+@inject ICall<SetUserPlan> SetUserPlanCall
+@inject InvoiceSoftware.Client.Services.EntitlementState Entitlements
+
+@using InvoiceSoftware.Shared.Billing
 
 <PageTitle>Users - Akinai admin</PageTitle>
 
@@ -76,6 +80,7 @@
                         <tr>
                             <th class="px-6 py-4 text-left text-xs font-semibold text-gray-500 dark:text-slate-400 uppercase tracking-wider">User</th>
                             <th class="px-6 py-4 text-left text-xs font-semibold text-gray-500 dark:text-slate-400 uppercase tracking-wider">Status</th>
+                            <th class="px-6 py-4 text-left text-xs font-semibold text-gray-500 dark:text-slate-400 uppercase tracking-wider">Plan</th>
                             <th class="px-6 py-4 text-right text-xs font-semibold text-gray-500 dark:text-slate-400 uppercase tracking-wider">Clients</th>
                             <th class="px-6 py-4 text-right text-xs font-semibold text-gray-500 dark:text-slate-400 uppercase tracking-wider">Invoices</th>
                             <th class="px-6 py-4 text-right text-xs font-semibold text-gray-500 dark:text-slate-400 uppercase tracking-wider">Actions</th>
@@ -113,6 +118,21 @@
                                         }
                                     </div>
                                 </td>
+                                <td class="px-6 py-4">
+                                    <div class="flex items-center gap-2">
+                                        <span class="text-sm font-medium text-gray-900 dark:text-slate-100">@user.PlanName</span>
+                                        @if (user.SubscriptionStatus != SubscriptionStatus.None)
+                                        {
+                                            <SubscriptionStatusPill Status="@user.SubscriptionStatus" />
+                                        }
+                                    </div>
+                                    @if (user.CurrentPeriodEndUtc is DateTime periodEnd)
+                                    {
+                                        <div class="text-xs text-gray-500 dark:text-slate-400 mt-0.5">
+                                            until @periodEnd.ToLocalTime().ToString("d MMM yyyy")
+                                        </div>
+                                    }
+                                </td>
                                 <td class="px-6 py-4 text-sm text-right text-gray-900 dark:text-slate-100 tnum">@user.ClientCount</td>
                                 <td class="px-6 py-4 text-sm text-right text-gray-900 dark:text-slate-100 tnum">@user.InvoiceCount</td>
                                 <td class="px-6 py-4">
@@ -126,6 +146,10 @@
                                         }
                                         <button type="button" class="btn-secondary text-xs" disabled="@_isBusy"
                                                 @onclick="() => SendResetAsync(user)">Reset password</button>
+                                        @* Always available, including on your own row — granting yourself
+                                           a plan is the quickest way to check what a customer sees. *@
+                                        <button type="button" class="btn-secondary text-xs" disabled="@_isBusy"
+                                                @onclick="() => BeginPlanChange(user)">Change plan</button>
                                         @if (!IsSelf(user))
                                         {
                                             <button type="button" class="btn-secondary text-xs" disabled="@_isBusy"
@@ -154,6 +178,49 @@
 
         <div class="text-sm text-gray-500 dark:text-slate-400">
             @_response.TotalCount registered @(_response.TotalCount == 1 ? "user" : "users")
+        </div>
+    }
+
+    @if (_planTarget is not null)
+    {
+        <div class="bg-white dark:bg-[#1b1612] rounded-2xl border border-gray-200 dark:border-[#2f2924] p-6 space-y-4">
+            <div>
+                <div class="font-display text-lg font-bold text-gray-900 dark:text-slate-100">Change plan for @_planTarget.Email</div>
+                <p class="mt-1 text-sm text-gray-500 dark:text-slate-400">
+                    Sets the plan directly, with no payment taken. Recorded in the account's billing
+                    history against your address.
+                </p>
+            </div>
+
+            <div class="grid gap-4 sm:grid-cols-3">
+                <div>
+                    <label class="block text-sm font-medium text-gray-700 dark:text-slate-300 mb-2">Plan</label>
+                    <select @bind="_planValue" class="w-full px-3 py-2 text-sm rounded-xl">
+                        @foreach (var plan in Plans.All)
+                        {
+                            <option value="@plan.Plan">@plan.Name</option>
+                        }
+                    </select>
+                </div>
+                <div>
+                    <label class="block text-sm font-medium text-gray-700 dark:text-slate-300 mb-2">Billing cycle</label>
+                    <select @bind="_planCycle" disabled="@(_planValue == BillingPlan.Free)" class="w-full px-3 py-2 text-sm rounded-xl">
+                        <option value="@BillingCycle.Monthly">Monthly</option>
+                        <option value="@BillingCycle.Annual">Annual</option>
+                    </select>
+                </div>
+                <div>
+                    <label class="block text-sm font-medium text-gray-700 dark:text-slate-300 mb-2">Months (optional)</label>
+                    <input type="number" min="1" max="120" @bind="_planMonths" disabled="@(_planValue == BillingPlan.Free)"
+                           placeholder="One cycle" class="w-full px-3 py-2 text-sm rounded-xl" />
+                </div>
+            </div>
+
+            <div class="flex items-center gap-3">
+                <button type="button" class="px-5 py-2.5 text-sm font-medium text-white rounded-xl brand-mark"
+                        disabled="@_isBusy" @onclick="SavePlanAsync">Apply plan</button>
+                <button type="button" class="btn-secondary text-xs" disabled="@_isBusy" @onclick="() => _planTarget = null">Cancel</button>
+            </div>
         </div>
     }
 
@@ -229,6 +296,11 @@
     private InviteResultDto? _invite;
     private string? _error;
     private AdminUserDto? _deleteTarget;
+
+    private AdminUserDto? _planTarget;
+    private BillingPlan _planValue = BillingPlan.Free;
+    private BillingCycle _planCycle = BillingCycle.Monthly;
+    private int? _planMonths;
     private string _deleteConfirm = "";
 
     private void OnInviteEmailChanged(ChangeEventArgs e) => _inviteEmail = e.Value?.ToString() ?? "";
@@ -264,7 +336,40 @@
         _isBusy = false;
     }
 
-    private void BeginDelete(AdminUserDto user) { _deleteTarget = user; _deleteConfirm = ""; }
+    private void BeginPlanChange(AdminUserDto user)
+    {
+        _deleteTarget = null;
+        _planTarget = user;
+        _planValue = user.Plan;
+        _planCycle = BillingCycle.Monthly;
+        _planMonths = null;
+    }
+
+    private async Task SavePlanAsync()
+    {
+        if (_planTarget is null) return;
+        _isBusy = true;
+        _error = null;
+        try
+        {
+            await SetUserPlanCall.Call(new SetUserPlan
+            {
+                UserId = _planTarget.Id,
+                Plan = _planValue,
+                Cycle = _planValue == BillingPlan.Free ? null : _planCycle,
+                Months = _planValue == BillingPlan.Free ? null : _planMonths,
+            });
+            // If an admin changed their own plan, their cached entitlements are
+            // now stale for the rest of the session.
+            if (_planTarget.IsCurrentUser) await Entitlements.ReloadAsync();
+            _planTarget = null;
+            await LoadAsync();
+        }
+        catch (Exception ex) { _error = ex.Message; }
+        _isBusy = false;
+    }
+
+    private void BeginDelete(AdminUserDto user) { _planTarget = null; _deleteTarget = user; _deleteConfirm = ""; }
     private void CancelDelete() { _deleteTarget = null; _deleteConfirm = ""; }
 
     private async Task ConfirmDeleteAsync()

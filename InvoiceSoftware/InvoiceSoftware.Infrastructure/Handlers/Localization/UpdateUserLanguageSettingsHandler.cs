@@ -9,7 +9,10 @@ using Microsoft.EntityFrameworkCore;
 
 namespace InvoiceSoftware.Infrastructure.Handlers.Localization;
 
-public class UpdateUserLanguageSettingsHandler(IDbContextFactory<ApplicationDbContext> dbFactory, ICurrentUserService currentUserService)
+public class UpdateUserLanguageSettingsHandler(
+    IDbContextFactory<ApplicationDbContext> dbFactory,
+    ICurrentUserService currentUserService,
+    IEntitlementService entitlementService)
     : IHandle<UpdateUserLanguageSettings>
 {
     public async Task<HttpResult> Handle(
@@ -27,6 +30,18 @@ public class UpdateUserLanguageSettingsHandler(IDbContextFactory<ApplicationDbCo
 
         if (!Enum.TryParse<SupportedLanguage>(request.EstimateLanguage, out var estimateLang))
             return HttpResult.NotFound();
+
+        // Other languages are a paid feature. Checked across all three settings,
+        // because any one of them is enough to put a non-English invoice in
+        // front of a client.
+        var entitlements = await entitlementService.GetAsync(userId, cancellationToken);
+        if (!entitlements.AllLanguages
+            && (defaultLang != SupportedLanguage.English
+                || invoiceLang != SupportedLanguage.English
+                || estimateLang != SupportedLanguage.English))
+        {
+            return HttpResult.Forbidden();
+        }
 
         await using var db = await dbFactory.CreateDbContextAsync(cancellationToken);
         var settings = await db.UserLanguagePreferences

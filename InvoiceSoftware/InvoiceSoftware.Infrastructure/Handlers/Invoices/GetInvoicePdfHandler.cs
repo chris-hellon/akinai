@@ -8,7 +8,11 @@ using Microsoft.EntityFrameworkCore;
 
 namespace InvoiceSoftware.Infrastructure.Handlers.Invoices;
 
-public class GetInvoicePdfHandler(IDbContextFactory<ApplicationDbContext> dbFactory, ICurrentUserService currentUserService, PdfGeneratorService pdfService)
+public class GetInvoicePdfHandler(
+    IDbContextFactory<ApplicationDbContext> dbFactory,
+    ICurrentUserService currentUserService,
+    PdfGeneratorService pdfService,
+    Services.IExchangeRateService exchangeRates)
     : IHandle<GetInvoicePdf, byte[]>
 {
     public async Task<HttpResult<byte[]>> Handle(GetInvoicePdf request, CancellationToken cancellationToken)
@@ -54,7 +58,8 @@ public class GetInvoicePdfHandler(IDbContextFactory<ApplicationDbContext> dbFact
                 .FirstOrDefaultAsync(c => c.UserId == userId && c.CurrencyCode == invoice.Currency, cancellationToken);
         }
 
-        var pdfBytes = await pdfService.GenerateInvoicePdfAsync(invoice, timeEntries, expenses, productLineItems, businessProfile, currencySettings, invoice.Template);
+        var vndRate = await Services.VndPaymentRate.GetAsync(exchangeRates, businessProfile?.DefaultCurrency, cancellationToken);
+        var pdfBytes = await pdfService.GenerateInvoicePdfAsync(invoice, timeEntries, expenses, productLineItems, businessProfile, currencySettings, invoice.Template, vndRate);
 
         return pdfBytes.Length == 0 ? HttpResult<byte[]>.NotFound() : HttpResult<byte[]>.Ok(pdfBytes);
     }

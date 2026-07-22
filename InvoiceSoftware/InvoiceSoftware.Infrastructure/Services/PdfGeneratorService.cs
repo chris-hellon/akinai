@@ -26,7 +26,7 @@ public class PdfGeneratorService
     private const string BorderColor = "#e5e7eb";
     private const string BackgroundLight = "#f9fafb";
 
-    public Task<byte[]> GenerateInvoicePdfAsync(Invoice invoice, List<TimeEntry> timeEntries, List<Expense> expenses, List<InvoiceLineItem>? productLineItems = null, BusinessProfile? businessProfile = null, CurrencyPaymentSettings? currencySettings = null, InvoiceTemplate? template = null)
+    public Task<byte[]> GenerateInvoicePdfAsync(Invoice invoice, List<TimeEntry> timeEntries, List<Expense> expenses, List<InvoiceLineItem>? productLineItems = null, BusinessProfile? businessProfile = null, CurrencyPaymentSettings? currencySettings = null, InvoiceTemplate? template = null, decimal? vndToHomeCurrencyRate = null)
     {
         try
         {
@@ -123,7 +123,10 @@ public class PdfGeneratorService
                             ComposeNotes(contentColumn, invoice, businessProfile);
 
                             // Payment Options
-                            ComposePaymentOptions(contentColumn, invoice, businessProfile, currencySettings, total, showPaymentQR, showBankDetails, businessProfile?.DefaultCurrency, businessProfile?.VndToDefaultCurrencyRate);
+                            ComposePaymentOptions(contentColumn, invoice, businessProfile, currencySettings, total, showPaymentQR, showBankDetails, businessProfile?.DefaultCurrency, vndToHomeCurrencyRate);
+                            // Rate comes from the live service via the caller — the old
+                            // hand-entered setting is gone. Null simply means no converted
+                            // amount is offered.
                         });
                     });
 

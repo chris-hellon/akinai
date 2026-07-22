@@ -86,9 +86,14 @@ public class Program
         builder.Services.AddScoped<ILayoutService, LayoutService>();
 
         // Notifications state so it resolves for interactive-server rendering too
+        // Running on the server: the circuit is in-process, so it subscribes to
+        // the event bus directly instead of connecting to the hub.
+        builder.Services.AddScoped<InvoiceSoftware.Client.Services.IRealtimeUserChannel,
+            InvoiceSoftware.Services.InProcessUserChannel>();
         builder.Services.AddScoped<InvoiceSoftware.Client.Services.NotificationState>();
         builder.Services.AddScoped<InvoiceSoftware.Client.Services.ReportingCurrencyState>();
         builder.Services.AddScoped<InvoiceSoftware.Client.Services.TimeTrackingState>();
+        builder.Services.AddScoped<InvoiceSoftware.Client.Services.EntitlementState>();
 
         // Interactive charts (ApexCharts) — registered on the server too for prerender/interactive-server
         builder.Services.AddApexCharts();

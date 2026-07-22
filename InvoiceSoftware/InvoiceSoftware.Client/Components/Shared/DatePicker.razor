@@ -3,7 +3,8 @@
 @using System.Globalization
 
 @* Native Blazor date picker — calendar popover, mobile-friendly. Supports DateOnly and DateOnly?. *@
-<div class="idp @(Disabled ? "idp--disabled" : "") @(_open ? "idp--open" : "") @Class">
+<div class="idp @(Disabled ? "idp--disabled" : "") @(_open ? "idp--open" : "") @Class" @ref="_popoverRoot">
+    <ClickOutside Target="_popoverRoot" Active="_open" OnClose="Close" />
     <button type="button" class="idp-trigger @(_date is null ? "idp-trigger--empty" : "")" @ref="_triggerRef" @onclick="Toggle" disabled="@Disabled">
         <svg class="idp-cal" width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
             <rect x="3" y="4" width="18" height="18" rx="2" /><path stroke-linecap="round" d="M16 2v4M8 2v4M3 10h18" />
@@ -72,6 +73,7 @@
 
     private static readonly bool IsNullable = Nullable.GetUnderlyingType(typeof(TValue)) is not null;
 
+    private ElementReference _popoverRoot;
     private bool _open;
     private bool _positioned;
     private ElementReference _triggerRef;

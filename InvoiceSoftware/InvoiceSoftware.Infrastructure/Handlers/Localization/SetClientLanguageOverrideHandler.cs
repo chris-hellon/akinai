@@ -9,7 +9,10 @@ using Microsoft.EntityFrameworkCore;
 
 namespace InvoiceSoftware.Infrastructure.Handlers.Localization;
 
-public class SetClientLanguageOverrideHandler(IDbContextFactory<ApplicationDbContext> dbFactory, ICurrentUserService currentUserService)
+public class SetClientLanguageOverrideHandler(
+    IDbContextFactory<ApplicationDbContext> dbFactory,
+    ICurrentUserService currentUserService,
+    IEntitlementService entitlementService)
     : IHandle<SetClientLanguageOverride>
 {
     public async Task<HttpResult> Handle(SetClientLanguageOverride request, CancellationToken cancellationToken)
@@ -27,6 +30,11 @@ public class SetClientLanguageOverrideHandler(IDbContextFactory<ApplicationDbCon
 
         if (!Enum.TryParse<SupportedLanguage>(request.PreferredLanguage, out var language))
             return HttpResult.NotFound();
+
+        // Per-client language is the same paid feature by another route.
+        var entitlements = await entitlementService.GetAsync(userId, cancellationToken);
+        if (!entitlements.AllLanguages && language != SupportedLanguage.English)
+            return HttpResult.Forbidden();
 
         var existingOverride = await db.ClientLanguageSettings
             .FirstOrDefaultAsync(c => c.UserId == userId && c.ClientId == request.ClientId, cancellationToken);

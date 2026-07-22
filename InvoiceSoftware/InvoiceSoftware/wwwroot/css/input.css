@@ -999,6 +999,11 @@ html:has(.pg), body:has(.pg) { background: #faf7f0 !important; }
 /* ---- backdrop (click-catcher; dark sheet on mobile) ---- */
 .isel-backdrop, .idp-backdrop {
   position: fixed; inset: 0; z-index: 70; background: transparent;
+  /* Transparent to clicks on desktop: ClickOutside closes the popover, and the
+     click still reaches whatever was under it — so a nav link works first time
+     instead of the backdrop eating the click. Re-enabled on mobile below,
+     where the backdrop is a real dimmed bottom-sheet overlay. */
+  pointer-events: none;
 }
 
 /* ---- popover panel ---- */
@@ -1078,7 +1083,7 @@ white-space: nowrap;
 
 /* ---- mobile: bottom sheet ---- */
 @media (max-width: 640px) {
-  .isel-backdrop, .idp-backdrop { background: rgb(15 23 42 / 0.45); }
+  .isel-backdrop, .idp-backdrop { background: rgb(15 23 42 / 0.45); pointer-events: auto; }
   .isel-panel, .idp-panel {
     position: fixed; top: auto; bottom: 0; left: 0; right: 0; width: auto;
     border-radius: 1rem 1rem 0 0; box-shadow: var(--shadow-xl);

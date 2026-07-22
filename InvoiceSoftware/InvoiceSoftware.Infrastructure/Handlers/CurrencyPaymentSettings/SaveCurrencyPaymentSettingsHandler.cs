@@ -1,13 +1,15 @@
 using BlazorUtils.EasyApi;
 using BlazorUtils.EasyApi.Server;
 using InvoiceSoftware.Infrastructure.Data;
+using InvoiceSoftware.Infrastructure.Services;
 using InvoiceSoftware.Shared.Api.CurrencyPaymentSettings;
 using InvoiceSoftware.Shared.Services;
 using Microsoft.EntityFrameworkCore;
 
 namespace InvoiceSoftware.Infrastructure.Handlers.CurrencyPaymentSettings;
 
-public class SaveCurrencyPaymentSettingsHandler(IDbContextFactory<ApplicationDbContext> dbFactory, ICurrentUserService currentUserService)
+public class SaveCurrencyPaymentSettingsHandler(IDbContextFactory<ApplicationDbContext> dbFactory, ICurrentUserService currentUserService,
+    IEntitlementService entitlementService)
     : IHandle<SaveCurrencyPaymentSettings>
 {
     public async Task<HttpResult> Handle(SaveCurrencyPaymentSettings request, CancellationToken cancellationToken)
@@ -17,6 +19,17 @@ public class SaveCurrencyPaymentSettingsHandler(IDbContextFactory<ApplicationDbC
             return HttpResult.Unauthorized();
 
         await using var db = await dbFactory.CreateDbContextAsync(cancellationToken);
+
+        // Currency is gated across every path that can introduce one —
+        // see CurrencyPolicy. Gating client creation alone would be no gate,
+        // since the same currency can arrive by editing a client, changing the
+        // default, or adding bank details for it.
+        var entitlements = await entitlementService.GetAsync(userId, cancellationToken);
+        if (!entitlements.MultiCurrency
+            && !await CurrencyPolicy.AllowsAsync(db, userId, request.CurrencyCode, cancellationToken))
+        {
+            return HttpResult.Forbidden();
+        }
         var settings = await db.CurrencyPaymentSettings
             .FirstOrDefaultAsync(c => c.UserId == userId && c.CurrencyCode == request.CurrencyCode, cancellationToken);
 

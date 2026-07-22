@@ -1,0 +1,54 @@
+@using InvoiceSoftware.Client.Services
+@using InvoiceSoftware.Shared.Dtos.Billing
+@implements IDisposable
+@inject EntitlementState Entitlements
+
+@*
+    Renders its content when the plan allows the feature, and an upgrade prompt
+    when it does not.
+
+    A convenience for the UI only. The handler behind the feature enforces it
+    independently — this component existing is not a reason to relax that.
+*@
+
+@if (_ready && !_allowed)
+{
+    <UpgradePrompt Title="@Title" Description="@Description" />
+}
+else
+{
+    @ChildContent
+}
+
+@code {
+    /// <summary>The entitlement to check, e.g. <c>e =&gt; e.Estimates</c>.</summary>
+    [Parameter, EditorRequired] public Func<EntitlementsDto, bool> Feature { get; set; } = _ => true;
+
+    [Parameter, EditorRequired] public string Title { get; set; } = "";
+    [Parameter, EditorRequired] public string Description { get; set; } = "";
+    [Parameter] public RenderFragment? ChildContent { get; set; }
+
+    private bool _ready;
+    private bool _allowed = true;
+
+    protected override async Task OnInitializedAsync()
+    {
+        Entitlements.OnChange += OnEntitlementsChanged;
+        await Entitlements.EnsureLoadedAsync();
+        Evaluate();
+    }
+
+    private void OnEntitlementsChanged()
+    {
+        Evaluate();
+        InvokeAsync(StateHasChanged);
+    }
+
+    private void Evaluate()
+    {
+        _allowed = Entitlements.Allows(Feature);
+        _ready = true;
+    }
+
+    public void Dispose() => Entitlements.OnChange -= OnEntitlementsChanged;
+}

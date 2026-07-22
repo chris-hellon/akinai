@@ -74,7 +74,16 @@ public class GetAdminUsersHandler(
             u.LockoutEnd,
             clientCounts.GetValueOrDefault(u.Id),
             invoiceCounts.GetValueOrDefault(u.Id),
-            u.Id == callerId)).ToList();
+            u.Id == callerId,
+            // Resolved the same way the entitlement checks resolve it, so the
+            // admin list shows what an account can actually do rather than what
+            // it once paid for.
+            Services.EntitlementService.ResolveEffectivePlan(
+                u.Plan, u.SubscriptionStatus, u.CurrentPeriodEndUtc, now.UtcDateTime),
+            Shared.Billing.Plans.For(Services.EntitlementService.ResolveEffectivePlan(
+                u.Plan, u.SubscriptionStatus, u.CurrentPeriodEndUtc, now.UtcDateTime)).Name,
+            u.SubscriptionStatus,
+            u.CurrentPeriodEndUtc)).ToList();
 
         return HttpResult<PaginatedResponse<AdminUserDto>>.Ok(new PaginatedResponse<AdminUserDto>
         {

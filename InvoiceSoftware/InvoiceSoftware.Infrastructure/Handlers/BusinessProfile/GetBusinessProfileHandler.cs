@@ -8,7 +8,10 @@ using Microsoft.EntityFrameworkCore;
 
 namespace InvoiceSoftware.Infrastructure.Handlers.BusinessProfile;
 
-public class GetBusinessProfileHandler(IDbContextFactory<ApplicationDbContext> dbFactory, ICurrentUserService currentUserService)
+public class GetBusinessProfileHandler(
+    IDbContextFactory<ApplicationDbContext> dbFactory,
+    ICurrentUserService currentUserService,
+    Services.IExchangeRateService exchangeRates)
     : IHandle<GetBusinessProfile, BusinessProfileDto?>
 {
     public async Task<HttpResult<BusinessProfileDto?>> Handle(GetBusinessProfile request, CancellationToken cancellationToken)
@@ -51,7 +54,8 @@ public class GetBusinessProfileHandler(IDbContextFactory<ApplicationDbContext> d
             profile.WiseEmail,
             profile.RevolutUsername,
             profile.VietQrBankCode,
-            profile.VndToDefaultCurrencyRate);
+            // Live rate, not a number typed into settings — see VndPaymentRate.
+            await Services.VndPaymentRate.GetAsync(exchangeRates, profile.DefaultCurrency, cancellationToken));
 
         return HttpResult<BusinessProfileDto?>.Ok(result);
     }

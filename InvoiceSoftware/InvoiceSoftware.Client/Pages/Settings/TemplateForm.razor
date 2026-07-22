@@ -8,173 +8,177 @@
 
 <PageTitle>@(Id.HasValue ? "Edit Template" : "New Template") - Akinai</PageTitle>
 
-<div class="space-y-6">
-    <PageHeader Title="@(Id.HasValue ? "Edit Template" : "New Template")"
-                Description="Customize the appearance of your invoices."
-                ShowBackButton="true"
-                BackUrl="settings/templates"
-                Breadcrumbs="@_breadcrumbs" />
+<PlanGate Feature="@(e => e.CustomTemplates)"
+          Title="Custom templates are a Pro feature"
+          Description="Design invoices in your own colours and layout so they look like they came from your studio.">
+    <div class="space-y-6">
+        <PageHeader Title="@(Id.HasValue ? "Edit Template" : "New Template")"
+                    Description="Customize the appearance of your invoices."
+                    ShowBackButton="true"
+                    BackUrl="settings/templates"
+                    Breadcrumbs="@_breadcrumbs" />
 
-    @if (_isLoading)
-    {
-        <LoadingSpinner Padding="py-20" />
-    }
-    else
-    {
-        <form @onsubmit="SaveAsync">
-            <div class="grid grid-cols-1 lg:grid-cols-3 gap-6">
-                <!-- Form -->
-                <div class="lg:col-span-2 space-y-6">
-                    <!-- Basic Info -->
-                    <Card Title="Basic Information">
-                        <div class="space-y-4">
-                            <div>
-                                <label class="block text-sm font-medium text-gray-700 dark:text-slate-300 mb-2">Template Name <span class="text-red-500">*</span></label>
-                                <input type="text" @bind="_model.Name" @bind:event="oninput"
-                                    class="form-control"
-                                    placeholder="e.g., Professional Blue" />
-                            </div>
-
-                            <div>
-                                <label class="block text-sm font-medium text-gray-700 dark:text-slate-300 mb-2">Description</label>
-                                <textarea @bind="_model.Description" @bind:event="oninput" rows="2"
-                                    class="form-control resize-none"
-                                    placeholder="A brief description of this template..."></textarea>
-                            </div>
-
-                            <div>
-                                <label class="block text-sm font-medium text-gray-700 dark:text-slate-300 mb-2">Template Type</label>
-                                <Select TValue="string" @bind-Value="_model.TemplateType" Searchable="false"
-                                    Options="@(new List<SelectOption<string>> { new("Minimal", "Minimal"), new("Professional", "Professional"), new("Modern", "Modern"), new("Classic", "Classic") })" />
-                            </div>
-                        </div>
-                    </Card>
-
-                    <!-- Colors -->
-                    <Card Title="Colors">
-                        <div class="grid grid-cols-2 gap-4">
-                            <div>
-                                <label class="block text-sm font-medium text-gray-700 dark:text-slate-300 mb-2">Primary Color</label>
-                                <div class="flex items-center gap-3">
-                                    <input type="color" @bind="_model.PrimaryColor" @bind:event="oninput" class="w-12 h-10 rounded-lg border border-gray-200 dark:border-slate-600 cursor-pointer" />
-                                    <input type="text" @bind="_model.PrimaryColor" @bind:event="oninput" class="form-control flex-1 uppercase" />
-                                </div>
-                            </div>
-                            <div>
-                                <label class="block text-sm font-medium text-gray-700 dark:text-slate-300 mb-2">Accent Color</label>
-                                <div class="flex items-center gap-3">
-                                    <input type="color" @bind="_model.AccentColor" @bind:event="oninput" class="w-12 h-10 rounded-lg border border-gray-200 dark:border-slate-600 cursor-pointer" />
-                                    <input type="text" @bind="_model.AccentColor" @bind:event="oninput" class="form-control flex-1 uppercase" />
-                                </div>
-                            </div>
-                            <div>
-                                <label class="block text-sm font-medium text-gray-700 dark:text-slate-300 mb-2">Text Color</label>
-                                <div class="flex items-center gap-3">
-                                    <input type="color" @bind="_model.TextColor" @bind:event="oninput" class="w-12 h-10 rounded-lg border border-gray-200 dark:border-slate-600 cursor-pointer" />
-                                    <input type="text" @bind="_model.TextColor" @bind:event="oninput" class="form-control flex-1 uppercase" />
-                                </div>
-                            </div>
-                            <div>
-                                <label class="block text-sm font-medium text-gray-700 dark:text-slate-300 mb-2">Background Color</label>
-                                <div class="flex items-center gap-3">
-                                    <input type="color" @bind="_model.BackgroundColor" @bind:event="oninput" class="w-12 h-10 rounded-lg border border-gray-200 dark:border-slate-600 cursor-pointer" />
-                                    <input type="text" @bind="_model.BackgroundColor" @bind:event="oninput" class="form-control flex-1 uppercase" />
-                                </div>
-                            </div>
-                        </div>
-                    </Card>
-
-                    <!-- Layout Options -->
-                    <Card Title="Layout Options">
-                        <div class="space-y-4">
-                            <div class="grid grid-cols-3 gap-4">
-                                <div>
-                                    <label class="block text-sm font-medium text-gray-700 dark:text-slate-300 mb-2">Header Layout</label>
-                                    <Select TValue="string" @bind-Value="_model.HeaderLayout" Searchable="false"
-                                        Options="@(new List<SelectOption<string>> { new("standard", "Standard"), new("centered", "Centered"), new("minimal", "Minimal") })" />
-                                </div>
-                                <div>
-                                    <label class="block text-sm font-medium text-gray-700 dark:text-slate-300 mb-2">Items Layout</label>
-                                    <Select TValue="string" @bind-Value="_model.ItemsLayout" Searchable="false"
-                                        Options="@(new List<SelectOption<string>> { new("standard", "Standard"), new("bordered", "Bordered"), new("striped", "Striped") })" />
-                                </div>
-                                <div>
-                                    <label class="block text-sm font-medium text-gray-700 dark:text-slate-300 mb-2">Footer Layout</label>
-                                    <Select TValue="string" @bind-Value="_model.FooterLayout" Searchable="false"
-                                        Options="@(new List<SelectOption<string>> { new("standard", "Standard"), new("detailed", "Detailed"), new("minimal", "Minimal") })" />
-                                </div>
-                            </div>
-
-                            <div>
-                                <label class="block text-sm font-medium text-gray-700 dark:text-slate-300 mb-2">Font Family (Optional)</label>
-                                <Select TValue="string" @bind-Value="_model.FontFamily" Searchable="false" Placeholder="System Default"
-                                    Options="@(new List<SelectOption<string>> { new("", "System Default"), new("Inter", "Inter"), new("Roboto", "Roboto"), new("Open Sans", "Open Sans"), new("Lato", "Lato"), new("Montserrat", "Montserrat") })" />
-                            </div>
-                        </div>
-                    </Card>
-
-                    <!-- Display Options -->
-                    <Card Title="Display Options">
-                        <div class="grid grid-cols-2 gap-4">
-                            <label class="flex items-center gap-3 cursor-pointer">
-                                <input type="checkbox" @bind="_model.ShowLogo" class="w-5 h-5 rounded border-gray-300 text-primary-600 focus:ring-primary-500 dark:border-slate-600 dark:bg-slate-700" />
-                                <span class="text-sm text-gray-700 dark:text-slate-300">Show Company Logo</span>
-                            </label>
-                            <label class="flex items-center gap-3 cursor-pointer">
-                                <input type="checkbox" @bind="_model.ShowPaymentQR" class="w-5 h-5 rounded border-gray-300 text-primary-600 focus:ring-primary-500 dark:border-slate-600 dark:bg-slate-700" />
-                                <span class="text-sm text-gray-700 dark:text-slate-300">Show Payment QR Code</span>
-                            </label>
-                            <label class="flex items-center gap-3 cursor-pointer">
-                                <input type="checkbox" @bind="_model.ShowBankDetails" class="w-5 h-5 rounded border-gray-300 text-primary-600 focus:ring-primary-500 dark:border-slate-600 dark:bg-slate-700" />
-                                <span class="text-sm text-gray-700 dark:text-slate-300">Show Bank Details</span>
-                            </label>
-                            <label class="flex items-center gap-3 cursor-pointer">
-                                <input type="checkbox" @bind="_model.ShowItemDescriptions" class="w-5 h-5 rounded border-gray-300 text-primary-600 focus:ring-primary-500 dark:border-slate-600 dark:bg-slate-700" />
-                                <span class="text-sm text-gray-700 dark:text-slate-300">Show Item Descriptions</span>
-                            </label>
-                        </div>
-                    </Card>
-
-                    <!-- Actions -->
-                    <div class="flex items-center justify-end gap-3">
-                        <a href="settings/templates" class="px-5 py-2.5 text-sm font-medium text-gray-700 dark:text-slate-300 bg-white dark:bg-slate-800 border border-gray-200 dark:border-slate-600 rounded-xl hover:bg-gray-50 dark:hover:bg-slate-700 hover:border-gray-300 dark:hover:border-slate-500 transition-all duration-200">
-                            Cancel
-                        </a>
-                        <PrimaryButton ButtonType="submit" Text="@(Id.HasValue ? "Update Template" : "Create Template")" IsLoading="_isSaving" ShowIcon="false" />
-                    </div>
-                </div>
-
-                <!-- Preview -->
-                <div class="lg:col-span-1">
-                    <div class="sticky top-6">
-                        <Card Title="Preview">
-                            <TemplatePreview
-                                PrimaryColor="@_model.PrimaryColor"
-                                AccentColor="@_model.AccentColor"
-                                TextColor="@_model.TextColor"
-                                BackgroundColor="@_model.BackgroundColor"
-                                HeaderLayout="@_model.HeaderLayout"
-                                ItemsLayout="@_model.ItemsLayout"
-                                FooterLayout="@_model.FooterLayout"
-                                ShowLogo="@_model.ShowLogo"
-                                ShowPaymentQR="@_model.ShowPaymentQR"
-                                ShowBankDetails="@_model.ShowBankDetails"
-                                ShowItemDescriptions="@_model.ShowItemDescriptions"
-                                FontFamily="@_model.FontFamily" />
-                        </Card>
-                    </div>
-                </div>
-            </div>
-        </form>
-
-        @if (Id.HasValue && !_model.IsSystem)
+        @if (_isLoading)
         {
-            <DangerZone EntityLabel="Template" ItemName="@_model.Name"
-                        WarningMessage="This will permanently delete this invoice template. This cannot be undone."
-                        OnConfirmed="DeleteAsync" />
+            <LoadingSpinner Padding="py-20" />
         }
-    }
-</div>
+        else
+        {
+            <form @onsubmit="SaveAsync">
+                <div class="grid grid-cols-1 lg:grid-cols-3 gap-6">
+                    <!-- Form -->
+                    <div class="lg:col-span-2 space-y-6">
+                        <!-- Basic Info -->
+                        <Card Title="Basic Information">
+                            <div class="space-y-4">
+                                <div>
+                                    <label class="block text-sm font-medium text-gray-700 dark:text-slate-300 mb-2">Template Name <span class="text-red-500">*</span></label>
+                                    <input type="text" @bind="_model.Name" @bind:event="oninput"
+                                        class="form-control"
+                                        placeholder="e.g., Professional Blue" />
+                                </div>
+
+                                <div>
+                                    <label class="block text-sm font-medium text-gray-700 dark:text-slate-300 mb-2">Description</label>
+                                    <textarea @bind="_model.Description" @bind:event="oninput" rows="2"
+                                        class="form-control resize-none"
+                                        placeholder="A brief description of this template..."></textarea>
+                                </div>
+
+                                <div>
+                                    <label class="block text-sm font-medium text-gray-700 dark:text-slate-300 mb-2">Template Type</label>
+                                    <Select TValue="string" @bind-Value="_model.TemplateType" Searchable="false"
+                                        Options="@(new List<SelectOption<string>> { new("Minimal", "Minimal"), new("Professional", "Professional"), new("Modern", "Modern"), new("Classic", "Classic") })" />
+                                </div>
+                            </div>
+                        </Card>
+
+                        <!-- Colors -->
+                        <Card Title="Colors">
+                            <div class="grid grid-cols-2 gap-4">
+                                <div>
+                                    <label class="block text-sm font-medium text-gray-700 dark:text-slate-300 mb-2">Primary Color</label>
+                                    <div class="flex items-center gap-3">
+                                        <input type="color" @bind="_model.PrimaryColor" @bind:event="oninput" class="w-12 h-10 rounded-lg border border-gray-200 dark:border-slate-600 cursor-pointer" />
+                                        <input type="text" @bind="_model.PrimaryColor" @bind:event="oninput" class="form-control flex-1 uppercase" />
+                                    </div>
+                                </div>
+                                <div>
+                                    <label class="block text-sm font-medium text-gray-700 dark:text-slate-300 mb-2">Accent Color</label>
+                                    <div class="flex items-center gap-3">
+                                        <input type="color" @bind="_model.AccentColor" @bind:event="oninput" class="w-12 h-10 rounded-lg border border-gray-200 dark:border-slate-600 cursor-pointer" />
+                                        <input type="text" @bind="_model.AccentColor" @bind:event="oninput" class="form-control flex-1 uppercase" />
+                                    </div>
+                                </div>
+                                <div>
+                                    <label class="block text-sm font-medium text-gray-700 dark:text-slate-300 mb-2">Text Color</label>
+                                    <div class="flex items-center gap-3">
+                                        <input type="color" @bind="_model.TextColor" @bind:event="oninput" class="w-12 h-10 rounded-lg border border-gray-200 dark:border-slate-600 cursor-pointer" />
+                                        <input type="text" @bind="_model.TextColor" @bind:event="oninput" class="form-control flex-1 uppercase" />
+                                    </div>
+                                </div>
+                                <div>
+                                    <label class="block text-sm font-medium text-gray-700 dark:text-slate-300 mb-2">Background Color</label>
+                                    <div class="flex items-center gap-3">
+                                        <input type="color" @bind="_model.BackgroundColor" @bind:event="oninput" class="w-12 h-10 rounded-lg border border-gray-200 dark:border-slate-600 cursor-pointer" />
+                                        <input type="text" @bind="_model.BackgroundColor" @bind:event="oninput" class="form-control flex-1 uppercase" />
+                                    </div>
+                                </div>
+                            </div>
+                        </Card>
+
+                        <!-- Layout Options -->
+                        <Card Title="Layout Options">
+                            <div class="space-y-4">
+                                <div class="grid grid-cols-3 gap-4">
+                                    <div>
+                                        <label class="block text-sm font-medium text-gray-700 dark:text-slate-300 mb-2">Header Layout</label>
+                                        <Select TValue="string" @bind-Value="_model.HeaderLayout" Searchable="false"
+                                            Options="@(new List<SelectOption<string>> { new("standard", "Standard"), new("centered", "Centered"), new("minimal", "Minimal") })" />
+                                    </div>
+                                    <div>
+                                        <label class="block text-sm font-medium text-gray-700 dark:text-slate-300 mb-2">Items Layout</label>
+                                        <Select TValue="string" @bind-Value="_model.ItemsLayout" Searchable="false"
+                                            Options="@(new List<SelectOption<string>> { new("standard", "Standard"), new("bordered", "Bordered"), new("striped", "Striped") })" />
+                                    </div>
+                                    <div>
+                                        <label class="block text-sm font-medium text-gray-700 dark:text-slate-300 mb-2">Footer Layout</label>
+                                        <Select TValue="string" @bind-Value="_model.FooterLayout" Searchable="false"
+                                            Options="@(new List<SelectOption<string>> { new("standard", "Standard"), new("detailed", "Detailed"), new("minimal", "Minimal") })" />
+                                    </div>
+                                </div>
+
+                                <div>
+                                    <label class="block text-sm font-medium text-gray-700 dark:text-slate-300 mb-2">Font Family (Optional)</label>
+                                    <Select TValue="string" @bind-Value="_model.FontFamily" Searchable="false" Placeholder="System Default"
+                                        Options="@(new List<SelectOption<string>> { new("", "System Default"), new("Inter", "Inter"), new("Roboto", "Roboto"), new("Open Sans", "Open Sans"), new("Lato", "Lato"), new("Montserrat", "Montserrat") })" />
+                                </div>
+                            </div>
+                        </Card>
+
+                        <!-- Display Options -->
+                        <Card Title="Display Options">
+                            <div class="grid grid-cols-2 gap-4">
+                                <label class="flex items-center gap-3 cursor-pointer">
+                                    <input type="checkbox" @bind="_model.ShowLogo" class="w-5 h-5 rounded border-gray-300 text-primary-600 focus:ring-primary-500 dark:border-slate-600 dark:bg-slate-700" />
+                                    <span class="text-sm text-gray-700 dark:text-slate-300">Show Company Logo</span>
+                                </label>
+                                <label class="flex items-center gap-3 cursor-pointer">
+                                    <input type="checkbox" @bind="_model.ShowPaymentQR" class="w-5 h-5 rounded border-gray-300 text-primary-600 focus:ring-primary-500 dark:border-slate-600 dark:bg-slate-700" />
+                                    <span class="text-sm text-gray-700 dark:text-slate-300">Show Payment QR Code</span>
+                                </label>
+                                <label class="flex items-center gap-3 cursor-pointer">
+                                    <input type="checkbox" @bind="_model.ShowBankDetails" class="w-5 h-5 rounded border-gray-300 text-primary-600 focus:ring-primary-500 dark:border-slate-600 dark:bg-slate-700" />
+                                    <span class="text-sm text-gray-700 dark:text-slate-300">Show Bank Details</span>
+                                </label>
+                                <label class="flex items-center gap-3 cursor-pointer">
+                                    <input type="checkbox" @bind="_model.ShowItemDescriptions" class="w-5 h-5 rounded border-gray-300 text-primary-600 focus:ring-primary-500 dark:border-slate-600 dark:bg-slate-700" />
+                                    <span class="text-sm text-gray-700 dark:text-slate-300">Show Item Descriptions</span>
+                                </label>
+                            </div>
+                        </Card>
+
+                        <!-- Actions -->
+                        <div class="flex items-center justify-end gap-3">
+                            <a href="settings/templates" class="px-5 py-2.5 text-sm font-medium text-gray-700 dark:text-slate-300 bg-white dark:bg-slate-800 border border-gray-200 dark:border-slate-600 rounded-xl hover:bg-gray-50 dark:hover:bg-slate-700 hover:border-gray-300 dark:hover:border-slate-500 transition-all duration-200">
+                                Cancel
+                            </a>
+                            <PrimaryButton ButtonType="submit" Text="@(Id.HasValue ? "Update Template" : "Create Template")" IsLoading="_isSaving" ShowIcon="false" />
+                        </div>
+                    </div>
+
+                    <!-- Preview -->
+                    <div class="lg:col-span-1">
+                        <div class="sticky top-6">
+                            <Card Title="Preview">
+                                <TemplatePreview
+                                    PrimaryColor="@_model.PrimaryColor"
+                                    AccentColor="@_model.AccentColor"
+                                    TextColor="@_model.TextColor"
+                                    BackgroundColor="@_model.BackgroundColor"
+                                    HeaderLayout="@_model.HeaderLayout"
+                                    ItemsLayout="@_model.ItemsLayout"
+                                    FooterLayout="@_model.FooterLayout"
+                                    ShowLogo="@_model.ShowLogo"
+                                    ShowPaymentQR="@_model.ShowPaymentQR"
+                                    ShowBankDetails="@_model.ShowBankDetails"
+                                    ShowItemDescriptions="@_model.ShowItemDescriptions"
+                                    FontFamily="@_model.FontFamily" />
+                            </Card>
+                        </div>
+                    </div>
+                </div>
+            </form>
+
+            @if (Id.HasValue && !_model.IsSystem)
+            {
+                <DangerZone EntityLabel="Template" ItemName="@_model.Name"
+                            WarningMessage="This will permanently delete this invoice template. This cannot be undone."
+                            OnConfirmed="DeleteAsync" />
+            }
+        }
+    </div>
+</PlanGate>
 
 <ErrorAlert Message="@_errorMessage" />
 

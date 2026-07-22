@@ -3,13 +3,17 @@ using BlazorUtils.EasyApi.Server;
 using InvoiceSoftware.Domain.Entities;
 using InvoiceSoftware.Domain.ValueObjects;
 using InvoiceSoftware.Infrastructure.Data;
+using InvoiceSoftware.Infrastructure.Services;
 using InvoiceSoftware.Shared.Api.Clients;
 using InvoiceSoftware.Shared.Services;
 using Microsoft.EntityFrameworkCore;
 
 namespace InvoiceSoftware.Infrastructure.Handlers.Clients;
 
-public class CreateClientHandler(IDbContextFactory<ApplicationDbContext> dbFactory, ICurrentUserService currentUserService) : IHandle<CreateClient, Guid>
+public class CreateClientHandler(
+    IDbContextFactory<ApplicationDbContext> dbFactory,
+    ICurrentUserService currentUserService,
+    IEntitlementService entitlementService) : IHandle<CreateClient, Guid>
 {
     public async Task<HttpResult<Guid>> Handle(CreateClient request, CancellationToken cancellationToken)
     {
@@ -18,6 +22,13 @@ public class CreateClientHandler(IDbContextFactory<ApplicationDbContext> dbFacto
             return HttpResult<Guid>.Unauthorized();
 
         await using var db = await dbFactory.CreateDbContextAsync(cancellationToken);
+
+        var entitlements = await entitlementService.GetAsync(userId, cancellationToken);
+        if (!entitlements.MultiCurrency
+            && !await CurrencyPolicy.AllowsAsync(db, userId, request.Currency, cancellationToken))
+        {
+            return HttpResult<Guid>.Forbidden();
+        }
         Address? billingAddress = null;
         if (!string.IsNullOrEmpty(request.Street))
         {
@@ -43,4 +54,5 @@ public class CreateClientHandler(IDbContextFactory<ApplicationDbContext> dbFacto
         await db.SaveChangesAsync(cancellationToken);
         return HttpResult<Guid>.Created(client.Id);
     }
+
 }

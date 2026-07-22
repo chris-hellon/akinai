@@ -1,3 +1,5 @@
+using InvoiceSoftware.Shared.Billing;
+
 namespace InvoiceSoftware.Shared.Dtos.Admin;
 
 /// <summary>
@@ -19,7 +21,12 @@ public record AdminUserDto(
     // Whether this row is the signed-in admin. Decided on the server: the
     // browser only receives the name and role claims, so the client cannot
     // identify itself without widening what gets serialised to it.
-    bool IsCurrentUser);
+    bool IsCurrentUser,
+    // The effective plan, not the stored one — a lapsed account shows as Free.
+    BillingPlan Plan,
+    string PlanName,
+    SubscriptionStatus SubscriptionStatus,
+    DateTime? CurrentPeriodEndUtc);
 
 /// <summary>Per-user detail, including the activity that shows whether the
 /// account is actually being used.</summary>

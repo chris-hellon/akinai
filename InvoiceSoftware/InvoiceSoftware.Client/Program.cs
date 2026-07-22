@@ -32,12 +32,18 @@ class Program
         builder.Services.AddScoped<ILayoutService, LayoutService>();
 
         // Notifications state (loads + live SignalR updates)
+        // Running in the browser: realtime comes over SignalR.
+        builder.Services.AddScoped<IRealtimeUserChannel, SignalRUserChannel>();
         builder.Services.AddScoped<NotificationState>();
 
         // Dashboard reporting-currency selection (shared by header + dashboard)
         builder.Services.AddScoped<ReportingCurrencyState>();
 
         builder.Services.AddScoped<TimeTrackingState>();
+
+        // Entitlements, so pages can offer the right features without each
+        // one asking the server separately.
+        builder.Services.AddScoped<EntitlementState>();
 
         // Interactive charts (ApexCharts)
         builder.Services.AddApexCharts();

@@ -2,13 +2,15 @@ using BlazorUtils.EasyApi;
 using BlazorUtils.EasyApi.Server;
 using InvoiceSoftware.Domain.ValueObjects;
 using InvoiceSoftware.Infrastructure.Data;
+using InvoiceSoftware.Infrastructure.Services;
 using InvoiceSoftware.Shared.Api.Clients;
 using InvoiceSoftware.Shared.Services;
 using Microsoft.EntityFrameworkCore;
 
 namespace InvoiceSoftware.Infrastructure.Handlers.Clients;
 
-public class UpdateClientHandler(IDbContextFactory<ApplicationDbContext> dbFactory, ICurrentUserService currentUserService) : IHandle<UpdateClient>
+public class UpdateClientHandler(IDbContextFactory<ApplicationDbContext> dbFactory, ICurrentUserService currentUserService,
+    IEntitlementService entitlementService) : IHandle<UpdateClient>
 {
     public async Task<HttpResult> Handle(UpdateClient request, CancellationToken cancellationToken)
     {
@@ -18,6 +20,17 @@ public class UpdateClientHandler(IDbContextFactory<ApplicationDbContext> dbFacto
         await using var db = await dbFactory.CreateDbContextAsync(cancellationToken);
         var client = await db.Clients.FirstOrDefaultAsync(c => c.Id == request.Id && c.UserId == userId, cancellationToken);
         if (client is null) return HttpResult.NotFound();
+
+        // Currency is gated across every path that can introduce one —
+        // see CurrencyPolicy. Gating client creation alone would be no gate,
+        // since the same currency can arrive by editing a client, changing the
+        // default, or adding bank details for it.
+        var entitlements = await entitlementService.GetAsync(userId, cancellationToken);
+        if (!entitlements.MultiCurrency
+            && !await CurrencyPolicy.AllowsAsync(db, userId, request.Currency, cancellationToken))
+        {
+            return HttpResult.Forbidden();
+        }
 
         Address? billingAddress = null;
         if (!string.IsNullOrEmpty(request.Street))

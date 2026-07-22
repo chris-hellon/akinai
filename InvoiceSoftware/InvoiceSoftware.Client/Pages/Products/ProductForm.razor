@@ -6,6 +6,8 @@
 @inject ICall<UpdateProduct> UpdateProductCall
 @inject ICall<DeleteProduct> DeleteProductCall
 
+@inject InvoiceSoftware.Client.Services.EntitlementState Entitlements
+
 <PageTitle>@(Id.HasValue ? "Edit Product" : "New Product") - Akinai</PageTitle>
 
 <div class="space-y-6">
@@ -62,7 +64,7 @@
                     <div>
                         <label for="currency" class="block text-sm font-medium text-gray-700 dark:text-slate-300 mb-2">Currency <span class="text-red-500">*</span></label>
                         <Select @bind-Value="_model.Currency"
-                                Options="@(Enum.GetValues<Currency>().Select(c => new SelectOption<string>(c.ToString(), $"{c} ({c.GetSymbol()})")).ToList())" />
+                                Options="@(CurrencyChoices.Values(Entitlements, _model.Currency).Select(c => new SelectOption<string>(c.ToString(), $"{c} ({c.GetSymbol()})")).ToList())" />
                     </div>
 
                     <div>
@@ -144,6 +146,7 @@
 
     protected override async Task OnInitializedAsync()
     {
+        await Entitlements.EnsureLoadedAsync();
         _breadcrumbs =
         [
             new PageHeader.BreadcrumbItem("Products", "/products"),

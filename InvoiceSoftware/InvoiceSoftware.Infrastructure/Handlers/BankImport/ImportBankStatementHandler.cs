@@ -11,7 +11,7 @@ using System.Text;
 
 namespace InvoiceSoftware.Infrastructure.Handlers.BankImport;
 
-public class ImportBankStatementHandler(IDbContextFactory<ApplicationDbContext> dbFactory, ICurrentUserService currentUserService)
+public class ImportBankStatementHandler(IDbContextFactory<ApplicationDbContext> dbFactory, ICurrentUserService currentUserService, IEntitlementService entitlementService)
     : IHandle<ImportBankStatement, ImportResultDto>
 {
     public async Task<HttpResult<ImportResultDto>> Handle(
@@ -20,6 +20,10 @@ public class ImportBankStatementHandler(IDbContextFactory<ApplicationDbContext> 
         var userId = currentUserService.UserId;
         if (string.IsNullOrEmpty(userId))
             return HttpResult<ImportResultDto>.Unauthorized();
+
+        // Bank import is a paid feature. Already-imported transactions stay readable.
+        var entitlements = await entitlementService.GetAsync(userId, cancellationToken);
+        if (!entitlements.BankImport) return HttpResult<ImportResultDto>.Forbidden();
 
         await using var db = await dbFactory.CreateDbContextAsync(cancellationToken);
         var bytes = request.FileContent;

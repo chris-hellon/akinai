@@ -12,7 +12,8 @@ namespace InvoiceSoftware.Infrastructure.Services;
 public class NotificationService(
     IDbContextFactory<ApplicationDbContext> dbFactory,
     IHubContext<NotificationHub> hub,
-    ILogger<NotificationService> logger) : INotificationService
+    ILogger<NotificationService> logger,
+    IUserEventBus bus) : INotificationService
 {
     public async Task CreateAsync(
         string? userId,
@@ -56,6 +57,8 @@ public class NotificationService(
         try
         {
             await hub.Clients.User(userId).SendAsync("notification", dto, cancellationToken);
+            // Blazor Server circuits never connect to the hub, so they get it here.
+            bus.PublishNotification(userId, dto);
         }
         catch (Exception ex)
         {

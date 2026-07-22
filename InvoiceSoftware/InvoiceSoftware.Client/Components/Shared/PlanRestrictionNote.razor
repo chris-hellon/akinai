@@ -1,0 +1,19 @@
+@*
+    An inline note for a picker whose choices the current plan limits.
+
+    Used where the feature still works but the options are narrower — unlike
+    UpgradePrompt, which replaces a feature the plan does not include at all.
+*@
+
+<div class="flex flex-wrap items-center justify-between gap-3 p-3 rounded-xl border border-gray-200 dark:border-[#2f2924] bg-gray-50/60 dark:bg-[#14100c]">
+    <p class="text-xs text-gray-600 dark:text-slate-300">@Message</p>
+    <a href="settings/billing"
+       class="shrink-0 text-xs font-medium text-primary-600 dark:text-primary-400 hover:text-primary-700 hover:underline">
+        @ActionLabel
+    </a>
+</div>
+
+@code {
+    [Parameter, EditorRequired] public string Message { get; set; } = "";
+    [Parameter] public string ActionLabel { get; set; } = "Upgrade to Pro";
+}

@@ -6,6 +6,8 @@
 @inject ICall<UpdateClient> UpdateClientCall
 @inject ICall<DeleteClient> DeleteClientCall
 
+@inject InvoiceSoftware.Client.Services.EntitlementState Entitlements
+
 <PageTitle>@(Id.HasValue ? "Edit Client" : "New Client") - Akinai</PageTitle>
 
 <div class="space-y-6">
@@ -66,7 +68,13 @@
                         <div>
                             <label for="currency" class="block text-sm font-medium text-gray-700 mb-2">Currency <span class="text-red-500">*</span></label>
                             <Select @bind-Value="_model.Currency"
-                                    Options="@(Enum.GetValues<Currency>().Select(c => new SelectOption<string>(c.ToString(), $"{c} ({c.GetSymbol()})")).ToList())" />
+                                    Options="@(SelectableCurrencies().Select(c => new SelectOption<string>(c.ToString(), $"{c} ({c.GetSymbol()})")).ToList())" />
+                            @if (CurrencyRestricted)
+                            {
+                                <div class="mt-2">
+                                    <PlanRestrictionNote Message="Your plan bills in one currency." />
+                                </div>
+                            }
                         </div>
 
                         <div>
@@ -156,6 +164,11 @@
 </div>
 
 @code {
+    private bool CurrencyRestricted => CurrencyChoices.IsRestricted(Entitlements);
+
+    private IReadOnlyList<Currency> SelectableCurrencies() =>
+        CurrencyChoices.Values(Entitlements, _model.Currency);
+
     [Parameter]
     public Guid? Id { get; set; }
 
@@ -167,6 +180,7 @@
 
     protected override async Task OnInitializedAsync()
     {
+        await Entitlements.EnsureLoadedAsync();
         _breadcrumbs =
         [
             new PageHeader.BreadcrumbItem("Clients", "/clients"),

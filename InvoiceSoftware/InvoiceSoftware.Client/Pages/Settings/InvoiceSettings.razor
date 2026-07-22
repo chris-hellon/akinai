@@ -6,6 +6,9 @@
 @inject ICall<SaveCurrencyPaymentSettings> SaveCurrencyPaymentSettingsCall
 @inject HttpClient Http
 
+@inject InvoiceSoftware.Client.Services.EntitlementState Entitlements
+@implements IDisposable
+
 <PageTitle>Invoice Settings - Akinai</PageTitle>
 
 <div class="space-y-6">
@@ -37,7 +40,13 @@
                         <div>
                             <label for="DefaultCurrency" class="block text-sm font-medium text-gray-700 dark:text-slate-300 mb-2">Default Currency</label>
                             <Select TValue="string" @bind-Value="Input.DefaultCurrency"
-                                Options="@(_availableCurrencies.Select(c => new SelectOption<string>(c.Code, $"{c.Code} - {c.Name}")).ToList())" />
+                                Options="@(SelectableCurrencies().Select(c => new SelectOption<string>(c.Code, $"{c.Code} - {c.Name}")).ToList())" />
+                            @if (CurrencyRestricted)
+                            {
+                                <div class="mt-2">
+                                    <PlanRestrictionNote Message="Your plan bills in one currency. Pro unlocks every currency, with a reporting currency across them." />
+                                </div>
+                            }
                         </div>
                         <div>
                             <label for="DefaultPaymentTermsDays" class="block text-sm font-medium text-gray-700 dark:text-slate-300 mb-2">Default Payment Terms (Days)</label>
@@ -141,22 +150,6 @@
                         </div>
                     </div>
 
-                    <!-- VND Conversion Rate -->
-                    <div class="pt-4 mt-4 border-t border-gray-100 dark:border-slate-700">
-                        <label for="VndToDefaultCurrencyRate" class="block text-sm font-medium text-gray-700 dark:text-slate-300 mb-2">
-                            VND Conversion Rate
-                            <span class="text-xs text-gray-500 dark:text-slate-400 font-normal ml-1">(for PayPal/Wise/Revolut on VND invoices)</span>
-                        </label>
-                        <div class="max-w-xs">
-                            <InputNumber @bind-Value="Input.VndToDefaultCurrencyRate" id="VndToDefaultCurrencyRate"
-                                class="form-control"
-                                placeholder="e.g., 25000" />
-                        </div>
-                        <p class="mt-1.5 text-xs text-gray-500 dark:text-slate-400">
-                            How many VND equals 1 @Input.DefaultCurrency? Example: If 1 @Input.DefaultCurrency = 25,000 VND, enter 25000.
-                            <br/>When set, VND invoices will show PayPal/Wise/Revolut payment options with converted amounts.
-                        </p>
-                    </div>
                 </div>
             </Card>
 
@@ -173,7 +166,7 @@
 
                 <!-- Currency Tabs -->
                 <div class="flex flex-wrap gap-2">
-                    @foreach (var currency in _availableCurrencies)
+                    @foreach (var currency in SelectableCurrencies())
                     {
                         var isSelected = _selectedCurrency == currency.Code;
                         var hasSettings = _currencySettings.ContainsKey(currency.Code) && !string.IsNullOrEmpty(_currencySettings[currency.Code].BankAccountNumber);
@@ -274,6 +267,20 @@
 <ErrorAlert Message="@_errorMessage" />
 
 @code {
+    // A plan change pushed from the server (see NotificationState) re-renders
+    // this page, so the pickers widen or narrow without a reload.
+    private void OnEntitlementsChanged() => InvokeAsync(StateHasChanged);
+
+    public void Dispose() => Entitlements.OnChange -= OnEntitlementsChanged;
+
+    // The plan may allow only the currency the account already uses. An empty
+    // allowed-list means it has not committed to one yet, so everything is
+    // still on the table; the choice it makes becomes the one.
+    private bool CurrencyRestricted => CurrencyChoices.IsRestricted(Entitlements);
+
+    private List<CurrencyInfo> SelectableCurrencies() =>
+        CurrencyChoices.Filter(Entitlements, _availableCurrencies, c => c.Code, Input.DefaultCurrency);
+
     private bool _isLoading = true;
     private bool _isSaving;
     private bool _isSavingCurrency;
@@ -300,8 +307,18 @@
 
     protected override async Task OnInitializedAsync()
     {
+        Entitlements.OnChange += OnEntitlementsChanged;
+        await Entitlements.EnsureLoadedAsync();
         await LoadSettingsAsync();
         await LoadCurrencySettingsAsync();
+
+        // Must run after the profile loads: SelectableCurrencies keeps the
+        // *current* value in the list, and until LoadSettingsAsync runs that
+        // value is still the "USD" default — so USD looked selectable and the
+        // fallback never fired.
+        var selectable = SelectableCurrencies();
+        if (selectable.Count > 0 && selectable.All(c => c.Code != _selectedCurrency))
+            _selectedCurrency = selectable[0].Code;
         await LoadVietQrBanksAsync();
     }
 
@@ -340,7 +357,6 @@
                 Input.PayPalMeUsername = _fullProfile.PayPalMeUsername;
                 Input.WiseEmail = _fullProfile.WiseEmail;
                 Input.RevolutUsername = _fullProfile.RevolutUsername;
-                Input.VndToDefaultCurrencyRate = _fullProfile.VndToDefaultCurrencyRate;
             }
         }
         catch (Exception ex) when (EmptyResponse.IsEmptyOk(ex))
@@ -433,8 +449,7 @@
                 PayPalMeUsername = Input.PayPalMeUsername,
                 WiseEmail = Input.WiseEmail,
                 RevolutUsername = Input.RevolutUsername,
-                VietQrBankCode = _fullProfile?.VietQrBankCode,
-                VndToDefaultCurrencyRate = Input.VndToDefaultCurrencyRate
+                VietQrBankCode = _fullProfile?.VietQrBankCode
             });
             _statusMessage = "Global settings saved successfully.";
             _isError = false;
@@ -496,7 +511,6 @@
         public string? PayPalMeUsername { get; set; }
         public string? WiseEmail { get; set; }
         public string? RevolutUsername { get; set; }
-        public decimal? VndToDefaultCurrencyRate { get; set; }
     }
 
     private sealed class CurrencySettingsModel

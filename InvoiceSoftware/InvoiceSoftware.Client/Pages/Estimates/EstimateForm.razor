@@ -11,182 +11,186 @@
 
 <PageTitle>@(Id.HasValue ? "Edit Estimate" : "New Estimate") - Akinai</PageTitle>
 
-<div class="space-y-6">
-    <PageHeader Title="@(Id.HasValue ? "Edit Estimate" : "New Estimate")"
-                Description="@(Id.HasValue ? "Update estimate details" : "Create a new quote for your client")"
-                ShowBackButton="true"
-                BackUrl="estimates"
-                Breadcrumbs="@_breadcrumbs" />
+<PlanGate Feature="@(e => e.Estimates)"
+          Title="Estimates are a Pro feature"
+          Description="Send quotes your clients can accept and sign online, then turn them into invoices in one click.">
+    <div class="space-y-6">
+        <PageHeader Title="@(Id.HasValue ? "Edit Estimate" : "New Estimate")"
+                    Description="@(Id.HasValue ? "Update estimate details" : "Create a new quote for your client")"
+                    ShowBackButton="true"
+                    BackUrl="estimates"
+                    Breadcrumbs="@_breadcrumbs" />
 
-    @if (_isLoading)
-    {
-        <LoadingSpinner Padding="py-20" />
-    }
-    else
-    {
-        <EditForm Model="_model" OnValidSubmit="HandleSubmit" class="space-y-6">
-            <DataAnnotationsValidator />
-
-            <!-- Client & Date Section -->
-            <Card Title="Estimate Details" Description="Select the client and set estimate dates.">
-                <div class="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-5">
-                    <div>
-                        <label for="clientId" class="block text-sm font-medium text-gray-700 dark:text-slate-300 mb-2">Client <span class="text-red-500">*</span></label>
-                        <Select @bind-Value="_model.ClientId" Placeholder="Select a client..."
-                                Options="@(_clients.Select(c => new SelectOption<string>(c.Id.ToString(), c.Name + (c.CompanyName != null ? $" ({c.CompanyName})" : ""))).ToList())" />
-                        <ValidationMessage For="@(() => _model.ClientId)" class="mt-1.5 text-xs text-red-600" />
-                    </div>
-
-                    <div>
-                        <label for="templateId" class="block text-sm font-medium text-gray-700 dark:text-slate-300 mb-2">Template</label>
-                        <Select TValue="Guid?" @bind-Value="_model.TemplateId" Placeholder="Default template"
-                                Options="@(new List<SelectOption<Guid?>> { new(null, "Default template") }
-                                    .Concat(_templates.Select(t => new SelectOption<Guid?>(t.Id, t.Name + (t.IsDefault ? " (Default)" : "")))).ToList())" />
-                    </div>
-
-                    <div>
-                        <label for="estimateDate" class="block text-sm font-medium text-gray-700 dark:text-slate-300 mb-2">Estimate Date <span class="text-red-500">*</span></label>
-                        <DatePicker TValue="DateOnly" @bind-Value="_model.EstimateDate" Clearable="false" />
-                    </div>
-
-                    <div>
-                        <label for="validDays" class="block text-sm font-medium text-gray-700 dark:text-slate-300 mb-2">Valid For (Days)</label>
-                        <InputNumber id="validDays" @bind-Value="_model.ValidDays"
-                            class="form-control" />
-                        <p class="mt-1 text-xs text-gray-500 dark:text-slate-400">@(_model.ValidDays > 0 ? $"Expires: {_model.EstimateDate.AddDays(_model.ValidDays):MMM dd, yyyy}" : "No expiry")</p>
-                    </div>
-                </div>
-            </Card>
-
-            <!-- Line Items Section -->
-            <Card Title="Line Items" Description="Add products or services to this estimate.">
-                <div class="space-y-4">
-                    @for (var i = 0; i < _model.LineItems.Count; i++)
-                    {
-                        var index = i;
-                        var item = _model.LineItems[index];
-                        <div class="p-4 bg-gray-50 dark:bg-slate-700/50 rounded-xl space-y-4">
-                            <div class="flex items-start justify-between gap-4">
-                                <div class="flex-1 grid grid-cols-1 sm:grid-cols-12 gap-4">
-                                    <div class="sm:col-span-5">
-                                        <label class="block text-xs font-medium text-gray-500 dark:text-slate-400 mb-1">Description</label>
-                                        <InputText @bind-Value="item.Description"
-                                            class="form-control"
-                                            placeholder="Product or service description" />
-                                    </div>
-                                    <div class="sm:col-span-2">
-                                        <label class="block text-xs font-medium text-gray-500 dark:text-slate-400 mb-1">Qty</label>
-                                        <InputNumber @bind-Value="item.Quantity"
-                                            class="form-control" />
-                                    </div>
-                                    <div class="sm:col-span-3">
-                                        <label class="block text-xs font-medium text-gray-500 dark:text-slate-400 mb-1">Unit Price</label>
-                                        <div class="relative">
-                                            <div class="absolute inset-y-0 left-0 pl-3 flex items-center pointer-events-none">
-                                                <span class="text-gray-400 dark:text-slate-500 text-sm">@CurrencyExtensions.GetSymbol(_model.Currency)</span>
-                                            </div>
-                                            <InputNumber @bind-Value="item.UnitPrice"
-                                                class="form-control pl-7" />
-                                        </div>
-                                    </div>
-                                    <div class="sm:col-span-2 flex items-end">
-                                        <div class="w-full text-right">
-                                            <label class="block text-xs font-medium text-gray-500 dark:text-slate-400 mb-1">Amount</label>
-                                            <p class="py-2 text-sm font-semibold text-gray-900 dark:text-slate-100">@CurrencyExtensions.GetSymbol(_model.Currency)@((item.Quantity * item.UnitPrice).ToString("N2"))</p>
-                                        </div>
-                                    </div>
-                                </div>
-                                <button type="button" @onclick="() => RemoveLineItem(index)"
-                                    class="mt-6 p-2 text-gray-400 hover:text-red-500 dark:text-slate-500 dark:hover:text-red-400 transition-colors">
-                                    <svg class="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                                        <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M19 7l-.867 12.142A2 2 0 0116.138 21H7.862a2 2 0 01-1.995-1.858L5 7m5 4v6m4-6v6m1-10V4a1 1 0 00-1-1h-4a1 1 0 00-1 1v3M4 7h16" />
-                                    </svg>
-                                </button>
-                            </div>
-
-                            <!-- Product Quick Add -->
-                            @if (_products.Any())
-                            {
-                                <div>
-                                    <Select TValue="Guid?" Value="null" ValueChanged="@(v => AddProductToLine(index, v))"
-                                            Placeholder="+ Add from products..."
-                                            Options="@(_products.Select(p => new SelectOption<Guid?>(p.Id, $"{p.Name} ({CurrencyExtensions.GetSymbol(p.Currency)}{p.UnitPrice.ToString("N2")})")).ToList())" />
-                                </div>
-                            }
-                        </div>
-                    }
-
-                    <button type="button" @onclick="AddLineItem"
-                        class="w-full py-3 border-2 border-dashed border-gray-200 dark:border-slate-600 rounded-xl text-sm font-medium text-gray-500 dark:text-slate-400 hover:border-primary-400 hover:text-primary-600 dark:hover:border-primary-500 dark:hover:text-primary-400 transition-all">
-                        + Add Line Item
-                    </button>
-
-                    <!-- Totals -->
-                    <div class="pt-4 border-t border-gray-200 dark:border-slate-600">
-                        <div class="flex justify-end">
-                            <div class="w-64 space-y-2">
-                                <div class="flex justify-between text-sm">
-                                    <span class="text-gray-600 dark:text-slate-400">Subtotal</span>
-                                    <span class="font-medium text-gray-900 dark:text-slate-100">@CurrencyExtensions.GetSymbol(_model.Currency)@Subtotal.ToString("N2")</span>
-                                </div>
-                                <div class="flex justify-between items-center text-sm">
-                                    <div class="flex items-center gap-2">
-                                        <span class="text-gray-600 dark:text-slate-400">Tax</span>
-                                        <InputNumber @bind-Value="_model.TaxRate"
-                                            class="form-control w-16" />
-                                        <span class="text-gray-400 dark:text-slate-500">%</span>
-                                    </div>
-                                    <span class="text-gray-900 dark:text-slate-100">@CurrencyExtensions.GetSymbol(_model.Currency)@TaxAmount.ToString("N2")</span>
-                                </div>
-                                <div class="flex justify-between text-base font-bold pt-2 border-t border-gray-200 dark:border-slate-600">
-                                    <span class="text-gray-900 dark:text-slate-100">Total</span>
-                                    <span class="text-gray-900 dark:text-slate-100">@CurrencyExtensions.GetSymbol(_model.Currency)@Total.ToString("N2")</span>
-                                </div>
-                            </div>
-                        </div>
-                    </div>
-                </div>
-            </Card>
-
-            <!-- Notes & Terms -->
-            <Card Title="Notes & Terms" Description="Add any additional notes or terms for the client.">
-                <div class="grid grid-cols-1 sm:grid-cols-2 gap-5">
-                    <div>
-                        <label for="notes" class="block text-sm font-medium text-gray-700 dark:text-slate-300 mb-2">Notes</label>
-                        <InputTextArea id="notes" @bind-Value="_model.Notes" rows="4"
-                            class="form-control resize-none"
-                            placeholder="Additional notes for the client..." />
-                    </div>
-                    <div>
-                        <label for="terms" class="block text-sm font-medium text-gray-700 dark:text-slate-300 mb-2">Terms & Conditions</label>
-                        <InputTextArea id="terms" @bind-Value="_model.Terms" rows="4"
-                            class="form-control resize-none"
-                            placeholder="Terms and conditions..." />
-                    </div>
-                </div>
-            </Card>
-
-            <ErrorAlert Message="@_errorMessage" />
-
-            <div class="flex items-center justify-end gap-3 pt-4">
-                <a href="estimates" class="px-5 py-2.5 text-sm font-medium text-gray-700 dark:text-slate-300 bg-white dark:bg-slate-800 border border-gray-200 dark:border-slate-600 rounded-xl hover:bg-gray-50 dark:hover:bg-slate-700 hover:border-gray-300 dark:hover:border-slate-500 transition-all duration-200">
-                    Cancel
-                </a>
-                <PrimaryButton ButtonType="submit"
-                               Text="@(Id.HasValue ? "Save Changes" : "Create Estimate")"
-                               IsLoading="@_isSaving"
-                               ShowIcon="false" />
-            </div>
-        </EditForm>
-
-        @if (Id.HasValue)
+        @if (_isLoading)
         {
-            <DangerZone EntityLabel="Estimate" ItemName="@_estimateNumber"
-                        WarningMessage="This permanently deletes this estimate and its line items. This cannot be undone."
-                        OnConfirmed="DeleteAsync" />
+            <LoadingSpinner Padding="py-20" />
         }
-    }
-</div>
+        else
+        {
+            <EditForm Model="_model" OnValidSubmit="HandleSubmit" class="space-y-6">
+                <DataAnnotationsValidator />
+
+                <!-- Client & Date Section -->
+                <Card Title="Estimate Details" Description="Select the client and set estimate dates.">
+                    <div class="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-5">
+                        <div>
+                            <label for="clientId" class="block text-sm font-medium text-gray-700 dark:text-slate-300 mb-2">Client <span class="text-red-500">*</span></label>
+                            <Select @bind-Value="_model.ClientId" Placeholder="Select a client..."
+                                    Options="@(_clients.Select(c => new SelectOption<string>(c.Id.ToString(), c.Name + (c.CompanyName != null ? $" ({c.CompanyName})" : ""))).ToList())" />
+                            <ValidationMessage For="@(() => _model.ClientId)" class="mt-1.5 text-xs text-red-600" />
+                        </div>
+
+                        <div>
+                            <label for="templateId" class="block text-sm font-medium text-gray-700 dark:text-slate-300 mb-2">Template</label>
+                            <Select TValue="Guid?" @bind-Value="_model.TemplateId" Placeholder="Default template"
+                                    Options="@(new List<SelectOption<Guid?>> { new(null, "Default template") }
+                                        .Concat(_templates.Select(t => new SelectOption<Guid?>(t.Id, t.Name + (t.IsDefault ? " (Default)" : "")))).ToList())" />
+                        </div>
+
+                        <div>
+                            <label for="estimateDate" class="block text-sm font-medium text-gray-700 dark:text-slate-300 mb-2">Estimate Date <span class="text-red-500">*</span></label>
+                            <DatePicker TValue="DateOnly" @bind-Value="_model.EstimateDate" Clearable="false" />
+                        </div>
+
+                        <div>
+                            <label for="validDays" class="block text-sm font-medium text-gray-700 dark:text-slate-300 mb-2">Valid For (Days)</label>
+                            <InputNumber id="validDays" @bind-Value="_model.ValidDays"
+                                class="form-control" />
+                            <p class="mt-1 text-xs text-gray-500 dark:text-slate-400">@(_model.ValidDays > 0 ? $"Expires: {_model.EstimateDate.AddDays(_model.ValidDays):MMM dd, yyyy}" : "No expiry")</p>
+                        </div>
+                    </div>
+                </Card>
+
+                <!-- Line Items Section -->
+                <Card Title="Line Items" Description="Add products or services to this estimate.">
+                    <div class="space-y-4">
+                        @for (var i = 0; i < _model.LineItems.Count; i++)
+                        {
+                            var index = i;
+                            var item = _model.LineItems[index];
+                            <div class="p-4 bg-gray-50 dark:bg-slate-700/50 rounded-xl space-y-4">
+                                <div class="flex items-start justify-between gap-4">
+                                    <div class="flex-1 grid grid-cols-1 sm:grid-cols-12 gap-4">
+                                        <div class="sm:col-span-5">
+                                            <label class="block text-xs font-medium text-gray-500 dark:text-slate-400 mb-1">Description</label>
+                                            <InputText @bind-Value="item.Description"
+                                                class="form-control"
+                                                placeholder="Product or service description" />
+                                        </div>
+                                        <div class="sm:col-span-2">
+                                            <label class="block text-xs font-medium text-gray-500 dark:text-slate-400 mb-1">Qty</label>
+                                            <InputNumber @bind-Value="item.Quantity"
+                                                class="form-control" />
+                                        </div>
+                                        <div class="sm:col-span-3">
+                                            <label class="block text-xs font-medium text-gray-500 dark:text-slate-400 mb-1">Unit Price</label>
+                                            <div class="relative">
+                                                <div class="absolute inset-y-0 left-0 pl-3 flex items-center pointer-events-none">
+                                                    <span class="text-gray-400 dark:text-slate-500 text-sm">@CurrencyExtensions.GetSymbol(_model.Currency)</span>
+                                                </div>
+                                                <InputNumber @bind-Value="item.UnitPrice"
+                                                    class="form-control pl-7" />
+                                            </div>
+                                        </div>
+                                        <div class="sm:col-span-2 flex items-end">
+                                            <div class="w-full text-right">
+                                                <label class="block text-xs font-medium text-gray-500 dark:text-slate-400 mb-1">Amount</label>
+                                                <p class="py-2 text-sm font-semibold text-gray-900 dark:text-slate-100">@CurrencyExtensions.GetSymbol(_model.Currency)@((item.Quantity * item.UnitPrice).ToString("N2"))</p>
+                                            </div>
+                                        </div>
+                                    </div>
+                                    <button type="button" @onclick="() => RemoveLineItem(index)"
+                                        class="mt-6 p-2 text-gray-400 hover:text-red-500 dark:text-slate-500 dark:hover:text-red-400 transition-colors">
+                                        <svg class="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                                            <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M19 7l-.867 12.142A2 2 0 0116.138 21H7.862a2 2 0 01-1.995-1.858L5 7m5 4v6m4-6v6m1-10V4a1 1 0 00-1-1h-4a1 1 0 00-1 1v3M4 7h16" />
+                                        </svg>
+                                    </button>
+                                </div>
+
+                                <!-- Product Quick Add -->
+                                @if (_products.Any())
+                                {
+                                    <div>
+                                        <Select TValue="Guid?" Value="null" ValueChanged="@(v => AddProductToLine(index, v))"
+                                                Placeholder="+ Add from products..."
+                                                Options="@(_products.Select(p => new SelectOption<Guid?>(p.Id, $"{p.Name} ({CurrencyExtensions.GetSymbol(p.Currency)}{p.UnitPrice.ToString("N2")})")).ToList())" />
+                                    </div>
+                                }
+                            </div>
+                        }
+
+                        <button type="button" @onclick="AddLineItem"
+                            class="w-full py-3 border-2 border-dashed border-gray-200 dark:border-slate-600 rounded-xl text-sm font-medium text-gray-500 dark:text-slate-400 hover:border-primary-400 hover:text-primary-600 dark:hover:border-primary-500 dark:hover:text-primary-400 transition-all">
+                            + Add Line Item
+                        </button>
+
+                        <!-- Totals -->
+                        <div class="pt-4 border-t border-gray-200 dark:border-slate-600">
+                            <div class="flex justify-end">
+                                <div class="w-64 space-y-2">
+                                    <div class="flex justify-between text-sm">
+                                        <span class="text-gray-600 dark:text-slate-400">Subtotal</span>
+                                        <span class="font-medium text-gray-900 dark:text-slate-100">@CurrencyExtensions.GetSymbol(_model.Currency)@Subtotal.ToString("N2")</span>
+                                    </div>
+                                    <div class="flex justify-between items-center text-sm">
+                                        <div class="flex items-center gap-2">
+                                            <span class="text-gray-600 dark:text-slate-400">Tax</span>
+                                            <InputNumber @bind-Value="_model.TaxRate"
+                                                class="form-control w-16" />
+                                            <span class="text-gray-400 dark:text-slate-500">%</span>
+                                        </div>
+                                        <span class="text-gray-900 dark:text-slate-100">@CurrencyExtensions.GetSymbol(_model.Currency)@TaxAmount.ToString("N2")</span>
+                                    </div>
+                                    <div class="flex justify-between text-base font-bold pt-2 border-t border-gray-200 dark:border-slate-600">
+                                        <span class="text-gray-900 dark:text-slate-100">Total</span>
+                                        <span class="text-gray-900 dark:text-slate-100">@CurrencyExtensions.GetSymbol(_model.Currency)@Total.ToString("N2")</span>
+                                    </div>
+                                </div>
+                            </div>
+                        </div>
+                    </div>
+                </Card>
+
+                <!-- Notes & Terms -->
+                <Card Title="Notes & Terms" Description="Add any additional notes or terms for the client.">
+                    <div class="grid grid-cols-1 sm:grid-cols-2 gap-5">
+                        <div>
+                            <label for="notes" class="block text-sm font-medium text-gray-700 dark:text-slate-300 mb-2">Notes</label>
+                            <InputTextArea id="notes" @bind-Value="_model.Notes" rows="4"
+                                class="form-control resize-none"
+                                placeholder="Additional notes for the client..." />
+                        </div>
+                        <div>
+                            <label for="terms" class="block text-sm font-medium text-gray-700 dark:text-slate-300 mb-2">Terms & Conditions</label>
+                            <InputTextArea id="terms" @bind-Value="_model.Terms" rows="4"
+                                class="form-control resize-none"
+                                placeholder="Terms and conditions..." />
+                        </div>
+                    </div>
+                </Card>
+
+                <ErrorAlert Message="@_errorMessage" />
+
+                <div class="flex items-center justify-end gap-3 pt-4">
+                    <a href="estimates" class="px-5 py-2.5 text-sm font-medium text-gray-700 dark:text-slate-300 bg-white dark:bg-slate-800 border border-gray-200 dark:border-slate-600 rounded-xl hover:bg-gray-50 dark:hover:bg-slate-700 hover:border-gray-300 dark:hover:border-slate-500 transition-all duration-200">
+                        Cancel
+                    </a>
+                    <PrimaryButton ButtonType="submit"
+                                   Text="@(Id.HasValue ? "Save Changes" : "Create Estimate")"
+                                   IsLoading="@_isSaving"
+                                   ShowIcon="false" />
+                </div>
+            </EditForm>
+
+            @if (Id.HasValue)
+            {
+                <DangerZone EntityLabel="Estimate" ItemName="@_estimateNumber"
+                            WarningMessage="This permanently deletes this estimate and its line items. This cannot be undone."
+                            OnConfirmed="DeleteAsync" />
+            }
+        }
+    </div>
+</PlanGate>
 
 @code {
     [Parameter]

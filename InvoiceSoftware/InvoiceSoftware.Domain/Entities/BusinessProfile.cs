@@ -43,9 +43,6 @@ public class BusinessProfile : AggregateRoot, IAuditableEntity
     public string? RevolutUsername { get; private set; }
     public string? VietQrBankCode { get; private set; }
 
-    // Currency Conversion for VND invoices
-    public decimal? VndToDefaultCurrencyRate { get; private set; }
-
     // Cash position anchor for the cash-flow forecast. The forecast rolls this
     // forward using bank transactions imported after CashBalanceAsOf.
     public decimal? CashBalance { get; private set; }
@@ -95,8 +92,7 @@ public class BusinessProfile : AggregateRoot, IAuditableEntity
         string? payPalMeUsername,
         string? wiseEmail,
         string? revolutUsername,
-        string? vietQrBankCode,
-        decimal? vndToDefaultCurrencyRate = null)
+        string? vietQrBankCode)
     {
         CompanyName = companyName;
         TradingName = tradingName;
@@ -122,7 +118,6 @@ public class BusinessProfile : AggregateRoot, IAuditableEntity
         WiseEmail = wiseEmail;
         RevolutUsername = revolutUsername;
         VietQrBankCode = vietQrBankCode;
-        VndToDefaultCurrencyRate = vndToDefaultCurrencyRate;
     }
 
     public void SetCashBalance(decimal balance, DateOnly asOf)

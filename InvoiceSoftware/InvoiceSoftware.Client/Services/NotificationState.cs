@@ -1,28 +1,30 @@
 using BlazorUtils.EasyApi;
 using InvoiceSoftware.Shared.Api.Notifications;
 using InvoiceSoftware.Shared.Dtos.Notifications;
-using Microsoft.AspNetCore.Components;
-using Microsoft.AspNetCore.SignalR.Client;
 
 namespace InvoiceSoftware.Client.Services;
 
 /// <summary>
 /// Holds the signed-in user's notification list + unread count, loads them from the API,
-/// and (in the browser) keeps them live via the SignalR notifications hub. UI components
+/// and keeps them live through <see cref="IRealtimeUserChannel"/>. UI components
 /// subscribe to <see cref="OnChange"/> and call <c>StateHasChanged</c>.
+///
+/// Which realtime transport that is depends on where the page is running — see
+/// the interface. This class does not care, which is the point: it used to skip
+/// realtime entirely whenever it was not on WebAssembly.
 /// </summary>
 public sealed class NotificationState(
     ICall<GetNotifications, NotificationListDto> getNotifications,
     ICall<MarkNotificationRead> markRead,
     ICall<MarkAllNotificationsRead> markAllRead,
-    NavigationManager nav) : IAsyncDisposable
+    EntitlementState entitlements,
+    IRealtimeUserChannel realtime) : IAsyncDisposable
 {
-    private HubConnection? _hub;
     private bool _initialized;
 
     public List<NotificationDto> Items { get; private set; } = new();
     public int UnreadCount { get; private set; }
-    public bool RealtimeConnected => _hub?.State == HubConnectionState.Connected;
+    public bool RealtimeConnected => realtime.IsConnected;
 
     public event Action? OnChange;
 
@@ -33,10 +35,7 @@ public sealed class NotificationState(
 
         await LoadAsync();
 
-        // Real-time push only runs in the browser (WASM). During the brief
-        // interactive-server phase of Interactive Auto we just use the loaded list.
-        if (OperatingSystem.IsBrowser())
-            await ConnectAsync();
+        await ConnectAsync();
     }
 
     public async Task LoadAsync()
@@ -59,14 +58,8 @@ public sealed class NotificationState(
 
     private async Task ConnectAsync()
     {
-        try
-        {
-            _hub = new HubConnectionBuilder()
-                .WithUrl(nav.ToAbsoluteUri("hubs/notifications"))
-                .WithAutomaticReconnect()
-                .Build();
-
-            _hub.On<NotificationDto>("notification", dto =>
+        await realtime.ConnectAsync(
+            onNotification: dto =>
             {
                 Items.Insert(0, dto);
                 if (Items.Count > 50)
@@ -74,15 +67,11 @@ public sealed class NotificationState(
                 if (!dto.IsRead)
                     UnreadCount++;
                 OnChange?.Invoke();
-            });
+            },
+            // No payload: it only says "re-read what you're allowed to do".
+            onEntitlementsChanged: () => _ = entitlements.ReloadAsync());
 
-            await _hub.StartAsync();
-            OnChange?.Invoke();
-        }
-        catch
-        {
-            // Real-time is optional; the loaded list still works and refreshes on navigation.
-        }
+        OnChange?.Invoke();
     }
 
     public async Task MarkAsReadAsync(Guid id)
@@ -110,9 +99,6 @@ public sealed class NotificationState(
 
     public async ValueTask DisposeAsync()
     {
-        if (_hub is not null)
-        {
-            try { await _hub.DisposeAsync(); } catch { }
-        }
+        await realtime.DisposeAsync();
     }
 }

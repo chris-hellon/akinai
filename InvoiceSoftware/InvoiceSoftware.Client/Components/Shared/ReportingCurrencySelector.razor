@@ -1,11 +1,8 @@
 @implements IDisposable
 @inject ReportingCurrencyState State
 
-<div class="relative">
-    @if (_open)
-    {
-        <div class="fixed inset-0 z-40" @onclick="Close"></div>
-    }
+<div class="relative" @ref="_popoverRoot">
+    <ClickOutside Target="_popoverRoot" Active="_open" OnClose="Close" />
 
     <button type="button"
             class="inline-flex items-center gap-2 h-9 px-3 rounded-lg border border-gray-200 dark:border-[#2f2924] bg-gray-50 dark:bg-[#0f0b08] text-gray-600 dark:text-slate-300 hover:border-gray-300 dark:hover:border-slate-600 transition-colors"
@@ -35,6 +32,7 @@
 </div>
 
 @code {
+    private ElementReference _popoverRoot;
     private bool _open;
 
     protected override async Task OnInitializedAsync()

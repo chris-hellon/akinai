@@ -15,6 +15,7 @@ public class SendInvoiceHandler(
     ICurrentUserService currentUserService,
     EmailTemplateService emailTemplateService,
     PdfGeneratorService pdfService,
+    Services.IExchangeRateService exchangeRates,
     IHttpContextAccessor httpContextAccessor,
     IInvoiceEmailSender emailSender,
     INotificationService notifications) : IHandle<SendInvoice>
@@ -89,8 +90,9 @@ public class SendInvoiceHandler(
 
         // Generate the invoice PDF and attach it to the email.
         var attachments = new List<EmailAttachment>();
+        var vndRate = await Services.VndPaymentRate.GetAsync(exchangeRates, businessProfile?.DefaultCurrency, cancellationToken);
         var pdfBytes = await pdfService.GenerateInvoicePdfAsync(
-            invoice, timeEntries, expenses, productLineItems, businessProfile, currencySettings, invoice.Template);
+            invoice, timeEntries, expenses, productLineItems, businessProfile, currencySettings, invoice.Template, vndRate);
         if (pdfBytes.Length > 0)
         {
             attachments.Add(new EmailAttachment($"{invoice.InvoiceNumber}.pdf", pdfBytes, "application/pdf"));

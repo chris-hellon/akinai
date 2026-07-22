@@ -56,11 +56,20 @@ public static class DependencyInjection
         services.AddScoped<PdfGeneratorService>();
         services.AddScoped<EmailTemplateService>();
         services.AddScoped<INotificationService, NotificationService>();
+        // Singleton: it fans out to every live circuit in this process.
+        services.AddSingleton<IUserEventBus, UserEventBus>();
 
         // Multi-currency invoice totals: live FX (exchangerate-api.com) + snapshot service.
         services.Configure<ExchangeRateOptions>(configuration.GetSection(ExchangeRateOptions.SectionName));
         services.AddHttpClient<IExchangeRateService, ExchangeRateService>();
         services.AddScoped<IInvoiceTotalService, InvoiceTotalService>();
+
+        // Billing. Swapping SimulatedBillingProvider for a Stripe implementation
+        // is the whole of "going live" — nothing above this line knows which
+        // provider is in use.
+        services.AddScoped<Services.Billing.IBillingProvider, Services.Billing.SimulatedBillingProvider>();
+        services.AddScoped<ISubscriptionService, Services.Billing.SubscriptionService>();
+        services.AddScoped<IEntitlementService, EntitlementService>();
         services.AddHostedService<InvoiceTotalBackfillService>();
 
         // Open-banking data feeds. All providers are registered and routed by country via

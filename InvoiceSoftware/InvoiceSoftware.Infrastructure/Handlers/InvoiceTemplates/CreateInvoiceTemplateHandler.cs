@@ -9,7 +9,7 @@ using Microsoft.EntityFrameworkCore;
 
 namespace InvoiceSoftware.Infrastructure.Handlers.InvoiceTemplates;
 
-public class CreateInvoiceTemplateHandler(IDbContextFactory<ApplicationDbContext> dbFactory, ICurrentUserService currentUserService)
+public class CreateInvoiceTemplateHandler(IDbContextFactory<ApplicationDbContext> dbFactory, ICurrentUserService currentUserService, IEntitlementService entitlementService)
     : IHandle<CreateInvoiceTemplate, Guid>
 {
     public async Task<HttpResult<Guid>> Handle(
@@ -18,6 +18,10 @@ public class CreateInvoiceTemplateHandler(IDbContextFactory<ApplicationDbContext
         var userId = currentUserService.UserId;
         if (string.IsNullOrEmpty(userId))
             return HttpResult<Guid>.Unauthorized();
+
+        // Custom templates are a paid feature.
+        var entitlements = await entitlementService.GetAsync(userId, cancellationToken);
+        if (!entitlements.CustomTemplates) return HttpResult<Guid>.Forbidden();
 
         if (!Enum.TryParse<InvoiceTemplateType>(request.TemplateType, out var templateType))
             return HttpResult<Guid>.NotFound();
