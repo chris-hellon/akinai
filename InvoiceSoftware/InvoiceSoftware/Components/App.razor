@@ -4,6 +4,14 @@
     // Apply dark mode immediately to prevent flash - runs before any content renders
     (function() {
         try {
+            // The marketing home page and the auth pages use the Akinai light "washi"
+            // design and are always rendered light. The app itself (incl. /account/manage)
+            // still honours the user's dark-mode preference.
+            var p = location.pathname.toLowerCase().replace(/\/+$/, '');
+            var alwaysLight = (p === '') ||
+                (p.indexOf('/account/') === 0 && p.indexOf('/account/manage') !== 0);
+            if (alwaysLight) return;
+
             var stored = localStorage.getItem('darkMode');
             // Only apply if user has explicitly set preference, or fall back to system preference
             if (stored === 'true' || (stored === null && window.matchMedia && window.matchMedia('(prefers-color-scheme: dark)').matches)) {
@@ -20,12 +28,12 @@
     <!-- Fonts: Inter for UI, Sora for headings, IBM Plex Mono for ledger codes -->
     <link rel="preconnect" href="https://fonts.googleapis.com">
     <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
-    <link href="https://fonts.googleapis.com/css2?family=Inter:wght@300;400;500;600;700&family=Sora:wght@400;500;600;700;800&family=IBM+Plex+Mono:wght@400;500&family=Caveat:wght@500;600&family=Zen+Old+Mincho:wght@400;500;600;700;900&family=Zen+Kaku+Gothic+New:wght@400;500;700;900&display=swap" rel="stylesheet">
-    <!-- Akinai landing: Zen Old Mincho (display serif) + Zen Kaku Gothic New (body) — Japanese-designed, full Latin -->
-    <link href="https://fonts.googleapis.com/css2?family=Zen+Old+Mincho:wght@400;500;600;700;900&family=Zen+Kaku+Gothic+New:wght@300;400;500;700&display=swap" rel="stylesheet">
+    <link href="https://fonts.googleapis.com/css2?family=Inter:wght@300;400;500;600;700&family=Sora:wght@400;500;600;700;800&family=IBM+Plex+Mono:wght@400;500;600&family=Caveat:wght@500;600&family=Shippori+Mincho:wght@500;600;700;800&family=Zen+Kaku+Gothic+New:wght@400;500;700&display=swap" rel="stylesheet">
     <link rel="stylesheet" href="@Assets["css/shared.css"]"/>
     <link rel="stylesheet" href="@Assets["InvoiceSoftware.styles.css"]"/>
     <ImportMap/>
+    <!-- SVG first (the 商 hanko); the PNG remains as a legacy fallback -->
+    <link rel="icon" type="image/svg+xml" href="favicon.svg"/>
     <link rel="icon" type="image/png" href="favicon.png"/>
     <HeadOutlet @rendermode="PageRenderMode"/>
 </head>

@@ -12,7 +12,7 @@
 @inject NotificationState Activity
 @inject ReportingCurrencyState Reporting
 
-<PageTitle>Dashboard - InvoicePro</PageTitle>
+<PageTitle>Dashboard - Akinai</PageTitle>
 
 <div class="dash">
     <!-- Header -->
@@ -66,12 +66,8 @@
             <div class="chd">
                 <div><div class="ctitle">Revenue</div><div class="clab" style="margin-top:4px">Trailing 12 months</div></div>
                 <div class="fx ac gap12">
-                    <div class="seg">
-                        <button class="segb @(_chartView == "trend" ? "on" : "")" @onclick='() => _chartView = "trend"'>Trend</button>
-                        <button class="segb @(_chartView == "cash" ? "on" : "")" @onclick='() => _chartView = "cash"'>Cash flow</button>
-                        <button class="segb @(_chartView == "pnl" ? "on" : "")" @onclick='() => _chartView = "pnl"'>P&amp;L</button>
-                    </div>
-                    <span class="tnum" style="font:600 20px Sora,sans-serif">@Money(_revenueTotal)</span>
+                    <SegmentedControl Options="_chartViews" Value="@_chartView" ValueChanged="@(v => _chartView = v)" />
+                    <span class="tnum" style="font:600 20px 'Shippori Mincho',sans-serif">@Money(_revenueTotal)</span>
                 </div>
             </div>
             <div style="padding:10px 12px 6px">
@@ -126,8 +122,8 @@
                     <div class="fx ac gap12">
                         <span class="setup-ico"><svg width="19" height="19" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="1.8" d="M3 10h18M3 10l2-5h14l2 5M5 10v9a1 1 0 001 1h12a1 1 0 001-1v-9"></path></svg></span>
                         <div>
-                            <div style="font:600 14px Inter,sans-serif;color:var(--tp)">No payment methods yet</div>
-                            <div style="font:400 12.5px Inter,sans-serif;color:var(--ts);margin-top:2px">Add bank details, PayPal, Wise, Revolut or VietQR so clients can pay you.</div>
+                            <div style="font:600 14px 'Zen Kaku Gothic New',sans-serif;color:var(--tp)">No payment methods yet</div>
+                            <div style="font:400 12.5px 'Zen Kaku Gothic New',sans-serif;color:var(--ts);margin-top:2px">Add bank details, PayPal, Wise, Revolut or VietQR so clients can pay you.</div>
                         </div>
                     </div>
                     <a class="btnp" href="settings/business" style="margin-top:14px;width:100%;justify-content:center">Set up payments</a>
@@ -148,7 +144,7 @@
                     </span>
                     <div style="flex:1;min-width:130px">
                         <div class="clab">Attach to any VND invoice</div>
-                        <div style="font:600 14.5px Inter,sans-serif;margin-top:7px;line-height:1.35;color:var(--tp)">Scan &amp; pay from any Vietnamese bank</div>
+                        <div style="font:600 14.5px 'Zen Kaku Gothic New',sans-serif;margin-top:7px;line-height:1.35;color:var(--tp)">Scan &amp; pay from any Vietnamese bank</div>
                         @if (!string.IsNullOrWhiteSpace(_vietQrDetail))
                         {
                             <div class="mono" style="font-size:10.5px;margin-top:8px;letter-spacing:.03em;color:var(--tt)">@_vietQrDetail</div>
@@ -188,7 +184,7 @@
 
             <a href="estimates" class="fx ac jb" style="margin-top:auto;border-top:1px solid var(--bds);padding:12px 18px;text-decoration:none">
                 <span class="clab">Pending estimates</span>
-                <span class="fx ac gap8"><span class="tnum" style="font:600 17px Sora,sans-serif;color:var(--tp)">@_pendingEstimates.Count</span>@if (_pendingEstimates.Count > 0){<span class="pill" style="color:var(--violet);background:var(--violet50)">@AmountShort(_pendingValue) value</span>}</span>
+                <span class="fx ac gap8"><span class="tnum" style="font:600 17px 'Shippori Mincho',sans-serif;color:var(--tp)">@_pendingEstimates.Count</span>@if (_pendingEstimates.Count > 0){<span class="pill" style="color:var(--violet);background:var(--violet50)">@AmountShort(_pendingValue) value</span>}</span>
             </a>
         </div>
     </div>
@@ -233,8 +229,8 @@
                                     stroke-dasharray="@progDash" style="transition:stroke-dasharray .6s ease" />
                         </svg>
                         <div style="position:absolute;text-align:center;transform:translateY(6px)">
-                            <div style="font:700 34px Sora,sans-serif;color:var(--acc);line-height:1">@Math.Round(_collectionRate)%</div>
-                            <div style="font:500 12px Inter,sans-serif;color:var(--tt);margin-top:6px;letter-spacing:.04em">COLLECTED</div>
+                            <div style="font:700 34px 'Shippori Mincho',sans-serif;color:var(--acc);line-height:1">@Math.Round(_collectionRate)%</div>
+                            <div style="font:500 12px 'Zen Kaku Gothic New',sans-serif;color:var(--tt);margin-top:6px;letter-spacing:.04em">COLLECTED</div>
                         </div>
                     </div>
                 }
@@ -283,11 +279,11 @@
                     <div class="chaserow">
                         <span class="cav" style="background:#f7e4e2;color:var(--bad)">@initial</span>
                         <div class="f1">
-                            <div style="font:600 13.5px Inter,sans-serif;color:var(--tp)">@inv.ClientName</div>
+                            <div style="font:600 13.5px 'Zen Kaku Gothic New',sans-serif;color:var(--tp)">@inv.ClientName</div>
                             <div class="mono" style="font-size:11px;margin-top:2px;color:var(--tt)">@inv.InvoiceNumber · due @inv.DueDate.ToString("d MMM")</div>
                         </div>
                         <span class="od">@days days</span>
-                        <div class="tnum" style="font:600 14px Inter,sans-serif;width:84px;text-align:right;color:var(--tp)">@AmountCur(inv.Total, inv.Currency)</div>
+                        <div class="tnum" style="font:600 14px 'Zen Kaku Gothic New',sans-serif;width:84px;text-align:right;color:var(--tp)">@AmountCur(inv.Total, inv.Currency)</div>
                         <a class="remind" href="invoices/@inv.Id">Remind</a>
                     </div>
                 }
@@ -334,7 +330,7 @@
                         <div class="mono" style="font-size:13px;width:92px">@inv.InvoiceNumber</div>
                         <div class="f1" style="font-size:13.5px">@inv.ClientName</div>
                         <span class="badge" style="color:@sc;width:78px"><span class="dot" style="background:@sc"></span>@sl</span>
-                        <div class="tnum" style="font:600 13.5px Inter,sans-serif;width:90px;text-align:right">@AmountCur(inv.Total, inv.Currency)</div>
+                        <div class="tnum" style="font:600 13.5px 'Zen Kaku Gothic New',sans-serif;width:90px;text-align:right">@AmountCur(inv.Total, inv.Currency)</div>
                     </a>
                 }
             }
@@ -356,7 +352,7 @@
                     <a class="clientrow" href="clients/@c.ClientId">
                         <span class="cav" style="background:var(--acc50);color:var(--acc)">@initial</span>
                         <div class="f1">
-                            <div class="fx ac jb"><span style="font:600 13px Inter,sans-serif">@c.ClientName</span><span class="tnum" style="font:600 13px Inter,sans-serif">@AmountCur(c.TotalRevenue, c.Currency)</span></div>
+                            <div class="fx ac jb"><span style="font:600 13px 'Zen Kaku Gothic New',sans-serif">@c.ClientName</span><span class="tnum" style="font:600 13px 'Zen Kaku Gothic New',sans-serif">@AmountCur(c.TotalRevenue, c.Currency)</span></div>
                             <div class="cbar" style="width:@(Math.Max(6, barPct))%"></div>
                         </div>
                     </a>
@@ -372,6 +368,12 @@
     private decimal _revenueTotal;
     private double? _paidTrendPct;
     private string _chartView = "trend";
+    private readonly (string Value, string Label)[] _chartViews =
+    {
+        ("trend", "Trend"),
+        ("cash", "Cash flow"),
+        ("pnl", "P&L")
+    };
     private ApexChart<RevenueDataPoint>? _revenueChart;
     private ApexChartOptions<RevenueDataPoint> _chartOptions = new();
     private ApexChartOptions<RevenueDataPoint> _pnlOptions = new();
@@ -670,7 +672,7 @@
         }
         _donutOptions = new ApexChartOptions<StatusSlice>
         {
-            Chart = new Chart { Background = "transparent", FontFamily = "Inter, sans-serif" },
+            Chart = new Chart { Background = "transparent", FontFamily = "'Zen Kaku Gothic New', sans-serif" },
             Colors = new List<string> { "#0f7a5a", "#2b6d7d", "#b23b30", "#94a3b8" },
             Legend = new Legend { Show = true, Position = LegendPosition.Bottom, FontSize = "12px" },
             Stroke = new Stroke { Show = false },
@@ -701,7 +703,7 @@
         // Cash-flow forecast (expected inflow per month)
         _cashFlowOptions = new ApexChartOptions<CashFlowPointDto>
         {
-            Chart = new Chart { Toolbar = new Toolbar { Show = false }, Background = "transparent", FontFamily = "Inter, sans-serif", Zoom = new Zoom { Enabled = false } },
+            Chart = new Chart { Toolbar = new Toolbar { Show = false }, Background = "transparent", FontFamily = "'Zen Kaku Gothic New', sans-serif", Zoom = new Zoom { Enabled = false } },
             Colors = new List<string> { "#147d87" },
             DataLabels = new DataLabels { Enabled = false },
             Stroke = new Stroke { Show = false },

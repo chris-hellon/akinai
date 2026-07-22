@@ -5,20 +5,24 @@ using InvoiceSoftware.Infrastructure.Data;
 using InvoiceSoftware.Shared.Api;
 using InvoiceSoftware.Shared.Api.Jobs;
 using InvoiceSoftware.Shared.Dtos.Jobs;
+using InvoiceSoftware.Shared.Services;
 using Microsoft.EntityFrameworkCore;
 
 namespace InvoiceSoftware.Infrastructure.Handlers.Jobs;
 
-public class GetJobsHandler(IDbContextFactory<ApplicationDbContext> dbFactory) : IHandle<GetJobs, PaginatedResponse<JobDto>>
+public class GetJobsHandler(IDbContextFactory<ApplicationDbContext> dbFactory, ICurrentUserService currentUserService) : IHandle<GetJobs, PaginatedResponse<JobDto>>
 {
     public async Task<HttpResult<PaginatedResponse<JobDto>>> Handle(GetJobs request, CancellationToken cancellationToken)
     {
         await using var db = await dbFactory.CreateDbContextAsync(cancellationToken);
+        var userId = currentUserService.UserId;
+        if (string.IsNullOrEmpty(userId)) return HttpResult<PaginatedResponse<JobDto>>.Unauthorized();
+
         var query = db.Jobs
             .Include(j => j.Project)
                 .ThenInclude(p => p.Client)
             .Include(j => j.Section)
-            .AsQueryable();
+            .Where(j => j.Project.Client.UserId == userId);
 
         if (request.ProjectId.HasValue)
             query = query.Where(j => j.ProjectId == request.ProjectId.Value);

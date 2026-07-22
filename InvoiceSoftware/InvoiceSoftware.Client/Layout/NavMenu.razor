@@ -2,15 +2,9 @@
 
 <div class="flex flex-col h-full">
     <!-- Logo Section -->
-    <div class="logo-section flex items-center gap-3 h-16 px-6 border-b border-[#e5e1d7] dark:border-[#242b34]">
-        <div class="w-9 h-9 rounded-md flex items-center justify-center shrink-0 brand-mark">
-            <svg class="w-5 h-5 text-white" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M9 12h6m-6 4h6m2 5H7a2 2 0 01-2-2V5a2 2 0 012-2h5.586a1 1 0 01.707.293l5.414 5.414a1 1 0 01.293.707V19a2 2 0 01-2 2z" />
-            </svg>
-        </div>
-        <span class="logo-text font-display text-lg font-bold tracking-tight text-gray-900 dark:text-white">
-            Invoice<span class="text-teal-700 dark:text-teal-400">Pro</span>
-        </span>
+    <div class="logo-section flex items-center gap-3 h-16 px-6 border-b border-[#e5e1d7] dark:border-[#2f2924]">
+        <span class="app-hanko shrink-0">商</span>
+        <span class="logo-text app-wordmark">Akinai<span class="jp">あきない</span></span>
     </div>
 
     <!-- Navigation Links -->
@@ -164,6 +158,25 @@
             <span class="nav-text">Bank Import</span>
         </NavLink>
 
+        <!-- Section: Admin — only rendered for admins. This is presentation
+             only; /api/admin endpoints enforce the role server-side. -->
+        <AuthorizeView Roles="Admin">
+            <Authorized>
+                <div class="nav-section-title pt-6 pb-2">
+                    <p class="px-4 text-[11px] font-semibold text-slate-500 uppercase tracking-wider">Admin</p>
+                </div>
+
+                <NavLink href="admin/users"
+                         class="nav-link group relative flex items-center gap-3 px-4 py-2.5 text-sm font-medium rounded-xl transition-colors duration-150"
+                         ActiveClass="active">
+                    <svg class="w-5 h-5 opacity-70 group-[.active]:opacity-100 shrink-0" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                        <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M12 4.354a4 4 0 110 5.292M15 21H3v-1a6 6 0 0112 0v1zm0 0h6v-1a6 6 0 00-9-5.197M13 7a4 4 0 11-8 0 4 4 0 018 0z" />
+                    </svg>
+                    <span class="nav-text">Users</span>
+                </NavLink>
+            </Authorized>
+        </AuthorizeView>
+
         <!-- Section: Catalog -->
         <div class="nav-section-title pt-6 pb-2">
             <p class="px-4 text-[11px] font-semibold text-slate-500 uppercase tracking-wider">Catalog</p>
@@ -253,11 +266,21 @@
                      ActiveClass="active">
                 <span class="nav-text">Two-Factor Auth</span>
             </NavLink>
+            <NavLink href="account/manage/passkeys"
+                     class="nav-link group relative flex items-center gap-3 pl-12 pr-4 py-2 text-sm font-medium rounded-xl transition-colors duration-150"
+                     ActiveClass="active">
+                <span class="nav-text">Passkeys</span>
+            </NavLink>
+            <NavLink href="account/manage/personal-data"
+                     class="nav-link group relative flex items-center gap-3 pl-12 pr-4 py-2 text-sm font-medium rounded-xl transition-colors duration-150"
+                     ActiveClass="active">
+                <span class="nav-text">Personal Data</span>
+            </NavLink>
         }
     </nav>
 
     <!-- Sign Out Section -->
-    <div class="px-3 pb-6 border-t border-[#e5e1d7] dark:border-[#242b34] pt-4">
+    <div class="px-3 pb-6 border-t border-[#e5e1d7] dark:border-[#2f2924] pt-4">
         <AuthorizeView>
             <Authorized>
                 <!-- Expanded sign out button -->

@@ -3,22 +3,26 @@ using BlazorUtils.EasyApi.Server;
 using InvoiceSoftware.Infrastructure.Data;
 using InvoiceSoftware.Shared.Api.TimeEntries;
 using InvoiceSoftware.Shared.Dtos.TimeEntries;
+using InvoiceSoftware.Shared.Services;
 using Microsoft.EntityFrameworkCore;
 
 namespace InvoiceSoftware.Infrastructure.Handlers.TimeEntries;
 
-public class GetUnbilledTimeEntriesHandler(IDbContextFactory<ApplicationDbContext> dbFactory) : IHandle<GetUnbilledTimeEntries, List<UnbilledTimeEntryDto>>
+public class GetUnbilledTimeEntriesHandler(IDbContextFactory<ApplicationDbContext> dbFactory, ICurrentUserService currentUserService) : IHandle<GetUnbilledTimeEntries, List<UnbilledTimeEntryDto>>
 {
     public async Task<HttpResult<List<UnbilledTimeEntryDto>>> Handle(GetUnbilledTimeEntries request, CancellationToken cancellationToken)
     {
         await using var db = await dbFactory.CreateDbContextAsync(cancellationToken);
+        var userId = currentUserService.UserId;
+        if (string.IsNullOrEmpty(userId)) return HttpResult<List<UnbilledTimeEntryDto>>.Unauthorized();
+
         var entries = await db.TimeEntries
             .Include(e => e.Job)
                 .ThenInclude(j => j.Project)
                     .ThenInclude(p => p.Client)
             .Include(e => e.Job)
                 .ThenInclude(j => j.Section)
-            .Where(e => e.InvoiceId == null && e.Job.Project.ClientId == request.ClientId)
+            .Where(e => e.InvoiceId == null && e.Job.Project.ClientId == request.ClientId && e.UserId == userId)
             .ToListAsync(cancellationToken);
 
         var result = entries.Select(e => new UnbilledTimeEntryDto(

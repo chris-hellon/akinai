@@ -3,16 +3,20 @@ using BlazorUtils.EasyApi.Server;
 using InvoiceSoftware.Domain.Enums;
 using InvoiceSoftware.Infrastructure.Data;
 using InvoiceSoftware.Shared.Api.Projects;
+using InvoiceSoftware.Shared.Services;
 using Microsoft.EntityFrameworkCore;
 
 namespace InvoiceSoftware.Infrastructure.Handlers.Projects;
 
-public class UpdateProjectHandler(IDbContextFactory<ApplicationDbContext> dbFactory) : IHandle<UpdateProject>
+public class UpdateProjectHandler(IDbContextFactory<ApplicationDbContext> dbFactory, ICurrentUserService currentUserService) : IHandle<UpdateProject>
 {
     public async Task<HttpResult> Handle(UpdateProject request, CancellationToken cancellationToken)
     {
         await using var db = await dbFactory.CreateDbContextAsync(cancellationToken);
-        var project = await db.Projects.FirstOrDefaultAsync(p => p.Id == request.Id, cancellationToken);
+        var userId = currentUserService.UserId;
+        if (string.IsNullOrEmpty(userId)) return HttpResult.Unauthorized();
+
+        var project = await db.Projects.FirstOrDefaultAsync(p => p.Id == request.Id && p.Client.UserId == userId, cancellationToken);
         if (project is null) return HttpResult.NotFound();
 
         var status = Enum.Parse<ProjectStatus>(request.Status);

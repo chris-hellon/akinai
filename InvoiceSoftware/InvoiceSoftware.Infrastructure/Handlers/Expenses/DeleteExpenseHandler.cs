@@ -2,16 +2,20 @@ using BlazorUtils.EasyApi;
 using BlazorUtils.EasyApi.Server;
 using InvoiceSoftware.Infrastructure.Data;
 using InvoiceSoftware.Shared.Api.Expenses;
+using InvoiceSoftware.Shared.Services;
 using Microsoft.EntityFrameworkCore;
 
 namespace InvoiceSoftware.Infrastructure.Handlers.Expenses;
 
-public class DeleteExpenseHandler(IDbContextFactory<ApplicationDbContext> dbFactory) : IHandle<DeleteExpense>
+public class DeleteExpenseHandler(IDbContextFactory<ApplicationDbContext> dbFactory, ICurrentUserService currentUserService) : IHandle<DeleteExpense>
 {
     public async Task<HttpResult> Handle(DeleteExpense request, CancellationToken cancellationToken)
     {
         await using var db = await dbFactory.CreateDbContextAsync(cancellationToken);
-        var expense = await db.Expenses.FirstOrDefaultAsync(e => e.Id == request.Id, cancellationToken);
+        var userId = currentUserService.UserId;
+        if (string.IsNullOrEmpty(userId)) return HttpResult.Unauthorized();
+
+        var expense = await db.Expenses.FirstOrDefaultAsync(e => e.Id == request.Id && e.UserId == userId, cancellationToken);
 
         if (expense is null)
             return HttpResult.NotFound();

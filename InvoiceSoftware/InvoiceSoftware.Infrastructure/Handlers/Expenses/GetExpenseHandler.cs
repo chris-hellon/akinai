@@ -3,20 +3,24 @@ using BlazorUtils.EasyApi.Server;
 using InvoiceSoftware.Infrastructure.Data;
 using InvoiceSoftware.Shared.Api.Expenses;
 using InvoiceSoftware.Shared.Dtos.Expenses;
+using InvoiceSoftware.Shared.Services;
 using Microsoft.EntityFrameworkCore;
 
 namespace InvoiceSoftware.Infrastructure.Handlers.Expenses;
 
-public class GetExpenseHandler(IDbContextFactory<ApplicationDbContext> dbFactory) : IHandle<GetExpense, ExpenseDetailDto?>
+public class GetExpenseHandler(IDbContextFactory<ApplicationDbContext> dbFactory, ICurrentUserService currentUserService) : IHandle<GetExpense, ExpenseDetailDto?>
 {
     public async Task<HttpResult<ExpenseDetailDto?>> Handle(GetExpense request, CancellationToken cancellationToken)
     {
         await using var db = await dbFactory.CreateDbContextAsync(cancellationToken);
+        var userId = currentUserService.UserId;
+        if (string.IsNullOrEmpty(userId)) return HttpResult<ExpenseDetailDto?>.Unauthorized();
+
         var expense = await db.Expenses
             .Include(e => e.Client)
             .Include(e => e.Project)
             .Include(e => e.Invoice)
-            .FirstOrDefaultAsync(e => e.Id == request.Id, cancellationToken);
+            .FirstOrDefaultAsync(e => e.Id == request.Id && e.UserId == userId, cancellationToken);
 
         if (expense is null) return HttpResult<ExpenseDetailDto?>.NotFound();
 

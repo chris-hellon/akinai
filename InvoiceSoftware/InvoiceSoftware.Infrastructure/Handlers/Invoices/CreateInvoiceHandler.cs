@@ -4,21 +4,26 @@ using InvoiceSoftware.Domain.Entities;
 using InvoiceSoftware.Infrastructure.Data;
 using InvoiceSoftware.Infrastructure.Services;
 using InvoiceSoftware.Shared.Api.Invoices;
+using InvoiceSoftware.Shared.Services;
 using Microsoft.EntityFrameworkCore;
 
 namespace InvoiceSoftware.Infrastructure.Handlers.Invoices;
 
 public class CreateInvoiceHandler(
     IDbContextFactory<ApplicationDbContext> dbFactory,
+    ICurrentUserService currentUserService,
     IInvoiceTotalService totalService) : IHandle<CreateInvoice, Guid>
 {
     public async Task<HttpResult<Guid>> Handle(CreateInvoice request, CancellationToken cancellationToken)
     {
         await using var db = await dbFactory.CreateDbContextAsync(cancellationToken);
-        var client = await db.Clients.FirstOrDefaultAsync(c => c.Id == request.ClientId, cancellationToken);
+        var userId = currentUserService.UserId;
+        if (string.IsNullOrEmpty(userId)) return HttpResult<Guid>.Unauthorized();
+
+        var client = await db.Clients.FirstOrDefaultAsync(c => c.Id == request.ClientId && c.UserId == userId, cancellationToken);
         var currency = client != null ? client.Currency : "USD";
 
-        var lastInvoice = await db.Invoices.OrderByDescending(i => i.InvoiceNumber).FirstOrDefaultAsync(cancellationToken);
+        var lastInvoice = await db.Invoices.Where(i => i.Client.UserId == userId).OrderByDescending(i => i.InvoiceNumber).FirstOrDefaultAsync(cancellationToken);
         var nextNumber = 1;
         if (lastInvoice != null && lastInvoice.InvoiceNumber.StartsWith("INV-"))
         {

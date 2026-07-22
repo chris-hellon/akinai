@@ -4,18 +4,23 @@ using InvoiceSoftware.Domain.Entities;
 using InvoiceSoftware.Infrastructure.Data;
 using InvoiceSoftware.Infrastructure.Services;
 using InvoiceSoftware.Shared.Api.Invoices;
+using InvoiceSoftware.Shared.Services;
 using Microsoft.EntityFrameworkCore;
 
 namespace InvoiceSoftware.Infrastructure.Handlers.Invoices;
 
 public class UpdateInvoiceHandler(
     IDbContextFactory<ApplicationDbContext> dbFactory,
+    ICurrentUserService currentUserService,
     IInvoiceTotalService totalService) : IHandle<UpdateInvoice>
 {
     public async Task<HttpResult> Handle(UpdateInvoice request, CancellationToken cancellationToken)
     {
         await using var db = await dbFactory.CreateDbContextAsync(cancellationToken);
-        var invoice = await db.Invoices.FirstOrDefaultAsync(i => i.Id == request.Id, cancellationToken);
+        var userId = currentUserService.UserId;
+        if (string.IsNullOrEmpty(userId)) return HttpResult.Unauthorized();
+
+        var invoice = await db.Invoices.FirstOrDefaultAsync(i => i.Id == request.Id && i.Client.UserId == userId, cancellationToken);
         if (invoice is null) return HttpResult.NotFound();
 
         invoice.UpdateDetails(request.IssueDate, request.DueDate, request.TaxRate, request.Notes);
@@ -96,15 +101,10 @@ public class UpdateInvoiceHandler(
         await db.SaveChangesAsync(cancellationToken);
 
         // Re-snapshot totals after the invoice's lines/time/expenses changed.
-        var userId = await db.Clients
-            .Where(c => c.Id == invoice.ClientId)
-            .Select(c => c.UserId)
-            .FirstOrDefaultAsync(cancellationToken);
-        if (!string.IsNullOrEmpty(userId))
-        {
-            await totalService.RecalculateAsync(db, invoice.Id, userId, cancellationToken);
-            await db.SaveChangesAsync(cancellationToken);
-        }
+        // The invoice was fetched scoped to this user, so its owner is `userId` —
+        // no need to look it up via the client again.
+        await totalService.RecalculateAsync(db, invoice.Id, userId, cancellationToken);
+        await db.SaveChangesAsync(cancellationToken);
 
         return HttpResult.NoContent();
     }

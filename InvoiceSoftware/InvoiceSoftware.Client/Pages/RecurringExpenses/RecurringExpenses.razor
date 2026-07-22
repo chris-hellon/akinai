@@ -5,7 +5,7 @@
 @inject ICall<PauseRecurringExpense> PauseRecurringExpenseCall
 @inject ICall<ResumeRecurringExpense> ResumeRecurringExpenseCall
 
-<PageTitle>Recurring Expenses - InvoicePro</PageTitle>
+<PageTitle>Recurring Expenses - Akinai</PageTitle>
 
 <ListPageLayout Title="Recurring Expenses"
                 Description="Manage scheduled expenses that auto-generate."
@@ -54,7 +54,7 @@
                     <th scope="col" class="relative px-6 py-4"><span class="sr-only">Actions</span></th>
                 </HeaderTemplate>
                 <RowTemplate Context="expense">
-                    <tr class="group hover:bg-gray-50/50 dark:hover:bg-[#2d2a4a]/50 transition-colors">
+                    <tr class="group hover:bg-gray-50/50 dark:hover:bg-[#2f2924]/50 transition-colors">
                         <td class="px-6 py-4">
                             <a href="recurring-expenses/@expense.Id" class="text-sm font-medium text-gray-900 dark:text-slate-100 group-hover:text-primary-600 dark:group-hover:text-primary-400 transition-colors hover:underline">@expense.MerchantName</a>
                             @if (expense.ClientName != null)
@@ -163,7 +163,7 @@
                                 <div class="mt-1 text-xs text-gray-500 dark:text-slate-400">@ExpenseCategoryExtensions.Parse(expense.Category).GetDisplayName()</div>
                             </div>
                         </div>
-                        <div class="mt-3 pt-3 border-t border-gray-50 dark:border-[#2d2a4a] flex items-center justify-end gap-1">
+                        <div class="mt-3 pt-3 border-t border-gray-50 dark:border-[#2f2924] flex items-center justify-end gap-1">
                             @if (expense.IsActive)
                             {
                                 <IconButton OnClick="() => PauseExpenseAsync(expense)" Title="Pause">

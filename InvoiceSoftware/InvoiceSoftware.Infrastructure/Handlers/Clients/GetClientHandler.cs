@@ -4,18 +4,22 @@ using InvoiceSoftware.Domain.Enums;
 using InvoiceSoftware.Infrastructure.Data;
 using InvoiceSoftware.Shared.Api.Clients;
 using InvoiceSoftware.Shared.Dtos.Clients;
+using InvoiceSoftware.Shared.Services;
 using Microsoft.EntityFrameworkCore;
 
 namespace InvoiceSoftware.Infrastructure.Handlers.Clients;
 
-public class GetClientHandler(IDbContextFactory<ApplicationDbContext> dbFactory) : IHandle<GetClient, ClientDetailDto?>
+public class GetClientHandler(IDbContextFactory<ApplicationDbContext> dbFactory, ICurrentUserService currentUserService) : IHandle<GetClient, ClientDetailDto?>
 {
     public async Task<HttpResult<ClientDetailDto?>> Handle(GetClient request, CancellationToken cancellationToken)
     {
+        var userId = currentUserService.UserId;
+        if (string.IsNullOrEmpty(userId)) return HttpResult<ClientDetailDto?>.Unauthorized();
+
         await using var db = await dbFactory.CreateDbContextAsync(cancellationToken);
         var client = await db.Clients
             .Include(c => c.Projects)
-            .FirstOrDefaultAsync(c => c.Id == request.Id, cancellationToken);
+            .FirstOrDefaultAsync(c => c.Id == request.Id && c.UserId == userId, cancellationToken);
 
         if (client is null) return HttpResult<ClientDetailDto?>.NotFound();
 

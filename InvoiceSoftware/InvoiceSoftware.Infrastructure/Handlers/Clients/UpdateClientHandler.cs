@@ -3,16 +3,20 @@ using BlazorUtils.EasyApi.Server;
 using InvoiceSoftware.Domain.ValueObjects;
 using InvoiceSoftware.Infrastructure.Data;
 using InvoiceSoftware.Shared.Api.Clients;
+using InvoiceSoftware.Shared.Services;
 using Microsoft.EntityFrameworkCore;
 
 namespace InvoiceSoftware.Infrastructure.Handlers.Clients;
 
-public class UpdateClientHandler(IDbContextFactory<ApplicationDbContext> dbFactory) : IHandle<UpdateClient>
+public class UpdateClientHandler(IDbContextFactory<ApplicationDbContext> dbFactory, ICurrentUserService currentUserService) : IHandle<UpdateClient>
 {
     public async Task<HttpResult> Handle(UpdateClient request, CancellationToken cancellationToken)
     {
+        var userId = currentUserService.UserId;
+        if (string.IsNullOrEmpty(userId)) return HttpResult.Unauthorized();
+
         await using var db = await dbFactory.CreateDbContextAsync(cancellationToken);
-        var client = await db.Clients.FirstOrDefaultAsync(c => c.Id == request.Id, cancellationToken);
+        var client = await db.Clients.FirstOrDefaultAsync(c => c.Id == request.Id && c.UserId == userId, cancellationToken);
         if (client is null) return HttpResult.NotFound();
 
         Address? billingAddress = null;

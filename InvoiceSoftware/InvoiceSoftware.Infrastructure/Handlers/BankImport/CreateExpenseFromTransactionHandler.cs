@@ -35,6 +35,7 @@ public class CreateExpenseFromTransactionHandler(
         var category = Enum.TryParse<ExpenseCategory>(request.Category, out var c) ? c : ExpenseCategory.Other;
 
         var expense = Expense.Create(
+            userId,
             category,
             merchantName: transaction.Description,
             expenseDate: transaction.TransactionDate,

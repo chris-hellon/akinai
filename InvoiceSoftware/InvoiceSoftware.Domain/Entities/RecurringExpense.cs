@@ -7,6 +7,9 @@ namespace InvoiceSoftware.Domain.Entities;
 
 public class RecurringExpense : AggregateRoot, IAuditableEntity
 {
+    /// <summary>Owning user — see Expense.UserId.</summary>
+    public string UserId { get; private set; } = null!;
+
     public ExpenseCategory Category { get; private set; }
     public string MerchantName { get; private set; } = null!;
     public PaymentMethod PaymentMethod { get; private set; }
@@ -48,6 +51,7 @@ public class RecurringExpense : AggregateRoot, IAuditableEntity
     private RecurringExpense() { }
 
     public static RecurringExpense Create(
+        string userId,
         ExpenseCategory category,
         string merchantName,
         PaymentMethod paymentMethod,
@@ -69,6 +73,7 @@ public class RecurringExpense : AggregateRoot, IAuditableEntity
     {
         return new RecurringExpense
         {
+            UserId = userId,
             Category = category,
             MerchantName = merchantName,
             PaymentMethod = paymentMethod,
@@ -143,6 +148,7 @@ public class RecurringExpense : AggregateRoot, IAuditableEntity
         }
 
         var expense = Expense.Create(
+            UserId,   // generated expenses inherit the schedule's owner
             Category,
             MerchantName,
             NextExpenseDate,

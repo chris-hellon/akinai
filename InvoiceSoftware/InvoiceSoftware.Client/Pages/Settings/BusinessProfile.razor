@@ -3,7 +3,7 @@
 @inject ICall<GetBusinessProfile, BusinessProfileDto> GetBusinessProfileCall
 @inject ICall<SaveBusinessProfile> SaveBusinessProfileCall
 
-<PageTitle>Business Profile - InvoicePro</PageTitle>
+<PageTitle>Business Profile - Akinai</PageTitle>
 
 <div class="space-y-6">
     <PageHeader Title="Business Profile"
@@ -170,6 +170,14 @@
                 Input.TaxNumber = _fullProfile.TaxNumber;
                 Input.RegistrationNumber = _fullProfile.RegistrationNumber;
             }
+        }
+        catch (Exception ex) when (EmptyResponse.IsEmptyOk(ex))
+        {
+            // A brand-new account has no business profile yet. The endpoint
+            // returns HttpResult.Ok(null), which EasyApi surfaces as a 200 with
+            // an empty body and throws on — but "not set up yet" is a normal
+            // state, so show the blank form rather than an error.
+            _fullProfile = null;
         }
         catch (Exception ex)
         {

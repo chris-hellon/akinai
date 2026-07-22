@@ -7,7 +7,8 @@
 <AuthorizeView>
     <Authorized>
         <!-- Premium Authenticated Layout -->
-        <div class="min-h-screen bg-gray-100 dark:bg-[#0b0e12] transition-colors duration-200">
+        <!-- app canvas: the landing page hero tone (--hero, oklch(.988 .006 83)) -->
+        <div class="min-h-screen bg-gray-50 dark:bg-[#0f0b08] transition-colors duration-200">
             <!-- Sidebar -->
             <aside class="@(_sidebarCollapsed ? "sidebar-collapsed" : "sidebar-expanded") fixed inset-y-0 left-0 z-50 transform transition-all duration-300 ease-in-out @(_mobileSidebarOpen ? "" : "-translate-x-full") md:translate-x-0 sidebar-bg"
                    id="sidebar">
@@ -17,8 +18,8 @@
             <!-- Main Content Area -->
             <div id="main-content" class="@(_sidebarCollapsed ? "sidebar-collapsed-margin" : "sidebar-expanded-margin") min-h-screen flex flex-col transition-all duration-300">
                 <!-- Top Header Bar -->
-                <header class="sticky top-0 z-40 bg-white/80 dark:bg-[#0b0e12]/90 backdrop-blur-md transition-colors">
-                    <div class="flex items-center justify-between h-16 px-6 lg:px-8 border-b border-[#e5e1d7] dark:border-[#242b34]">
+                <header class="sticky top-0 z-40 bg-white/80 dark:bg-[#0f0b08]/90 backdrop-blur-md transition-colors">
+                    <div class="flex items-center justify-between h-16 px-6 lg:px-8 border-b border-[#e5e1d7] dark:border-[#2f2924]">
                         <!-- Menu Buttons -->
                         <div class="flex items-center gap-2">
                             <!-- Mobile Menu Button -->
@@ -40,7 +41,7 @@
                             </button>
 
                             <!-- Global search -->
-                            <div class="hidden md:flex items-center gap-2 ml-3 h-9 px-3 rounded-xl border border-gray-200 dark:border-[#242b34] bg-gray-50 dark:bg-[#0b0e12] w-[300px]">
+                            <div class="field-shell hidden md:flex items-center gap-2 ml-3 h-9 px-3 rounded-xl w-[300px]">
                                 <svg class="w-4 h-4 text-gray-400 shrink-0" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M21 21l-4.35-4.35M17 11a6 6 0 11-12 0 6 6 0 0112 0z" /></svg>
                                 <input type="text" placeholder="Search clients, invoices, projects…" @bind="_search" @bind:event="oninput" @onkeydown="OnSearchKeyDown"
                                        class="flex-1 min-w-0 bg-transparent border-0 outline-none text-sm text-gray-700 dark:text-slate-200 placeholder:text-gray-400 dark:placeholder:text-slate-500" />
@@ -123,9 +124,9 @@
                                 <!-- Dropdown Menu -->
                                 @if (_userMenuOpen)
                                 {
-                                    <div class="absolute right-0 mt-2 w-56 bg-white dark:bg-[#14181e] rounded-xl shadow-lg ring-1 ring-black/5 dark:ring-white/10 py-1 z-50">
+                                    <div class="absolute right-0 mt-2 w-56 bg-white dark:bg-[#1b1612] rounded-xl shadow-lg ring-1 ring-black/5 dark:ring-white/10 py-1 z-50">
                                         <a href="/dashboard"
-                                           class="flex items-center gap-3 px-4 py-2.5 text-sm text-gray-700 dark:text-slate-300 hover:bg-gray-50 dark:hover:bg-[#242b34] transition-colors"
+                                           class="flex items-center gap-3 px-4 py-2.5 text-sm text-gray-700 dark:text-slate-300 hover:bg-gray-50 dark:hover:bg-[#2f2924] transition-colors"
                                            @onclick="CloseUserMenu">
                                             <svg class="w-5 h-5 text-gray-400 dark:text-slate-500" fill="none" stroke="currentColor" viewBox="0 0 24 24">
                                                 <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M4 5a1 1 0 011-1h14a1 1 0 011 1v2a1 1 0 01-1 1H5a1 1 0 01-1-1V5zM4 13a1 1 0 011-1h6a1 1 0 011 1v6a1 1 0 01-1 1H5a1 1 0 01-1-1v-6zM16 13a1 1 0 011-1h2a1 1 0 011 1v6a1 1 0 01-1 1h-2a1 1 0 01-1-1v-6z" />
@@ -133,7 +134,7 @@
                                             Dashboard
                                         </a>
                                         <a href="account/manage"
-                                           class="flex items-center gap-3 px-4 py-2.5 text-sm text-gray-700 dark:text-slate-300 hover:bg-gray-50 dark:hover:bg-[#242b34] transition-colors"
+                                           class="flex items-center gap-3 px-4 py-2.5 text-sm text-gray-700 dark:text-slate-300 hover:bg-gray-50 dark:hover:bg-[#2f2924] transition-colors"
                                            @onclick="CloseUserMenu">
                                             <svg class="w-5 h-5 text-gray-400 dark:text-slate-500" fill="none" stroke="currentColor" viewBox="0 0 24 24">
                                                 <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M10.325 4.317c.426-1.756 2.924-1.756 3.35 0a1.724 1.724 0 002.573 1.066c1.543-.94 3.31.826 2.37 2.37a1.724 1.724 0 001.065 2.572c1.756.426 1.756 2.924 0 3.35a1.724 1.724 0 00-1.066 2.573c.94 1.543-.826 3.31-2.37 2.37a1.724 1.724 0 00-2.572 1.065c-.426 1.756-2.924 1.756-3.35 0a1.724 1.724 0 00-2.573-1.066c-1.543.94-3.31-.826-2.37-2.37a1.724 1.724 0 00-1.065-2.572c-1.756-.426-1.756-2.924 0-3.35a1.724 1.724 0 001.066-2.573c-.94-1.543.826-3.31 2.37-2.37.996.608 2.296.07 2.572-1.065z" />
@@ -141,9 +142,9 @@
                                             </svg>
                                             Settings
                                         </a>
-                                        <div class="border-t border-gray-100 dark:border-[#242b34] my-1"></div>
+                                        <div class="border-t border-gray-100 dark:border-[#2f2924] my-1"></div>
                                         <button type="button"
-                                                class="flex items-center gap-3 px-4 py-2.5 text-sm text-gray-700 dark:text-slate-300 hover:bg-gray-50 dark:hover:bg-[#242b34] transition-colors w-full text-left"
+                                                class="flex items-center gap-3 px-4 py-2.5 text-sm text-gray-700 dark:text-slate-300 hover:bg-gray-50 dark:hover:bg-[#2f2924] transition-colors w-full text-left"
                                                 @onclick="ShowSignOutConfirmation">
                                             <svg class="w-5 h-5 text-gray-400 dark:text-slate-500" fill="none" stroke="currentColor" viewBox="0 0 24 24">
                                                 <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M17 16l4-4m0 0l-4-4m4 4H7m6 4v1a3 3 0 01-3 3H6a3 3 0 01-3-3V7a3 3 0 013-3h4a3 3 0 013 3v1" />
@@ -163,8 +164,8 @@
                 </main>
 
                 <!-- Footer -->
-                <footer class="py-4 px-6 lg:px-8 border-t border-gray-100 dark:border-[#242b34] bg-white/50 dark:bg-[#0b0e12]/50 transition-colors">
-                    <p class="text-xs text-gray-400 dark:text-[#64748b] text-center">Invoice Software &copy; @DateTime.Now.Year</p>
+                <footer class="py-4 px-6 lg:px-8 border-t border-gray-100 dark:border-[#2f2924] bg-white/50 dark:bg-[#0f0b08]/50 transition-colors">
+                    <p class="text-xs text-gray-400 dark:text-[#988f87] text-center">Akinai <span class="font-display">商い</span> &copy; @DateTime.Now.Year</p>
                 </footer>
             </div>
         </div>
@@ -205,14 +206,8 @@
             <header class="py-6 px-4 border-b border-gray-100 bg-white">
                 <div class="max-w-7xl mx-auto flex justify-between items-center">
                     <a href="/" class="flex items-center gap-3">
-                        <div class="w-9 h-9 rounded-md flex items-center justify-center brand-mark">
-                            <svg class="w-5 h-5 text-white" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                                <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M9 12h6m-6 4h6m2 5H7a2 2 0 01-2-2V5a2 2 0 012-2h5.586a1 1 0 01.707.293l5.414 5.414a1 1 0 01.293.707V19a2 2 0 01-2 2z" />
-                            </svg>
-                        </div>
-                        <span class="font-display text-lg font-bold tracking-tight text-gray-900">
-                            Invoice<span class="text-teal-700">Pro</span>
-                        </span>
+                        <span class="app-hanko">商</span>
+                        <span class="app-wordmark">Akinai<span class="jp">あきない</span></span>
                     </a>
                 </div>
             </header>
@@ -224,7 +219,7 @@
 
             <!-- Footer -->
             <footer class="py-6 px-4 border-t border-gray-100 bg-white">
-                <p class="text-center text-gray-400 text-sm">&copy; @DateTime.Now.Year InvoicePro. All rights reserved.</p>
+                <p class="text-center text-gray-400 text-sm">&copy; @DateTime.Now.Year Akinai. All rights reserved.</p>
             </footer>
         </div>
     </NotAuthorized>

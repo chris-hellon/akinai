@@ -7,6 +7,10 @@ namespace InvoiceSoftware.Domain.Entities;
 
 public class Expense : AggregateRoot, IAuditableEntity
 {
+    /// <summary>Owning user. An expense need not belong to a client or project,
+    /// so ownership cannot be derived — it has to be stored here.</summary>
+    public string UserId { get; private set; } = null!;
+
     public ExpenseCategory Category { get; private set; }
     public string MerchantName { get; private set; } = null!;
     public DateOnly ExpenseDate { get; private set; }
@@ -42,6 +46,7 @@ public class Expense : AggregateRoot, IAuditableEntity
     private Expense() { }
 
     public static Expense Create(
+        string userId,
         ExpenseCategory category,
         string merchantName,
         DateOnly expenseDate,
@@ -61,6 +66,7 @@ public class Expense : AggregateRoot, IAuditableEntity
     {
         return new Expense
         {
+            UserId = userId,
             Category = category,
             MerchantName = merchantName,
             ExpenseDate = expenseDate,

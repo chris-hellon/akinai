@@ -1,0 +1,44 @@
+@*
+    A group of mutually-exclusive options (date range, chart view, …).
+
+    The selected state deliberately reuses the sidebar nav's language — a soft
+    teal tint with a teal label — via the --sidebar-active / --sidebar-accent
+    tokens, so "this one is selected" looks the same everywhere in the app.
+    Styling lives in input.css under `.segmented`.
+*@
+
+<div class="segmented @Class" role="tablist">
+    @foreach (var (value, label) in Options)
+    {
+        var selected = value == Value;
+        <button type="button"
+                role="tab"
+                aria-selected="@(selected ? "true" : "false")"
+                class="segmented-item @(selected ? "is-selected" : "")"
+                @onclick="() => SelectAsync(value)">
+            @label
+        </button>
+    }
+</div>
+
+@code {
+    /// <summary>The options, in display order.</summary>
+    [Parameter, EditorRequired]
+    public IReadOnlyList<(string Value, string Label)> Options { get; set; } = [];
+
+    /// <summary>The currently selected option's value.</summary>
+    [Parameter]
+    public string? Value { get; set; }
+
+    [Parameter]
+    public EventCallback<string> ValueChanged { get; set; }
+
+    /// <summary>Extra classes for the group container (layout only).</summary>
+    [Parameter]
+    public string? Class { get; set; }
+
+    // Re-selecting the current option is a no-op, so pages don't reload data
+    // or re-render charts when the user clicks what is already active.
+    private Task SelectAsync(string value)
+        => value == Value ? Task.CompletedTask : ValueChanged.InvokeAsync(value);
+}

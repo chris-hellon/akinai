@@ -1,0 +1,7 @@
+<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 180 180">
+  <!-- Akinai hanko: filled teal seal, reads better than an outline at 16px -->
+  <rect width="180" height="180" rx="40" fill="#0e5c66"/>
+  <text x="90" y="94" fill="#f8f5f0"
+        font-family="'Shippori Mincho','Hiragino Mincho ProN','Yu Mincho','Noto Serif JP',serif"
+        font-size="118" font-weight="700" text-anchor="middle" dominant-baseline="central">商</text>
+</svg>

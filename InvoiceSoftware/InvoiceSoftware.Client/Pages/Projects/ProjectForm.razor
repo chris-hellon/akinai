@@ -10,7 +10,7 @@
 @inject ICall<UpdateProjectSection> UpdateSectionCall
 @inject ICall<DeleteProjectSection> DeleteSectionCall
 
-<PageTitle>@(Id.HasValue ? "Edit Project" : "New Project") - InvoicePro</PageTitle>
+<PageTitle>@(Id.HasValue ? "Edit Project" : "New Project") - Akinai</PageTitle>
 
 <div class="space-y-6">
     <!-- Header with Breadcrumbs -->
@@ -74,7 +74,7 @@
                         </div>
                     </div>
 
-                    <hr class="border-gray-100 dark:border-[#2d2a4a]" />
+                    <hr class="border-gray-100 dark:border-[#2f2924]" />
 
                     <div class="sm:w-1/2">
                         <label for="hourlyRate" class="block text-sm font-medium text-gray-700 dark:text-slate-300 mb-2">Override Hourly Rate</label>
@@ -102,7 +102,7 @@
                         <div class="space-y-3">
                             @foreach (var sec in _sections)
                             {
-                                <div class="flex items-start gap-3 p-4 bg-gray-50 dark:bg-[#1e1b3a] rounded-xl border border-gray-100 dark:border-[#2d2a4a]">
+                                <div class="flex items-start gap-3 p-4 bg-gray-50 dark:bg-[#14100c] rounded-xl border border-gray-100 dark:border-[#2f2924]">
                                     @if (_editingSectionId == sec.Id)
                                     {
                                         <!-- Edit Mode -->
@@ -117,7 +117,7 @@
                                                     @(_isSavingSection ? "Saving..." : "Save")
                                                 </button>
                                                 <button type="button" @onclick="CancelEditSection"
-                                                    class="px-3 py-1.5 text-xs font-medium text-gray-600 dark:text-slate-300 bg-white dark:bg-[#252240] border border-gray-200 dark:border-[#3d3a5a] rounded-lg hover:bg-gray-50 dark:hover:bg-[#2d2a4a]">
+                                                    class="px-3 py-1.5 text-xs font-medium text-gray-600 dark:text-slate-300 bg-white dark:bg-[#1b1612] border border-gray-200 dark:border-[#37302c] rounded-lg hover:bg-gray-50 dark:hover:bg-[#2f2924]">
                                                     Cancel
                                                 </button>
                                             </div>
@@ -138,13 +138,13 @@
                                         </div>
                                         <div class="flex items-center gap-1">
                                             <button type="button" @onclick="() => StartEditSection(sec)"
-                                                class="p-1.5 text-gray-400 hover:text-primary-600 dark:hover:text-primary-400 rounded-lg hover:bg-white dark:hover:bg-[#252240] transition-colors">
+                                                class="p-1.5 text-gray-400 hover:text-primary-600 dark:hover:text-primary-400 rounded-lg hover:bg-white dark:hover:bg-[#1b1612] transition-colors">
                                                 <svg class="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
                                                     <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M11 5H6a2 2 0 00-2 2v11a2 2 0 002 2h11a2 2 0 002-2v-5m-1.414-9.414a2 2 0 112.828 2.828L11.828 15H9v-2.828l8.586-8.586z" />
                                                 </svg>
                                             </button>
                                             <button type="button" @onclick="() => DeleteSection(sec)" disabled="@(_deletingSectionId == sec.Id)"
-                                                class="p-1.5 text-gray-400 hover:text-red-600 dark:hover:text-red-400 rounded-lg hover:bg-white dark:hover:bg-[#252240] transition-colors disabled:opacity-50">
+                                                class="p-1.5 text-gray-400 hover:text-red-600 dark:hover:text-red-400 rounded-lg hover:bg-white dark:hover:bg-[#1b1612] transition-colors disabled:opacity-50">
                                                 @if (_deletingSectionId == sec.Id)
                                                 {
                                                     <div class="w-4 h-4 border-2 border-red-300 border-t-red-600 rounded-full animate-spin"></div>
@@ -178,7 +178,7 @@
                                         @(_isSavingSection ? "Adding..." : "Add Section")
                                     </button>
                                     <button type="button" @onclick="CancelAddSection"
-                                        class="px-3 py-1.5 text-xs font-medium text-gray-600 dark:text-slate-300 bg-white dark:bg-[#252240] border border-gray-200 dark:border-[#3d3a5a] rounded-lg hover:bg-gray-50 dark:hover:bg-[#2d2a4a]">
+                                        class="px-3 py-1.5 text-xs font-medium text-gray-600 dark:text-slate-300 bg-white dark:bg-[#1b1612] border border-gray-200 dark:border-[#37302c] rounded-lg hover:bg-gray-50 dark:hover:bg-[#2f2924]">
                                         Cancel
                                     </button>
                                 </div>

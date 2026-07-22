@@ -4,13 +4,13 @@
 @inject NotificationState State
 @inject NavigationManager Nav
 
-<PageTitle>Notifications - InvoicePro</PageTitle>
+<PageTitle>Notifications - Akinai</PageTitle>
 
 <div class="max-w-3xl mx-auto">
     <div class="flex items-end justify-between mb-6">
         <div>
             <p class="text-xs font-semibold uppercase tracking-wider text-gray-400 dark:text-slate-500" style="font-family:'IBM Plex Mono',monospace">Activity</p>
-            <h1 class="mt-1 text-2xl font-semibold text-gray-900 dark:text-slate-100 tracking-tight" style="font-family:'Sora',sans-serif">Notifications</h1>
+            <h1 class="mt-1 text-2xl font-semibold text-gray-900 dark:text-slate-100 tracking-tight" style="font-family:'Shippori Mincho',sans-serif">Notifications</h1>
         </div>
         @if (State.UnreadCount > 0)
         {
@@ -35,7 +35,7 @@
             {
                 var (bg, fg, icon) = Visual(n.Type);
                 <button type="button"
-                        class="w-full flex items-start gap-4 px-5 py-4 text-left border-b border-gray-50 dark:border-[#1d232b] last:border-b-0 hover:bg-gray-50 dark:hover:bg-[#1a1f27] transition-colors @(n.IsRead ? "" : "bg-primary-50/40 dark:bg-primary-900/10")"
+                        class="w-full flex items-start gap-4 px-5 py-4 text-left border-b border-gray-50 dark:border-[#1b1612] last:border-b-0 hover:bg-gray-50 dark:hover:bg-[#14100c] transition-colors @(n.IsRead ? "" : "bg-primary-50/40 dark:bg-primary-900/10")"
                         @onclick="() => Open(n)">
                     <span class="mt-0.5 w-9 h-9 rounded-lg flex items-center justify-center shrink-0" style="background:@bg;color:@fg">
                         @((MarkupString)icon)

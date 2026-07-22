@@ -4,16 +4,24 @@ using InvoiceSoftware.Domain.Entities;
 using InvoiceSoftware.Domain.Enums;
 using InvoiceSoftware.Infrastructure.Data;
 using InvoiceSoftware.Shared.Api.Jobs;
+using InvoiceSoftware.Shared.Services;
 using Microsoft.EntityFrameworkCore;
 
 namespace InvoiceSoftware.Infrastructure.Handlers.Jobs;
 
-public class CreateJobHandler(IDbContextFactory<ApplicationDbContext> dbFactory) : IHandle<CreateJob, Guid>
+public class CreateJobHandler(IDbContextFactory<ApplicationDbContext> dbFactory, ICurrentUserService currentUserService) : IHandle<CreateJob, Guid>
 {
     public async Task<HttpResult<Guid>> Handle(CreateJob request, CancellationToken cancellationToken)
     {
         await using var db = await dbFactory.CreateDbContextAsync(cancellationToken);
         var priority = Enum.TryParse<JobPriority>(request.Priority, out var p) ? p : JobPriority.Medium;
+
+        var userId = currentUserService.UserId;
+        if (string.IsNullOrEmpty(userId)) return HttpResult<Guid>.Unauthorized();
+
+        // The parent project must be the caller's.
+        var ownsProject = await db.Projects.AnyAsync(p => p.Id == request.ProjectId && p.Client.UserId == userId, cancellationToken);
+        if (!ownsProject) return HttpResult<Guid>.NotFound();
 
         var job = Job.Create(
             request.ProjectId,

@@ -1,0 +1,287 @@
+@page "/admin/users"
+@attribute [Authorize(Roles = "Admin")]
+@inject ICall<GetAdminUsers, PaginatedResponse<AdminUserDto>> GetUsersCall
+@inject ICall<SetUserLockout> SetLockoutCall
+@inject ICall<ConfirmUserEmail> ConfirmEmailCall
+@inject ICall<SetUserAdmin> SetAdminCall
+@inject ICall<InviteUser, InviteResultDto> InviteUserCall
+@inject ICall<SendPasswordResetLink> ResetLinkCall
+@inject ICall<ResendConfirmationEmail> ResendConfirmCall
+@inject ICall<DeleteUser> DeleteUserCall
+
+<PageTitle>Users - Akinai admin</PageTitle>
+
+@* The [Authorize] above is convenience only — every /api/admin endpoint
+   independently requires the Admin role server-side. *@
+
+<div class="space-y-6">
+    <PageHeader Title="Users"
+                Description="Everyone registered on Akinai."
+                Breadcrumbs="@_breadcrumbs" />
+
+    <div class="card p-4 space-y-3">
+        <div class="flex flex-col sm:flex-row gap-3">
+            <input class="form-control flex-1" placeholder="Invite by email…"
+                   value="@_inviteEmail" @oninput="OnInviteEmailChanged"\"" />
+            <button type="button" class="btn-primary" disabled="@(_isBusy || string.IsNullOrWhiteSpace(_inviteEmail))"
+                    @onclick="InviteAsync">Send invite</button>
+        </div>
+
+        @if (_invite is not null)
+        {
+            <div class="rounded-lg border border-gray-200 dark:border-[#2f2924] p-3 text-sm space-y-2">
+                @if (_invite.EmailSent)
+                {
+                    <div class="text-gray-900 dark:text-slate-100">Invite emailed to <strong>@_invite.Email</strong>.</div>
+                }
+                else
+                {
+                    <div class="text-red-600 dark:text-red-400">
+                        Account created, but the email failed: @_invite.EmailError
+                    </div>
+                }
+                <div class="text-gray-500 dark:text-slate-400">
+                    Set-password link (treat as a credential — send it over a trusted channel):
+                </div>
+                <code class="block break-all text-xs bg-gray-50 dark:bg-[#14100c] p-2 rounded">@_invite.SetPasswordLink</code>
+            </div>
+        }
+        @if (_error is not null)
+        {
+            <div class="text-sm text-red-600 dark:text-red-400">@_error</div>
+        }
+    </div>
+
+    <div class="card p-4">
+        <input class="form-control" placeholder="Search by email…"
+               value="@_search" @oninput="OnSearchChanged" />
+    </div>
+
+    @if (_isLoading)
+    {
+        <div class="flex justify-center py-24"><LoadingSpinner /></div>
+    }
+    else if (_response is null || _response.Items.Count == 0)
+    {
+        <EmptyState Title="No users found"
+                    Message="No account matches that search."
+                    IconType="EmptyState.EmptyStateIcon.Users" />
+    }
+    else
+    {
+        <div class="bg-white dark:bg-[#1b1612] rounded-2xl border border-gray-200 dark:border-[#2f2924] overflow-hidden">
+            <div class="overflow-x-auto">
+                <table class="w-full">
+                    <thead class="bg-gray-50 dark:bg-[#14100c]">
+                        <tr>
+                            <th class="px-6 py-4 text-left text-xs font-semibold text-gray-500 dark:text-slate-400 uppercase tracking-wider">User</th>
+                            <th class="px-6 py-4 text-left text-xs font-semibold text-gray-500 dark:text-slate-400 uppercase tracking-wider">Status</th>
+                            <th class="px-6 py-4 text-right text-xs font-semibold text-gray-500 dark:text-slate-400 uppercase tracking-wider">Clients</th>
+                            <th class="px-6 py-4 text-right text-xs font-semibold text-gray-500 dark:text-slate-400 uppercase tracking-wider">Invoices</th>
+                            <th class="px-6 py-4 text-right text-xs font-semibold text-gray-500 dark:text-slate-400 uppercase tracking-wider">Actions</th>
+                        </tr>
+                    </thead>
+                    <tbody class="divide-y divide-gray-100 dark:divide-[#2f2924]">
+                        @foreach (var user in _response.Items)
+                        {
+                            <tr class="hover:bg-gray-50 dark:hover:bg-[#2f2924]">
+                                <td class="px-6 py-4">
+                                    <div class="text-sm font-medium text-gray-900 dark:text-slate-100">@user.Email</div>
+                                    <div class="text-xs text-gray-500 dark:text-slate-400 font-mono">@user.Id</div>
+                                </td>
+                                <td class="px-6 py-4">
+                                    <div class="flex flex-wrap items-center gap-1.5">
+                                        @if (user.IsAdmin)
+                                        {
+                                            <span class="px-2 py-0.5 rounded-full text-xs font-medium bg-primary-50 text-primary-700 dark:bg-primary-900/40 dark:text-primary-300">Admin</span>
+                                        }
+                                        @if (user.IsLockedOut)
+                                        {
+                                            <span class="px-2 py-0.5 rounded-full text-xs font-medium bg-red-50 text-red-700 dark:bg-red-900/40 dark:text-red-300">Locked</span>
+                                        }
+                                        @if (!user.EmailConfirmed)
+                                        {
+                                            <span class="px-2 py-0.5 rounded-full text-xs font-medium bg-amber-50 text-amber-700 dark:bg-amber-900/40 dark:text-amber-300">Unconfirmed</span>
+                                        }
+                                        @if (user.TwoFactorEnabled)
+                                        {
+                                            <span class="px-2 py-0.5 rounded-full text-xs font-medium bg-gray-100 text-gray-600 dark:bg-[#2f2924] dark:text-slate-300">2FA</span>
+                                        }
+                                        @if (user is { EmailConfirmed: true, IsLockedOut: false, IsAdmin: false, TwoFactorEnabled: false })
+                                        {
+                                            <span class="text-xs text-gray-500 dark:text-slate-400">Active</span>
+                                        }
+                                    </div>
+                                </td>
+                                <td class="px-6 py-4 text-sm text-right text-gray-900 dark:text-slate-100 tnum">@user.ClientCount</td>
+                                <td class="px-6 py-4 text-sm text-right text-gray-900 dark:text-slate-100 tnum">@user.InvoiceCount</td>
+                                <td class="px-6 py-4">
+                                    <div class="flex items-center justify-end gap-2">
+                                        @if (!user.EmailConfirmed)
+                                        {
+                                            <button type="button" class="btn-secondary text-xs" disabled="@_isBusy"
+                                                    @onclick="() => ResendConfirmAsync(user)">Resend confirm</button>
+                                            <button type="button" class="btn-secondary text-xs" disabled="@_isBusy"
+                                                    @onclick="() => ConfirmEmailAsync(user)">Force confirm</button>
+                                        }
+                                        <button type="button" class="btn-secondary text-xs" disabled="@_isBusy"
+                                                @onclick="() => SendResetAsync(user)">Reset password</button>
+                                        @if (!IsSelf(user))
+                                        {
+                                            <button type="button" class="btn-secondary text-xs" disabled="@_isBusy"
+                                                    @onclick="() => ToggleAdminAsync(user)">
+                                                @(user.IsAdmin ? "Revoke admin" : "Make admin")
+                                            </button>
+                                            <button type="button" class="btn-secondary text-xs" disabled="@_isBusy"
+                                                    @onclick="() => ToggleLockAsync(user)">
+                                                @(user.IsLockedOut ? "Unlock" : "Lock")
+                                            </button>
+                                            <button type="button" class="px-3 py-1.5 text-xs font-medium text-white bg-red-600 rounded-lg"
+                                                    disabled="@_isBusy" @onclick="() => BeginDelete(user)">Delete</button>
+                                        }
+                                        else
+                                        {
+                                            <span class="text-xs text-gray-500 dark:text-slate-400">You</span>
+                                        }
+                                    </div>
+                                </td>
+                            </tr>
+                        }
+                    </tbody>
+                </table>
+            </div>
+        </div>
+
+        <div class="text-sm text-gray-500 dark:text-slate-400">
+            @_response.TotalCount registered @(_response.TotalCount == 1 ? "user" : "users")
+        </div>
+    }
+
+    @if (_deleteTarget is not null)
+    {
+        <div class="card p-5 border-red-200 dark:border-red-900/50 space-y-3">
+            <div class="font-display text-lg font-bold text-red-700 dark:text-red-400">Permanently delete @_deleteTarget.Email</div>
+            <p class="text-sm text-gray-600 dark:text-slate-300">
+                This erases the account and everything it owns — clients, projects, invoices,
+                time entries, expenses and bank data. It cannot be undone.
+            </p>
+            <p class="text-sm text-gray-600 dark:text-slate-300">
+                Type <strong>@_deleteTarget.Email</strong> to confirm:
+            </p>
+            <input class="form-control" placeholder="Confirm the email address"
+                   value="@_deleteConfirm" @oninput="OnDeleteConfirmChanged"\"" />
+            <div class="flex items-center gap-3">
+                <button type="button" class="px-4 py-2.5 text-sm font-medium text-white bg-red-600 rounded-xl"
+                        disabled="@(_isBusy || _deleteConfirm != _deleteTarget.Email)"
+                        @onclick="ConfirmDeleteAsync">Delete permanently</button>
+                <button type="button" class="btn-secondary" disabled="@_isBusy" @onclick="CancelDelete">Cancel</button>
+            </div>
+        </div>
+    }
+</div>
+
+@code {
+    private PaginatedResponse<AdminUserDto>? _response;
+    private bool _isLoading = true;
+    private bool _isBusy;
+    private string _search = "";
+
+    private readonly List<PageHeader.BreadcrumbItem> _breadcrumbs = [new("Admin"), new("Users")];
+
+    protected override async Task OnInitializedAsync() => await LoadAsync();
+
+    // Comes from the server. Reading the id from the auth state would not work
+    // once this page runs on WebAssembly: only the name and role claims are
+    // serialised to the browser, so NameIdentifier is absent there and every
+    // row would look like somebody else — including your own.
+    private static bool IsSelf(AdminUserDto user) => user.IsCurrentUser;
+
+    private async Task LoadAsync()
+    {
+        _isLoading = true;
+        _response = await GetUsersCall.Call(new GetAdminUsers { Search = _search, Page = 1, PageSize = 50 });
+        _isLoading = false;
+    }
+
+    private async Task OnSearchChanged(ChangeEventArgs e)
+    {
+        _search = e.Value?.ToString() ?? "";
+        await LoadAsync();
+    }
+
+    private async Task ConfirmEmailAsync(AdminUserDto user)
+    {
+        _isBusy = true;
+        await ConfirmEmailCall.Call(new ConfirmUserEmail { UserId = user.Id });
+        await LoadAsync();
+        _isBusy = false;
+    }
+
+    private async Task ToggleAdminAsync(AdminUserDto user)
+    {
+        _isBusy = true;
+        await SetAdminCall.Call(new SetUserAdmin { UserId = user.Id, IsAdmin = !user.IsAdmin });
+        await LoadAsync();
+        _isBusy = false;
+    }
+
+    private string _inviteEmail = "";
+    private InviteResultDto? _invite;
+    private string? _error;
+    private AdminUserDto? _deleteTarget;
+    private string _deleteConfirm = "";
+
+    private void OnInviteEmailChanged(ChangeEventArgs e) => _inviteEmail = e.Value?.ToString() ?? "";
+    private void OnDeleteConfirmChanged(ChangeEventArgs e) => _deleteConfirm = e.Value?.ToString() ?? "";
+
+    private async Task InviteAsync()
+    {
+        _isBusy = true; _error = null; _invite = null;
+        try
+        {
+            _invite = await InviteUserCall.Call(new InviteUser { Email = _inviteEmail.Trim() });
+            if (_invite is null)
+                _error = "Couldn't invite that address — it may already be registered, or be invalid.";
+            else
+                _inviteEmail = "";
+            await LoadAsync();
+        }
+        catch (Exception ex) { _error = ex.Message; }
+        _isBusy = false;
+    }
+
+    private async Task SendResetAsync(AdminUserDto user)
+    {
+        _isBusy = true;
+        await ResetLinkCall.Call(new SendPasswordResetLink { UserId = user.Id });
+        _isBusy = false;
+    }
+
+    private async Task ResendConfirmAsync(AdminUserDto user)
+    {
+        _isBusy = true;
+        await ResendConfirmCall.Call(new ResendConfirmationEmail { UserId = user.Id });
+        _isBusy = false;
+    }
+
+    private void BeginDelete(AdminUserDto user) { _deleteTarget = user; _deleteConfirm = ""; }
+    private void CancelDelete() { _deleteTarget = null; _deleteConfirm = ""; }
+
+    private async Task ConfirmDeleteAsync()
+    {
+        if (_deleteTarget is null) return;
+        _isBusy = true;
+        await DeleteUserCall.Call(new DeleteUser { UserId = _deleteTarget.Id, ConfirmEmail = _deleteConfirm });
+        _deleteTarget = null; _deleteConfirm = "";
+        await LoadAsync();
+        _isBusy = false;
+    }
+
+    private async Task ToggleLockAsync(AdminUserDto user)
+    {
+        _isBusy = true;
+        await SetLockoutCall.Call(new SetUserLockout { UserId = user.Id, LockedOut = !user.IsLockedOut });
+        await LoadAsync();
+        _isBusy = false;
+    }
+}

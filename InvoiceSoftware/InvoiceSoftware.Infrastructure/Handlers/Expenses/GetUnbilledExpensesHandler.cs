@@ -3,19 +3,23 @@ using BlazorUtils.EasyApi.Server;
 using InvoiceSoftware.Infrastructure.Data;
 using InvoiceSoftware.Shared.Api.Expenses;
 using InvoiceSoftware.Shared.Dtos.Expenses;
+using InvoiceSoftware.Shared.Services;
 using Microsoft.EntityFrameworkCore;
 
 namespace InvoiceSoftware.Infrastructure.Handlers.Expenses;
 
-public class GetUnbilledExpensesHandler(IDbContextFactory<ApplicationDbContext> dbFactory) : IHandle<GetUnbilledExpenses, List<ExpenseSummaryDto>>
+public class GetUnbilledExpensesHandler(IDbContextFactory<ApplicationDbContext> dbFactory, ICurrentUserService currentUserService) : IHandle<GetUnbilledExpenses, List<ExpenseSummaryDto>>
 {
     public async Task<HttpResult<List<ExpenseSummaryDto>>> Handle(GetUnbilledExpenses request, CancellationToken cancellationToken)
     {
         await using var db = await dbFactory.CreateDbContextAsync(cancellationToken);
+        var userId = currentUserService.UserId;
+        if (string.IsNullOrEmpty(userId)) return HttpResult<List<ExpenseSummaryDto>>.Unauthorized();
+
         var query = db.Expenses
             .Include(e => e.Client)
             .Include(e => e.Project)
-            .Where(e => e.IsBillable && !e.IsBilled && e.ClientId == request.ClientId);
+            .Where(e => e.IsBillable && !e.IsBilled && e.ClientId == request.ClientId && e.UserId == userId);
 
         if (request.ProjectId.HasValue)
             query = query.Where(e => e.ProjectId == request.ProjectId.Value);

@@ -9,9 +9,10 @@
 html:has(.pg), body:has(.pg) { background: #faf7f0 !important; }
 
 /* ========================================
-   FINANCIAL PREMIUM DESIGN SYSTEM
-   Invoice Software — trustworthy, numbers-first
-   Ink + warm paper, deep emerald accent, hairline structure.
+   AKINAI 商い — DESIGN SYSTEM
+   Freelance business software — trustworthy, numbers-first.
+   Warm washi paper + ink, deep teal accent, hairline structure.
+   Shares its palette with the landing page (Home.razor.css).
    ======================================== */
 
 @layer base {
@@ -30,18 +31,25 @@ html:has(.pg), body:has(.pg) { background: #faf7f0 !important; }
     --btn-primary-fg: #ffffff;      /* text on primary buttons */
 
     /* Warm neutrals — Light Mode */
-    --color-surface: #f7f6f2;          /* warm paper */
+    --color-surface: #fdfbf7;          /* warm paper — the landing hero tone */
     --color-surface-elevated: #ffffff;
     --color-surface-sunken: #efede7;
-    --color-field: #f9fafb;            /* form control fill — matches header search */
-    --color-hover: #f3f4f6;            /* menu/option hover — matches app dropdowns (gray-100) */
+    --color-field: #ffffff;            /* enabled input fill — must NOT read as disabled */
+    --color-field-disabled: #ece6dd;   /* clearly sunken vs the enabled fill */
+    --color-placeholder: #6f675f;      /* 4.5:1 on the field fill (AA) */
+    /* Form controls share the standard hairline — same as cards, selects,
+       the Track button and every other bordered element. */
+    --color-field-border: var(--color-border);
+    --color-hover: #f1ece5;            /* menu/option hover — matches app dropdowns (gray-200) */
     --color-border: #e5e2da;           /* hairline */
     --color-border-subtle: #eeece5;
 
-    /* Text — Light Mode */
-    --color-text-primary: #14181f;     /* ink */
-    --color-text-secondary: #576070;
-    --color-text-tertiary: #929aa6;
+    /* Text — Light Mode. Warm ink, matching the landing page's OKLCH ramp;
+       these were blue-grey (#14181f/#576070/#929aa6) and read cold against
+       the warm paper surfaces. */
+    --color-text-primary: #251f1b;     /* ink */
+    --color-text-secondary: #544d48;
+    --color-text-tertiary: #6a615c;   /* 6.04:1 on white */
 
     /* Semantic accents (muted, financial) */
     --color-success: #0f7a5a;
@@ -60,16 +68,24 @@ html:has(.pg), body:has(.pg) { background: #faf7f0 !important; }
     --shadow-xl: 0 16px 32px -8px rgb(16 24 40 / 0.12), 0 4px 10px -4px rgb(16 24 40 / 0.06);
     --shadow-glow: 0 0 0 3px rgb(26 95 220 / 0.12);
 
-    /* Sidebar — white panel on the grey page (matches top bar + cards) */
+    /* Sidebar — white panel on the paper page (matches top bar + cards).
+       Text tones are the landing page's --ink / --ink2 so nav links read
+       identically to the marketing nav. */
     --sidebar-bg: #ffffff;
-    --sidebar-text: #2f2a20;
-    --sidebar-text-muted: #57503f;
+    --sidebar-text: oklch(.245 .012 55);        /* = landing --ink  */
+    --sidebar-text-muted: oklch(.44 .012 55);   /* = landing --ink2 */
     --sidebar-active: rgba(14, 92, 102, 0.09);
     --sidebar-hover: rgba(0, 0, 0, 0.04);
     --sidebar-accent: #0e5c66;
+
+    /* Ink button (the landing page's .btn-ink) — inverts in dark mode */
+    --btn-ink-bg: oklch(.245 .012 55);          /* = landing --ink   */
+    --btn-ink-fg: oklch(.972 .009 83);          /* = landing --paper */
   }
 
-  /* Dark Mode — neutral ink/slate, no indigo tint */
+  /* Dark Mode — "dark washi": the same warm ink hue as the light theme, just
+     inverted. Deliberately brown-black rather than blue-black, so dark mode
+     reads as the same brand as the paper-white marketing site. */
   :root.dark {
     /* Brighter teal for contrast on dark surfaces */
     --color-primary-400: #4fb3bc;
@@ -78,37 +94,44 @@ html:has(.pg), body:has(.pg) { background: #faf7f0 !important; }
     --color-primary-700: #16707a;
     --btn-primary-fg: #ffffff;
 
-    --color-surface: #0b0e12;
-    --color-surface-elevated: #14181e;
-    --color-surface-sunken: #080a0d;
-    --color-field: #0b0e12;            /* form control fill — matches header search */
-    --color-hover: #1e293b;            /* menu/option hover — matches app dropdowns (slate-800) */
-    --color-border: #242b34;
-    --color-border-subtle: #171d24;
+    --color-surface: #0f0b08;
+    --color-surface-elevated: #1b1612;
+    --color-surface-sunken: #090604;
+    --color-field: #14100c;            /* enabled input fill */
+    --color-field-disabled: #241e1a;   /* clearly distinct from enabled */
+    --color-placeholder: #9c938a;      /* AA on the dark field fill */
+    --color-field-border: var(--color-border);
+    --color-hover: #2a2420;            /* menu/option hover */
+    --color-border: #2f2924;
+    --color-border-subtle: #201b17;
 
-    --color-text-primary: #e7eaee;
-    --color-text-secondary: #a6aeba;
-    --color-text-tertiary: #6a7480;
+    --color-text-primary: #eeeae4;
+    --color-text-secondary: #b6ada4;
+    --color-text-tertiary: #9c938a;   /* 5.85:1 on the dark card (was #7d746c, 3.92) */
 
-    --color-success-light: #0e2a20;
-    --color-warning-light: #3a2c11;
-    --color-danger-light: #3a1a17;
-    --color-info-light: #12303a;
+    --color-success-light: #12271d;
+    --color-warning-light: #33270f;
+    --color-danger-light: #331a15;
+    --color-info-light: #122b33;
 
     --shadow-sm: 0 1px 2px 0 rgb(0 0 0 / 0.3);
     --shadow-md: 0 2px 4px 0 rgb(0 0 0 / 0.35);
     --shadow-lg: 0 8px 20px -6px rgb(0 0 0 / 0.5);
     --shadow-xl: 0 18px 34px -8px rgb(0 0 0 / 0.55);
 
-    --sidebar-bg: #0a0d11;
-    --sidebar-text: #c3cad3;
-    --sidebar-text-muted: #737d8a;
+    --btn-ink-bg: #eeeae4;
+    --btn-ink-fg: #0f0b08;
+
+    --sidebar-bg: #0c0906;
+    --sidebar-text: #cdc5bc;
+    --sidebar-text-muted: #857c74;
     --sidebar-active: rgba(47, 154, 164, 0.18);
+    --sidebar-hover: rgba(255, 255, 255, 0.06);
     --sidebar-accent: #2f9aa4;
   }
 
   html {
-    font-family: 'Inter', system-ui, -apple-system, sans-serif;
+    font-family: 'Zen Kaku Gothic New', system-ui, -apple-system, sans-serif;
     -webkit-font-smoothing: antialiased;
     -moz-osx-font-smoothing: grayscale;
   }
@@ -123,7 +146,7 @@ html:has(.pg), body:has(.pg) { background: #faf7f0 !important; }
   }
 
   h1, h2, h3, h4, h5, h6 {
-    font-family: 'Sora', 'Inter', system-ui, sans-serif;
+    font-family: 'Shippori Mincho', Georgia, serif;
     @apply font-medium tracking-tight;
   }
 
@@ -410,7 +433,7 @@ html:has(.pg), body:has(.pg) { background: #faf7f0 !important; }
 
   .stat-card-value {
     @apply text-[28px] leading-none font-semibold text-gray-900 tracking-tight tnum;
-    font-family: 'Sora', sans-serif;
+    font-family: 'Shippori Mincho', Georgia, serif;
   }
 
   .stat-card-label {
@@ -440,7 +463,7 @@ html:has(.pg), body:has(.pg) { background: #faf7f0 !important; }
 
   .page-title {
     @apply text-2xl font-semibold text-gray-900 tracking-tight;
-    font-family: 'Sora', sans-serif;
+    font-family: 'Shippori Mincho', Georgia, serif;
   }
 
   .page-subtitle {
@@ -1032,6 +1055,7 @@ html:has(.pg), body:has(.pg) { background: #faf7f0 !important; }
 .idp-nav:hover { background: var(--color-hover); color: var(--color-text-primary); }
 .idp-weekdays, .idp-grid { display: grid; grid-template-columns: repeat(7, 1fr); gap: 2px; }
 .idp-wd { text-align: center; font-size: 0.68rem; font-weight: 600; letter-spacing: .02em; color: var(--color-text-tertiary); padding: 4px 0; text-transform: uppercase; }
+white-space: nowrap;
 .idp-day {
   aspect-ratio: 1 / 1; display: inline-flex; align-items: center; justify-content: center;
   border-radius: 8px; font-size: 0.82rem; color: var(--color-text-primary);
@@ -1125,11 +1149,11 @@ html:has(.pg), body:has(.pg) { background: #faf7f0 !important; }
     line-height: 1.25rem;
     color: var(--color-text-primary);
     background-color: var(--color-field);
-    border: 1px solid var(--color-border);
+    border: 1px solid var(--color-field-border);
     border-radius: 0.75rem;
     transition: border-color .15s ease, box-shadow .15s ease, background-color .15s ease;
   }
-  .form-control::placeholder { color: var(--color-text-tertiary); }
+  .form-control::placeholder { color: var(--color-placeholder); opacity: 1; }
   .form-control:hover:not(:disabled):not(:focus) { border-color: var(--color-primary-300); }
   .form-control:focus,
   .form-control:focus-visible {
@@ -1138,9 +1162,364 @@ html:has(.pg), body:has(.pg) { background: #faf7f0 !important; }
     box-shadow: 0 0 0 4px rgb(20 125 135 / 0.12);
   }
   .form-control:disabled {
-    background-color: var(--color-hover);
+    background-color: var(--color-field-disabled);
+    border-color: var(--color-border-subtle);
     color: var(--color-text-tertiary);
     cursor: not-allowed;
-    opacity: 0.7;
+    /* deliberately no opacity: it dimmed the border and text together, so an
+       enabled field and a disabled one were luminance-identical (1.00:1). */
   }
+  .form-control:disabled::placeholder { color: var(--color-text-tertiary); }
+}
+
+/* =========================================================================
+   AKINAI CONTROL SURFACE — buttons & nav links, identical to the landing page
+   -------------------------------------------------------------------------
+   The app styles most buttons with inline Tailwind (bg-primary-600, text-sm,
+   rounded-xl…) rather than the .btn-* classes, so matching the landing page
+   by editing markup would mean touching every page. These rules sit after
+   `@tailwind utilities` (line 3), so equal-specificity selectors win on
+   source order — element+class selectors (button.bg-primary-600) outrank the
+   single-class utilities outright, with no !important needed.
+
+   Landing-page reference (Home.razor.css:70-78):
+     mono · 11.5px · 600 · uppercase · .12em tracking · radius 6px · 12/18 pad
+   ========================================================================= */
+
+/* The shared typographic signature of every Akinai control. */
+.btn, .btn-primary, .btn-secondary, .btn-ghost, .btn-danger, .btn-success,
+button.bg-primary-600, a.bg-primary-600,
+button.bg-primary-700, a.bg-primary-700,
+span.bg-primary-600, span.bg-primary-700 {   /* file-input labels wrap a <span> */
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  gap: 9px;
+  font-family: 'IBM Plex Mono', ui-monospace, SFMono-Regular, Menlo, monospace;
+  font-weight: 600;
+  font-size: 11.5px;
+  letter-spacing: 0.12em;
+  text-transform: uppercase;
+  white-space: nowrap;
+  border-radius: 6px;
+  padding: 12px 18px;
+  cursor: pointer;
+  border: 1px solid transparent;
+  transition: transform 0.12s ease, box-shadow 0.2s ease,
+              background-color 0.15s ease, border-color 0.15s ease;
+}
+
+/* Icons keep the landing page's 16px, overriding w-4/h-5 utilities. */
+.btn svg, .btn-primary svg, .btn-secondary svg, .btn-ghost svg,
+button.bg-primary-600 svg, a.bg-primary-600 svg, span.bg-primary-600 svg {
+  width: 16px;
+  height: 16px;
+  flex: none;
+}
+
+/* Primary = the landing page's .btn-ink: solid ink, lifts on hover.
+   (Deliberately ink rather than teal, to match "Start for free".) */
+.btn-primary,
+button.bg-primary-600, a.bg-primary-600,
+button.bg-primary-700, a.bg-primary-700,
+span.bg-primary-600, span.bg-primary-700 {
+  background-color: var(--btn-ink-bg);
+  color: var(--btn-ink-fg);
+  box-shadow: none;
+}
+.btn-primary:hover,
+button.bg-primary-600:hover, a.bg-primary-600:hover,
+button.bg-primary-700:hover, a.bg-primary-700:hover,
+label:hover span.bg-primary-600, label:hover span.bg-primary-700 {
+  background-color: var(--btn-ink-bg);
+  color: var(--btn-ink-fg);
+  transform: translateY(-1px);
+  box-shadow: 0 8px 20px -8px rgba(20, 15, 10, 0.6);
+}
+
+/* Secondary = .btn-line: transparent with a hairline that darkens on hover. */
+.btn-secondary {
+  background-color: transparent;
+  color: var(--color-text-primary);
+  border-color: var(--color-border);
+  box-shadow: none;
+}
+.btn-secondary:hover {
+  background-color: transparent;
+  border-color: var(--color-text-primary);
+  color: var(--color-text-primary);
+}
+
+.btn-ghost { color: var(--color-text-secondary); }
+.btn-ghost:hover { color: var(--color-text-primary); background-color: var(--color-hover); }
+
+.btn-danger  { background-color: var(--color-danger);  color: #fff; }
+.btn-success { background-color: var(--color-success); color: #fff; }
+
+.btn:active, .btn-primary:active, .btn-secondary:active,
+button.bg-primary-600:active, a.bg-primary-600:active { transform: translateY(0.5px); }
+
+/* Sidebar nav links — the landing page's .nlink treatment. */
+.nav-link {
+  font-family: 'IBM Plex Mono', ui-monospace, SFMono-Regular, Menlo, monospace;
+  font-size: 11.5px;
+  font-weight: 600;
+  letter-spacing: 0.14em;
+  text-transform: uppercase;
+  white-space: nowrap;
+  border-radius: 6px;
+}
+.nav-link.active { color: var(--sidebar-accent); font-weight: 600; }
+
+/* Compact variant — toolbar / table-row buttons that were deliberately small
+   (px-3 py-1.5 text-xs). Same mono-uppercase signature, tighter box, so the
+   uniform 12/18 padding above doesn't blow out row heights.
+   Higher specificity (0,2,1) than the base rule, so it wins. */
+button.bg-primary-600.text-xs, a.bg-primary-600.text-xs,
+button.bg-primary-700.text-xs, a.bg-primary-700.text-xs,
+.btn.text-xs, .btn-primary.text-xs, .btn-secondary.text-xs, .btn-ghost.text-xs {
+  padding: 8px 13px;
+  font-size: 10.5px;
+  letter-spacing: 0.1em;
+  gap: 7px;
+}
+button.bg-primary-600.text-xs svg, a.bg-primary-600.text-xs svg,
+.btn.text-xs svg, .btn-secondary.text-xs svg { width: 14px; height: 14px; }
+
+/* Large variant — the landing page's .btn-lg, for page-level primary actions. */
+.btn-lg, button.bg-primary-600.btn-lg, a.bg-primary-600.btn-lg {
+  padding: 15px 24px;
+  font-size: 12px;
+  letter-spacing: 0.13em;
+}
+
+/* -------------------------------------------------------------------------
+   Brand lockup — the landing page's 商 hanko + wordmark, reused in the app
+   sidebar and the signed-out header.
+   ------------------------------------------------------------------------- */
+.app-hanko {
+  width: 36px; height: 36px; flex: none;
+  display: inline-flex; align-items: center; justify-content: center;
+  border: 2.5px solid var(--sidebar-accent);
+  color: var(--sidebar-accent);
+  border-radius: 7px;
+  font-family: 'Shippori Mincho', Georgia, serif;
+  font-weight: 700; font-size: 20px; line-height: 1;
+}
+.app-wordmark {
+  font-family: 'Shippori Mincho', Georgia, serif;
+  font-weight: 700; font-size: 20px; letter-spacing: .02em;
+  color: var(--color-text-primary);
+}
+.app-wordmark .jp {
+  font-size: 13px; font-weight: 500; margin-left: 7px;
+  letter-spacing: .06em; color: var(--color-text-tertiary);
+}
+
+/* .brand-mark is used BOTH as a logo tile (<div>) and as a button fill
+   (PrimaryButton, EmptyState, modals). Restyle only the interactive ones —
+   element+class (0,1,1) beats the bare .brand-mark rule and leaves the
+   <div> logo tiles alone. */
+a.brand-mark, button.brand-mark {
+  background: var(--btn-ink-bg);
+  color: var(--btn-ink-fg);
+  box-shadow: none;
+  font-family: 'IBM Plex Mono', ui-monospace, SFMono-Regular, Menlo, monospace;
+  font-weight: 600;
+  font-size: 11.5px;
+  letter-spacing: 0.12em;
+  text-transform: uppercase;
+  white-space: nowrap;
+  border-radius: 6px;
+  padding: 12px 18px;
+  gap: 9px;
+}
+a.brand-mark:hover, button.brand-mark:hover {
+  background: var(--btn-ink-bg);
+  color: var(--btn-ink-fg);
+  transform: translateY(-1px);
+  box-shadow: 0 8px 20px -8px rgba(20, 15, 10, .6);
+}
+a.brand-mark svg, button.brand-mark svg { width: 16px; height: 16px; }
+
+/* -------------------------------------------------------------------------
+   Secondary buttons written as inline utilities (bg-white + border +
+   font-medium) — the landing page's .btn-line. `font-medium` is required in
+   the selector so clickable CARDS (a.bg-white.border with no font-medium)
+   are not swept up. Colour is left to the existing text-* utility so the
+   red "delete" variants keep their danger signal.
+   ------------------------------------------------------------------------- */
+a.bg-white.border.font-medium, button.bg-white.border.font-medium,
+a.bg-white.border.font-semibold, button.bg-white.border.font-semibold {
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  gap: 9px;
+  font-family: 'IBM Plex Mono', ui-monospace, SFMono-Regular, Menlo, monospace;
+  font-weight: 600;
+  font-size: 11.5px;
+  letter-spacing: 0.12em;
+  text-transform: uppercase;
+  white-space: nowrap;
+  border-radius: 6px;
+  padding: 12px 18px;
+  background: transparent;
+  border: 1px solid var(--color-border);
+  box-shadow: none;
+  transition: border-color .15s ease, color .15s ease;
+}
+/* standard grey secondary takes the landing page's ink */
+a.bg-white.border.font-medium.text-gray-700, button.bg-white.border.font-medium.text-gray-700,
+a.bg-white.border.font-medium.text-gray-600, button.bg-white.border.font-medium.text-gray-600 {
+  color: var(--color-text-primary);
+}
+a.bg-white.border.font-medium:hover, button.bg-white.border.font-medium:hover {
+  background: transparent;
+  border-color: var(--color-text-primary);
+}
+a.bg-white.border.font-medium svg, button.bg-white.border.font-medium svg { width: 16px; height: 16px; }
+
+/* Compact secondary (toolbar / row actions) */
+a.bg-white.border.font-medium.text-xs, button.bg-white.border.font-medium.text-xs {
+  padding: 8px 13px; font-size: 10.5px; letter-spacing: .1em; gap: 7px;
+}
+a.bg-white.border.font-medium.text-xs svg, button.bg-white.border.font-medium.text-xs svg { width: 14px; height: 14px; }
+
+/* Destructive — same signature, keeps the danger fill. */
+button.bg-red-600, a.bg-red-600 {
+  display: inline-flex; align-items: center; justify-content: center; gap: 9px;
+  font-family: 'IBM Plex Mono', ui-monospace, SFMono-Regular, Menlo, monospace;
+  font-weight: 600; font-size: 11.5px; letter-spacing: 0.12em; text-transform: uppercase;
+  white-space: nowrap;
+  border-radius: 6px; padding: 12px 18px;
+  background: var(--color-danger); color: #fff; border: 1px solid transparent;
+}
+button.bg-red-600:hover, a.bg-red-600:hover { background: #9a3128; color: #fff; }
+button.bg-red-600 svg, a.bg-red-600 svg { width: 16px; height: 16px; }
+
+/* Ghost / tertiary ("Cancel") — no fill, no border. Escaped hover: class is a
+   real class name, so it can be selected. Same signature so a ghost Cancel
+   sits correctly next to an uppercase primary. */
+button.font-medium.hover\:bg-gray-100, a.font-medium.hover\:bg-gray-100,
+button.font-medium.hover\:bg-gray-50,  a.font-medium.hover\:bg-gray-50 {
+  display: inline-flex; align-items: center; justify-content: center; gap: 9px;
+  font-family: 'IBM Plex Mono', ui-monospace, SFMono-Regular, Menlo, monospace;
+  font-weight: 600; font-size: 11.5px; letter-spacing: 0.12em; text-transform: uppercase;
+  white-space: nowrap;
+  border-radius: 6px; padding: 12px 18px;
+  color: var(--color-text-secondary); background: transparent; border: 1px solid transparent;
+}
+button.font-medium.hover\:bg-gray-100:hover, a.font-medium.hover\:bg-gray-100:hover,
+button.font-medium.hover\:bg-gray-50:hover,  a.font-medium.hover\:bg-gray-50:hover {
+  color: var(--color-text-primary); background: var(--color-hover);
+}
+button.font-medium.hover\:bg-gray-100.text-xs, button.font-medium.hover\:bg-gray-50.text-xs {
+  padding: 8px 13px; font-size: 10.5px; letter-spacing: .1em;
+}
+
+/* -------------------------------------------------------------------------
+   CARD DEFINITION — the landing page's .panel treatment.
+   The canvas is the hero tone (#fdfbf7) and cards are #ffffff, so the fills
+   differ by only a few RGB units; Tailwind's border-gray-100 (#f8f5f0) was
+   actually LIGHTER than the canvas, leaving cards with no edge at all.
+   The landing page separates its panels with a visible --line hairline plus
+   a soft deep shadow rather than a fill step — same approach here.
+   ------------------------------------------------------------------------- */
+.border-gray-100 { border-color: #e9e3da; }
+.border-gray-200 { border-color: #ded8d0; }   /* = landing --line */
+.divide-gray-100 > :not([hidden]) ~ :not([hidden]) { border-color: #ebe5dc; }
+
+/* Cards: fill + hairline + the landing page's soft shadow. */
+.bg-white.border.rounded-lg, .bg-white.border.rounded-xl, .bg-white.border.rounded-2xl,
+a.bg-white.border.rounded-lg, a.bg-white.border.rounded-xl {
+  box-shadow: 0 18px 44px -34px rgba(20, 15, 10, .40);
+}
+.bg-white.border.rounded-lg:hover, .bg-white.border.rounded-xl:hover, .bg-white.border.rounded-2xl:hover,
+a.bg-white.border.rounded-lg:hover, a.bg-white.border.rounded-xl:hover {
+  box-shadow: 0 22px 52px -32px rgba(20, 15, 10, .45);
+}
+
+.dark .border-gray-100 { border-color: #2a2420; }
+.dark .border-gray-200 { border-color: #2f2924; }
+.dark .divide-gray-100 > :not([hidden]) ~ :not([hidden]) { border-color: #251f1b; }
+
+/* Input-like shells that wrap a bare <input> (e.g. the header search box).
+   Same 3:1 boundary as .form-control — the wrapper is what identifies the
+   control, so it carries the contrast obligation. */
+.field-shell {
+  background-color: var(--color-field);
+  border: 1px solid var(--color-field-border);
+}
+.field-shell:focus-within {
+  border-color: var(--color-primary-400);
+  box-shadow: 0 0 0 4px rgb(20 125 135 / 0.12);
+}
+
+/* Placeholder contrast. 19 inputs use `placeholder:text-gray-400`, which is
+   #bcb4ac — about 2:1 on a white field, well under the 4.5:1 AA threshold for
+   text. Redefine the utilities themselves (same specificity, declared after
+   Tailwind) so every input inherits the accessible tone. */
+/* Attribute selectors rather than the escaped class names: `.input-error`
+   @applies placeholder:text-slate-500, and redefining that class directly
+   makes Tailwind report a circular dependency. [class~=] matches the same
+   element at the same specificity, declared later, so it still wins. */
+input[class~="placeholder:text-gray-400"]::placeholder,
+input[class~="placeholder:text-slate-500"]::placeholder,
+textarea[class~="placeholder:text-gray-400"]::placeholder,
+textarea[class~="placeholder:text-slate-500"]::placeholder { color: var(--color-placeholder); opacity: 1; }
+
+
+
+/* =========================================================================
+   TEXT CONTRAST (light mode only).
+   gray-400/500 are text-only tokens here (644 + 581 uses, zero bg/border),
+   and on the paper surfaces they landed at 2.05:1 and 3.18:1 — both under
+   the 4.5:1 AA minimum for body text.
+   Scoped with html:not(.dark) on purpose: the SAME tokens are the light text
+   on dark surfaces in dark mode, where they already pass. Darkening the ramp
+   itself would have fixed light mode and broken dark mode.
+   ========================================================================= */
+html:not(.dark) .text-gray-400, html:not(.dark) .text-slate-400 { color: #6a615c; }  /* 6.04 on card, 5.84 on canvas */
+html:not(.dark) .text-gray-500, html:not(.dark) .text-slate-500 { color: #5e5651; }  /* 7.18 / 6.94 (AAA) */
+
+/* ApexCharts hard-codes its legend colour (rgb(55,61,63)) inline, so it does
+   not follow the theme — 1.63:1 on the dark card. Inline styles need
+   !important to override. */
+.apexcharts-legend-text { color: var(--color-text-secondary) !important; }
+.apexcharts-text, .apexcharts-xaxis-label, .apexcharts-yaxis-label { fill: var(--color-text-tertiary); }
+
+/* =========================================================================
+   SEGMENTED CONTROL — <SegmentedControl /> (Components/Shared).
+   Selected state reuses the sidebar nav's tokens so "selected" reads the
+   same everywhere. Previously two hand-rolled variants existed (Reports'
+   grey-track/white-chip, which was invisible at 2 RGB units, and the
+   dashboard's .seg/.segb); both now render through this component.
+   ========================================================================= */
+.segmented { display: inline-flex; flex-wrap: wrap; gap: 4px; }
+
+.segmented-item {
+  padding: 6px 12px;
+  border: none;
+  border-radius: 8px;
+  background: transparent;
+  font-family: inherit;
+  font-size: .875rem;
+  font-weight: 500;
+  color: var(--color-text-secondary);
+  cursor: pointer;
+  white-space: nowrap;
+  transition: background-color .15s ease, color .15s ease;
+}
+.segmented-item:hover:not(.is-selected) {
+  background: var(--sidebar-hover);
+  color: var(--color-text-primary);
+}
+.segmented-item.is-selected {
+  background: var(--sidebar-active);
+  color: var(--sidebar-accent);
+  font-weight: 600;
+}
+.segmented-item:focus-visible {
+  outline: 2px solid var(--color-primary-400);
+  outline-offset: 2px;
 }

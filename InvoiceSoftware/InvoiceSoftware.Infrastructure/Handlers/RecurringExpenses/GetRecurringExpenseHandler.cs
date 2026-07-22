@@ -3,19 +3,23 @@ using BlazorUtils.EasyApi.Server;
 using InvoiceSoftware.Infrastructure.Data;
 using InvoiceSoftware.Shared.Api.RecurringExpenses;
 using InvoiceSoftware.Shared.Dtos.RecurringExpenses;
+using InvoiceSoftware.Shared.Services;
 using Microsoft.EntityFrameworkCore;
 
 namespace InvoiceSoftware.Infrastructure.Handlers.RecurringExpenses;
 
-public class GetRecurringExpenseHandler(IDbContextFactory<ApplicationDbContext> dbFactory) : IHandle<GetRecurringExpense, RecurringExpenseDetailDto?>
+public class GetRecurringExpenseHandler(IDbContextFactory<ApplicationDbContext> dbFactory, ICurrentUserService currentUserService) : IHandle<GetRecurringExpense, RecurringExpenseDetailDto?>
 {
     public async Task<HttpResult<RecurringExpenseDetailDto?>> Handle(GetRecurringExpense request, CancellationToken cancellationToken)
     {
         await using var db = await dbFactory.CreateDbContextAsync(cancellationToken);
+        var userId = currentUserService.UserId;
+        if (string.IsNullOrEmpty(userId)) return HttpResult<RecurringExpenseDetailDto?>.Unauthorized();
+
         var expense = await db.RecurringExpenses
             .Include(re => re.Client)
             .Include(re => re.Project)
-            .FirstOrDefaultAsync(re => re.Id == request.Id, cancellationToken);
+            .FirstOrDefaultAsync(re => re.Id == request.Id && re.UserId == userId, cancellationToken);
 
         if (expense is null) return HttpResult<RecurringExpenseDetailDto?>.NotFound();
 

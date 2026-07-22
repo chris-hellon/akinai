@@ -5,19 +5,23 @@ using InvoiceSoftware.Infrastructure.Data;
 using InvoiceSoftware.Shared.Api;
 using InvoiceSoftware.Shared.Api.Expenses;
 using InvoiceSoftware.Shared.Dtos.Expenses;
+using InvoiceSoftware.Shared.Services;
 using Microsoft.EntityFrameworkCore;
 
 namespace InvoiceSoftware.Infrastructure.Handlers.Expenses;
 
-public class GetExpensesHandler(IDbContextFactory<ApplicationDbContext> dbFactory) : IHandle<GetExpenses, PaginatedResponse<ExpenseSummaryDto>>
+public class GetExpensesHandler(IDbContextFactory<ApplicationDbContext> dbFactory, ICurrentUserService currentUserService) : IHandle<GetExpenses, PaginatedResponse<ExpenseSummaryDto>>
 {
     public async Task<HttpResult<PaginatedResponse<ExpenseSummaryDto>>> Handle(GetExpenses request, CancellationToken cancellationToken)
     {
         await using var db = await dbFactory.CreateDbContextAsync(cancellationToken);
+        var userId = currentUserService.UserId;
+        if (string.IsNullOrEmpty(userId)) return HttpResult<PaginatedResponse<ExpenseSummaryDto>>.Unauthorized();
+
         var query = db.Expenses
             .Include(e => e.Client)
             .Include(e => e.Project)
-            .AsQueryable();
+            .Where(e => e.UserId == userId);
 
         if (!string.IsNullOrWhiteSpace(request.Category) && Enum.TryParse<ExpenseCategory>(request.Category, out var category))
             query = query.Where(e => e.Category == category);

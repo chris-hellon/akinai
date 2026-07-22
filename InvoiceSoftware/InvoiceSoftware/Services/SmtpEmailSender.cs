@@ -15,7 +15,7 @@ public class SmtpSettings
     public string Username { get; set; } = string.Empty;
     public string Password { get; set; } = string.Empty;
     public string FromEmail { get; set; } = string.Empty;
-    public string FromName { get; set; } = "InvoicePro";
+    public string FromName { get; set; } = "Akinai";
     public bool EnableSsl { get; set; } = true;
 }
 
@@ -74,11 +74,11 @@ public sealed class SmtpEmailSender : IEmailSender<ApplicationUser>, IEmailSende
 
     public Task SendConfirmationLinkAsync(ApplicationUser user, string email, string confirmationLink)
     {
-        var subject = "Confirm your InvoicePro account";
+        var subject = "Confirm your Akinai account";
         var body = BuildEmailTemplate(
             "Confirm Your Email",
             $"Hi {user.UserName ?? "there"},",
-            "Thank you for registering with InvoicePro. Please confirm your email address by clicking the button below.",
+            "Thank you for registering with Akinai. Please confirm your email address by clicking the button below.",
             confirmationLink,
             "Confirm Email"
         );
@@ -88,7 +88,7 @@ public sealed class SmtpEmailSender : IEmailSender<ApplicationUser>, IEmailSende
 
     public Task SendPasswordResetLinkAsync(ApplicationUser user, string email, string resetLink)
     {
-        var subject = "Reset your InvoicePro password";
+        var subject = "Reset your Akinai password";
         var body = BuildEmailTemplate(
             "Reset Your Password",
             $"Hi {user.UserName ?? "there"},",
@@ -102,7 +102,7 @@ public sealed class SmtpEmailSender : IEmailSender<ApplicationUser>, IEmailSende
 
     public Task SendPasswordResetCodeAsync(ApplicationUser user, string email, string resetCode)
     {
-        var subject = "Your InvoicePro password reset code";
+        var subject = "Your Akinai password reset code";
         var body = $"""
             <!DOCTYPE html>
             <html>
@@ -110,30 +110,30 @@ public sealed class SmtpEmailSender : IEmailSender<ApplicationUser>, IEmailSende
                 <meta charset="utf-8">
                 <meta name="viewport" content="width=device-width, initial-scale=1.0">
             </head>
-            <body style="margin: 0; padding: 0; font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, 'Helvetica Neue', Arial, sans-serif; background-color: #f3f4f6;">
-                <table role="presentation" width="100%" cellspacing="0" cellpadding="0" style="background-color: #f3f4f6; padding: 40px 20px;">
+            <body style="margin: 0; padding: 0; font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, 'Helvetica Neue', Arial, sans-serif; background-color: #f1ece5;">
+                <table role="presentation" width="100%" cellspacing="0" cellpadding="0" style="background-color: #f1ece5; padding: 40px 20px;">
                     <tr>
                         <td align="center">
                             <table role="presentation" width="100%" cellspacing="0" cellpadding="0" style="max-width: 500px; background-color: #ffffff; border-radius: 12px; overflow: hidden; box-shadow: 0 4px 6px rgba(0, 0, 0, 0.05);">
                                 <tr>
                                     <td style="background: linear-gradient(135deg, #0e5c66 0%, #147d87 100%); padding: 32px; text-align: center;">
-                                        <h1 style="margin: 0; color: #ffffff; font-size: 24px; font-weight: 700;">InvoicePro</h1>
+                                        <h1 style="margin: 0; color: #ffffff; font-size: 24px; font-weight: 700;">Akinai</h1>
                                     </td>
                                 </tr>
                                 <tr>
                                     <td style="padding: 40px 32px;">
-                                        <h2 style="margin: 0 0 16px; color: #111827; font-size: 20px; font-weight: 600;">Password Reset Code</h2>
-                                        <p style="margin: 0 0 8px; color: #4b5563; font-size: 15px; line-height: 1.6;">Hi {user.UserName ?? "there"},</p>
-                                        <p style="margin: 0 0 24px; color: #4b5563; font-size: 15px; line-height: 1.6;">Use the following code to reset your password:</p>
-                                        <div style="background-color: #f3f4f6; border-radius: 8px; padding: 20px; text-align: center; margin-bottom: 24px;">
+                                        <h2 style="margin: 0 0 16px; color: #251f1b; font-size: 20px; font-weight: 600;">Password Reset Code</h2>
+                                        <p style="margin: 0 0 8px; color: #544d48; font-size: 15px; line-height: 1.6;">Hi {user.UserName ?? "there"},</p>
+                                        <p style="margin: 0 0 24px; color: #544d48; font-size: 15px; line-height: 1.6;">Use the following code to reset your password:</p>
+                                        <div style="background-color: #f1ece5; border-radius: 8px; padding: 20px; text-align: center; margin-bottom: 24px;">
                                             <span style="font-size: 32px; font-weight: 700; letter-spacing: 4px; color: #0e5c66;">{resetCode}</span>
                                         </div>
-                                        <p style="margin: 0; color: #6b7280; font-size: 13px; line-height: 1.6;">This code will expire in 15 minutes. If you didn't request this, you can safely ignore this email.</p>
+                                        <p style="margin: 0; color: #776e68; font-size: 13px; line-height: 1.6;">This code will expire in 15 minutes. If you didn't request this, you can safely ignore this email.</p>
                                     </td>
                                 </tr>
                                 <tr>
-                                    <td style="background-color: #f9fafb; padding: 24px 32px; text-align: center; border-top: 1px solid #e5e7eb;">
-                                        <p style="margin: 0; color: #9ca3af; font-size: 12px;">&copy; {DateTime.Now.Year} InvoicePro. All rights reserved.</p>
+                                    <td style="background-color: #faf8f3; padding: 24px 32px; text-align: center; border-top: 1px solid #e5e2da;">
+                                        <p style="margin: 0; color: #988f87; font-size: 12px;">&copy; {DateTime.Now.Year} Akinai. All rights reserved.</p>
                                     </td>
                                 </tr>
                             </table>
@@ -156,21 +156,21 @@ public sealed class SmtpEmailSender : IEmailSender<ApplicationUser>, IEmailSende
                 <meta charset="utf-8">
                 <meta name="viewport" content="width=device-width, initial-scale=1.0">
             </head>
-            <body style="margin: 0; padding: 0; font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, 'Helvetica Neue', Arial, sans-serif; background-color: #f3f4f6;">
-                <table role="presentation" width="100%" cellspacing="0" cellpadding="0" style="background-color: #f3f4f6; padding: 40px 20px;">
+            <body style="margin: 0; padding: 0; font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, 'Helvetica Neue', Arial, sans-serif; background-color: #f1ece5;">
+                <table role="presentation" width="100%" cellspacing="0" cellpadding="0" style="background-color: #f1ece5; padding: 40px 20px;">
                     <tr>
                         <td align="center">
                             <table role="presentation" width="100%" cellspacing="0" cellpadding="0" style="max-width: 500px; background-color: #ffffff; border-radius: 12px; overflow: hidden; box-shadow: 0 4px 6px rgba(0, 0, 0, 0.05);">
                                 <tr>
                                     <td style="background: linear-gradient(135deg, #0e5c66 0%, #147d87 100%); padding: 32px; text-align: center;">
-                                        <h1 style="margin: 0; color: #ffffff; font-size: 24px; font-weight: 700;">InvoicePro</h1>
+                                        <h1 style="margin: 0; color: #ffffff; font-size: 24px; font-weight: 700;">Akinai</h1>
                                     </td>
                                 </tr>
                                 <tr>
                                     <td style="padding: 40px 32px;">
-                                        <h2 style="margin: 0 0 16px; color: #111827; font-size: 20px; font-weight: 600;">{title}</h2>
-                                        <p style="margin: 0 0 8px; color: #4b5563; font-size: 15px; line-height: 1.6;">{greeting}</p>
-                                        <p style="margin: 0 0 24px; color: #4b5563; font-size: 15px; line-height: 1.6;">{message}</p>
+                                        <h2 style="margin: 0 0 16px; color: #251f1b; font-size: 20px; font-weight: 600;">{title}</h2>
+                                        <p style="margin: 0 0 8px; color: #544d48; font-size: 15px; line-height: 1.6;">{greeting}</p>
+                                        <p style="margin: 0 0 24px; color: #544d48; font-size: 15px; line-height: 1.6;">{message}</p>
                                         <table role="presentation" cellspacing="0" cellpadding="0" style="margin: 0 auto;">
                                             <tr>
                                                 <td style="border-radius: 8px; background: linear-gradient(135deg, #0e5c66 0%, #147d87 100%);">
@@ -178,13 +178,13 @@ public sealed class SmtpEmailSender : IEmailSender<ApplicationUser>, IEmailSende
                                                 </td>
                                             </tr>
                                         </table>
-                                        <p style="margin: 24px 0 0; color: #6b7280; font-size: 13px; line-height: 1.6;">If the button doesn't work, copy and paste this link into your browser:</p>
+                                        <p style="margin: 24px 0 0; color: #776e68; font-size: 13px; line-height: 1.6;">If the button doesn't work, copy and paste this link into your browser:</p>
                                         <p style="margin: 8px 0 0; word-break: break-all;"><a href="{buttonUrl}" style="color: #0e5c66; font-size: 13px;">{buttonUrl}</a></p>
                                     </td>
                                 </tr>
                                 <tr>
-                                    <td style="background-color: #f9fafb; padding: 24px 32px; text-align: center; border-top: 1px solid #e5e7eb;">
-                                        <p style="margin: 0; color: #9ca3af; font-size: 12px;">&copy; {DateTime.Now.Year} InvoicePro. All rights reserved.</p>
+                                    <td style="background-color: #faf8f3; padding: 24px 32px; text-align: center; border-top: 1px solid #e5e2da;">
+                                        <p style="margin: 0; color: #988f87; font-size: 12px;">&copy; {DateTime.Now.Year} Akinai. All rights reserved.</p>
                                     </td>
                                 </tr>
                             </table>

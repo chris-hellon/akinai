@@ -41,7 +41,7 @@ public class PlaidBankDataProvider(
             client_id = _options.ClientId,
             secret = _options.Secret,
             user = new { client_user_id = reference },
-            client_name = "InvoicePro",
+            client_name = "Akinai",
             products = new[] { "transactions" },
             country_codes = new[] { (country ?? "us").ToUpperInvariant() },
             language = "en",

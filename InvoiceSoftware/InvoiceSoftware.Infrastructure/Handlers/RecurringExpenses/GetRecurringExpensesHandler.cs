@@ -5,19 +5,23 @@ using InvoiceSoftware.Infrastructure.Data;
 using InvoiceSoftware.Shared.Api;
 using InvoiceSoftware.Shared.Api.RecurringExpenses;
 using InvoiceSoftware.Shared.Dtos.RecurringExpenses;
+using InvoiceSoftware.Shared.Services;
 using Microsoft.EntityFrameworkCore;
 
 namespace InvoiceSoftware.Infrastructure.Handlers.RecurringExpenses;
 
-public class GetRecurringExpensesHandler(IDbContextFactory<ApplicationDbContext> dbFactory) : IHandle<GetRecurringExpenses, PaginatedResponse<RecurringExpenseSummaryDto>>
+public class GetRecurringExpensesHandler(IDbContextFactory<ApplicationDbContext> dbFactory, ICurrentUserService currentUserService) : IHandle<GetRecurringExpenses, PaginatedResponse<RecurringExpenseSummaryDto>>
 {
     public async Task<HttpResult<PaginatedResponse<RecurringExpenseSummaryDto>>> Handle(GetRecurringExpenses request, CancellationToken cancellationToken)
     {
         await using var db = await dbFactory.CreateDbContextAsync(cancellationToken);
+        var userId = currentUserService.UserId;
+        if (string.IsNullOrEmpty(userId)) return HttpResult<PaginatedResponse<RecurringExpenseSummaryDto>>.Unauthorized();
+
         var query = db.RecurringExpenses
             .Include(re => re.Client)
             .Include(re => re.Project)
-            .AsQueryable();
+            .Where(re => re.UserId == userId);
 
         if (!string.IsNullOrWhiteSpace(request.Category) && Enum.TryParse<ExpenseCategory>(request.Category, out var category))
             query = query.Where(re => re.Category == category);

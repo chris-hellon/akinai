@@ -8,6 +8,21 @@ public class ExpenseConfiguration : IEntityTypeConfiguration<Expense>
 {
     public void Configure(EntityTypeBuilder<Expense> builder)
     {
+        // Ownership FK to the Identity user. Declared here — not as a navigation
+        // property on the entity — so the Domain project stays free of any EF or
+        // Identity dependency. Restrict, not Cascade: deleting an account must
+        // not silently destroy invoices and financial records, and cascading
+        // from 16 tables would trip SQL Server's multiple-cascade-paths rule.
+        builder.HasOne<ApplicationUser>()
+            .WithMany()
+            .HasForeignKey(x => x.UserId)
+            .OnDelete(DeleteBehavior.Restrict);
+
+        // Owning user — matches the nvarchar(450) + index convention used by
+        // every other tenant-owned entity, so it can be indexed.
+        builder.Property(e => e.UserId).IsRequired().HasMaxLength(450);
+        builder.HasIndex(e => e.UserId);
+
         builder.ToTable("Expenses");
 
         builder.HasKey(e => e.Id);

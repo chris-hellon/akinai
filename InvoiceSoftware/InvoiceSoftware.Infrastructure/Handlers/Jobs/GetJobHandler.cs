@@ -3,22 +3,26 @@ using BlazorUtils.EasyApi.Server;
 using InvoiceSoftware.Infrastructure.Data;
 using InvoiceSoftware.Shared.Api.Jobs;
 using InvoiceSoftware.Shared.Dtos.Jobs;
+using InvoiceSoftware.Shared.Services;
 using Microsoft.EntityFrameworkCore;
 
 namespace InvoiceSoftware.Infrastructure.Handlers.Jobs;
 
-public class GetJobHandler(IDbContextFactory<ApplicationDbContext> dbFactory) : IHandle<GetJob, JobDetailDto?>
+public class GetJobHandler(IDbContextFactory<ApplicationDbContext> dbFactory, ICurrentUserService currentUserService) : IHandle<GetJob, JobDetailDto?>
 {
     public async Task<HttpResult<JobDetailDto?>> Handle(GetJob request, CancellationToken cancellationToken)
     {
         await using var db = await dbFactory.CreateDbContextAsync(cancellationToken);
+        var userId = currentUserService.UserId;
+        if (string.IsNullOrEmpty(userId)) return HttpResult<JobDetailDto?>.Unauthorized();
+
         var job = await db.Jobs
             .Include(j => j.Project)
                 .ThenInclude(p => p.Client)
             .Include(j => j.Section)
             .Include(j => j.TimeEntries)
             .Include(j => j.Tasks)
-            .FirstOrDefaultAsync(j => j.Id == request.Id, cancellationToken);
+            .FirstOrDefaultAsync(j => j.Id == request.Id && j.Project.Client.UserId == userId, cancellationToken);
 
         if (job is null) return HttpResult<JobDetailDto?>.NotFound();
 

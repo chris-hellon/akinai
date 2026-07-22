@@ -6,7 +6,7 @@
 @inject ICall<SaveCurrencyPaymentSettings> SaveCurrencyPaymentSettingsCall
 @inject HttpClient Http
 
-<PageTitle>Invoice Settings - InvoicePro</PageTitle>
+<PageTitle>Invoice Settings - Akinai</PageTitle>
 
 <div class="space-y-6">
     <PageHeader Title="Invoice Settings"
@@ -342,6 +342,10 @@
                 Input.RevolutUsername = _fullProfile.RevolutUsername;
                 Input.VndToDefaultCurrencyRate = _fullProfile.VndToDefaultCurrencyRate;
             }
+        }
+        catch (Exception ex) when (EmptyResponse.IsEmptyOk(ex))
+        {
+            // Empty state for a new account, not a failure — see EmptyResponse.
         }
         catch (Exception ex)
         {

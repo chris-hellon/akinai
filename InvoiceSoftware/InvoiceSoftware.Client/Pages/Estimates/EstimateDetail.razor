@@ -9,7 +9,7 @@
 @inject ICall<DeleteEstimate> DeleteEstimateCall
 @inject IJSRuntime JS
 
-<PageTitle>Estimate Details - InvoicePro</PageTitle>
+<PageTitle>Estimate Details - Akinai</PageTitle>
 
 <div class="space-y-6">
     <PageHeader Title="@(_estimate?.EstimateNumber ?? "Loading...")"
@@ -258,6 +258,10 @@
                     new PageHeader.BreadcrumbItem(_estimate.EstimateNumber)
                 ];
             }
+        }
+        catch (Exception ex) when (EmptyResponse.IsEmptyOk(ex))
+        {
+            // Empty state for a new account, not a failure — see EmptyResponse.
         }
         catch (Exception ex)
         {

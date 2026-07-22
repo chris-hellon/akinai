@@ -1,15 +1,15 @@
 @typeparam TItem
 
-<div class="bg-white dark:bg-[#1a1827] rounded-lg border border-gray-100 dark:border-[#2d2a4a] overflow-hidden">
+<div class="bg-white dark:bg-[#0f0b08] rounded-lg border border-gray-100 dark:border-[#2f2924] overflow-hidden">
     <!-- Table view (always shown when no CardTemplate; desktop-only when a CardTemplate is supplied) -->
     <div class="overflow-x-auto overscroll-x-contain @(CardTemplate != null ? "hidden md:block" : "")">
         <table class="min-w-full">
             <thead>
-                <tr class="bg-gray-50/80 dark:bg-[#1a1827]/80">
+                <tr class="bg-gray-50/80 dark:bg-[#0f0b08]/80">
                     @HeaderTemplate
                 </tr>
             </thead>
-            <tbody class="divide-y divide-gray-100 dark:divide-[#2d2a4a]">
+            <tbody class="divide-y divide-gray-100 dark:divide-[#2f2924]">
                 @if (Items != null)
                 {
                     @foreach (var item in Items)
@@ -24,7 +24,7 @@
     <!-- Card view (mobile only) -->
     @if (CardTemplate != null)
     {
-        <div class="md:hidden divide-y divide-gray-100 dark:divide-[#2d2a4a]">
+        <div class="md:hidden divide-y divide-gray-100 dark:divide-[#2f2924]">
             @if (Items != null)
             {
                 @foreach (var item in Items)

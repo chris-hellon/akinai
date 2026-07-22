@@ -20,7 +20,20 @@ public class GetTwoFactorStatusHandler(
             return HttpResult<TwoFactorStatusDto>.Unauthorized();
 
         var is2faEnabled = await userManager.GetTwoFactorEnabledAsync(user);
-        var isMachineRemembered = await signInManager.IsTwoFactorClientRememberedAsync(user);
+        // IsTwoFactorClientRememberedAsync authenticates the "remember this
+        // machine" cookie, which tries to write to the response. During an
+        // interactive Blazor render the response has already started, so it
+        // throws "OnStarting cannot be set because the response has already
+        // started" and took the whole page down. The flag is display-only.
+        var isMachineRemembered = false;
+        try
+        {
+            isMachineRemembered = await signInManager.IsTwoFactorClientRememberedAsync(user);
+        }
+        catch (InvalidOperationException)
+        {
+            // Response already started — leave it false.
+        }
         var recoveryCodesLeft = await userManager.CountRecoveryCodesAsync(user);
         var hasAuthenticator = await userManager.GetAuthenticatorKeyAsync(user) is not null;
 

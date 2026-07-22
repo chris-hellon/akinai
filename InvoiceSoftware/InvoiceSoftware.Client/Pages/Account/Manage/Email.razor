@@ -4,13 +4,14 @@
 @inject ICall<ChangeEmail> ChangeEmailCall
 @inject ICall<SendVerificationEmail> SendVerificationEmailCall
 
-<PageTitle>Email - InvoicePro</PageTitle>
+<PageTitle>Email - Akinai</PageTitle>
 
 <div class="space-y-6">
     <div>
         <h2 class="text-lg font-semibold text-gray-900 dark:text-slate-100">Email</h2>
         <p class="mt-1 text-sm text-gray-500 dark:text-slate-400">Manage your email address and verification status.</p>
     </div>
+    <div class="bg-white dark:bg-[#1b1612] rounded-2xl border border-gray-200 dark:border-[#2f2924] p-6 space-y-6">
 
     @if (!string.IsNullOrEmpty(_statusMessage))
     {
@@ -28,7 +29,7 @@
     else if (_emailDto is not null)
     {
         <!-- Current Email -->
-        <div class="bg-gray-50 dark:bg-[#1a1827] rounded-xl p-4 border border-gray-200 dark:border-[#3d3a5c]">
+        <div class="bg-gray-50 dark:bg-[#0f0b08] rounded-xl p-4 border border-gray-200 dark:border-[#37302c]">
             <div class="flex items-center justify-between">
                 <div>
                     <p class="text-sm font-medium text-gray-700 dark:text-slate-300">Current Email</p>
@@ -69,7 +70,7 @@
         </div>
 
         <!-- Change Email Form -->
-        <div class="border-t border-gray-200 dark:border-[#3d3a5c] pt-6">
+        <div class="border-t border-gray-200 dark:border-[#37302c] pt-6">
             <h3 class="text-base font-medium text-gray-900 dark:text-slate-100 mb-4">Change Email Address</h3>
             <EditForm Model="_input" OnValidSubmit="OnSubmit" class="space-y-5">
                 <DataAnnotationsValidator />
@@ -103,6 +104,7 @@
             </EditForm>
         </div>
     }
+    </div>
 </div>
 
 @code {

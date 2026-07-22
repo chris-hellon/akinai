@@ -9,7 +9,7 @@
 @inject ICall<DeleteRecurringExpense> DeleteRecurringExpenseCall
 @inject ICall<GetBusinessProfile, BusinessProfileDto?> GetBusinessProfileCall
 
-<PageTitle>@(Id.HasValue ? "Edit Recurring Expense" : "New Recurring Expense") - InvoicePro</PageTitle>
+<PageTitle>@(Id.HasValue ? "Edit Recurring Expense" : "New Recurring Expense") - Akinai</PageTitle>
 
 <div class="space-y-6">
     <PageHeader Title="@(Id.HasValue ? "Edit Recurring Expense" : "New Recurring Expense")"
@@ -329,6 +329,10 @@
                     _model.Currency = businessProfile.DefaultCurrency;
                 }
             }
+        }
+        catch (Exception ex) when (EmptyResponse.IsEmptyOk(ex))
+        {
+            // Empty state for a new account, not a failure — see EmptyResponse.
         }
         catch (Exception ex)
         {

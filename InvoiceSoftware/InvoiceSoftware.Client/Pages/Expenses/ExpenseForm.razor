@@ -9,7 +9,7 @@
 @inject ICall<DeleteExpense> DeleteExpenseCall
 @inject ICall<GetBusinessProfile, BusinessProfileDto?> GetBusinessProfileCall
 
-<PageTitle>@(Id.HasValue ? "Edit Expense" : "New Expense") - InvoicePro</PageTitle>
+<PageTitle>@(Id.HasValue ? "Edit Expense" : "New Expense") - Akinai</PageTitle>
 
 <div class="space-y-6">
     <PageHeader Title="@(Id.HasValue ? "Edit Expense" : "New Expense")"
@@ -290,6 +290,10 @@
                     _model.Currency = businessProfile.DefaultCurrency;
                 }
             }
+        }
+        catch (Exception ex) when (EmptyResponse.IsEmptyOk(ex))
+        {
+            // Empty state for a new account, not a failure — see EmptyResponse.
         }
         catch (Exception ex)
         {

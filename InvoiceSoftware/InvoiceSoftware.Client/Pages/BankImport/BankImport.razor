@@ -20,7 +20,7 @@
 @inject ICall<DeleteBankConnection> DeleteConnectionCall
 @inject NavigationManager Nav
 
-<PageTitle>Bank Import - InvoicePro</PageTitle>
+<PageTitle>Bank Import - Akinai</PageTitle>
 
 <div class="space-y-6">
     <PageHeader Title="Bank Import"
@@ -199,7 +199,7 @@
                 <th scope="col" class="relative px-6 py-4"><span class="sr-only">Actions</span></th>
             </HeaderTemplate>
             <RowTemplate Context="transaction">
-                <tr class="group hover:bg-gray-50/50 dark:hover:bg-[#2d2a4a]/50 transition-colors">
+                <tr class="group hover:bg-gray-50/50 dark:hover:bg-[#2f2924]/50 transition-colors">
                     <td class="px-6 py-4 whitespace-nowrap">
                         <div class="text-sm font-medium text-gray-900 dark:text-slate-100">@transaction.TransactionDate.ToString("MMM d, yyyy")</div>
                     </td>
@@ -343,7 +343,7 @@
                             </div>
                         </div>
                     </div>
-                    <div class="mt-3 pt-3 border-t border-gray-50 dark:border-[#2d2a4a] flex items-center justify-end gap-1">
+                    <div class="mt-3 pt-3 border-t border-gray-50 dark:border-[#2f2924] flex items-center justify-end gap-1">
                         @if (!transaction.IsMatched && !transaction.IsIgnored && !transaction.IsExpensed)
                         {
                             @if (transaction.Amount < 0)

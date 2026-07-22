@@ -6,18 +6,22 @@ using InvoiceSoftware.Infrastructure.Data;
 using InvoiceSoftware.Shared.Api;
 using InvoiceSoftware.Shared.Api.Invoices;
 using InvoiceSoftware.Shared.Dtos.Invoices;
+using InvoiceSoftware.Shared.Services;
 using Microsoft.EntityFrameworkCore;
 
 namespace InvoiceSoftware.Infrastructure.Handlers.Invoices;
 
-public class GetInvoicesHandler(IDbContextFactory<ApplicationDbContext> dbFactory) : IHandle<GetInvoices, PaginatedResponse<InvoiceSummaryDto>>
+public class GetInvoicesHandler(IDbContextFactory<ApplicationDbContext> dbFactory, ICurrentUserService currentUserService) : IHandle<GetInvoices, PaginatedResponse<InvoiceSummaryDto>>
 {
     public async Task<HttpResult<PaginatedResponse<InvoiceSummaryDto>>> Handle(GetInvoices request, CancellationToken cancellationToken)
     {
         await using var db = await dbFactory.CreateDbContextAsync(cancellationToken);
+        var userId = currentUserService.UserId;
+        if (string.IsNullOrEmpty(userId)) return HttpResult<PaginatedResponse<InvoiceSummaryDto>>.Unauthorized();
+
         var query = db.Invoices
             .Include(i => i.Client)
-            .AsQueryable();
+            .Where(i => i.Client.UserId == userId);
 
         // Status filter
         if (!string.IsNullOrWhiteSpace(request.Status) && Enum.TryParse<InvoiceStatus>(request.Status, out var status))

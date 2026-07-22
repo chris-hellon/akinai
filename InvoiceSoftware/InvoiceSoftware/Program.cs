@@ -13,6 +13,7 @@ using InvoiceSoftware.Infrastructure.Services;
 using InvoiceSoftware.Infrastructure.Handlers.Clients;
 using InvoiceSoftware.Shared.Api.Clients;
 using InvoiceSoftware.Client.Services;
+using InvoiceSoftware.Shared.Services;
 using InvoiceSoftware.Shared.Services.Modal;
 using InvoiceSoftware.Services;
 
@@ -51,6 +52,7 @@ public class Program
                 options.SignIn.RequireConfirmedAccount = true;
                 options.Stores.SchemaVersion = IdentitySchemaVersions.Version3;
             })
+            .AddRoles<IdentityRole>()          // enables [Authorize(Roles=…)] and role claims
             .AddEntityFrameworkStores<ApplicationDbContext>()
             .AddSignInManager()
             .AddDefaultTokenProviders();
@@ -109,6 +111,12 @@ public class Program
             {
                 db.Database.Migrate();
             }
+
+            AdminSeeder.SeedAsync(
+                scope.ServiceProvider,
+                app.Configuration,
+                scope.ServiceProvider.GetRequiredService<ILoggerFactory>().CreateLogger("AdminSeeder"))
+                .GetAwaiter().GetResult();
         }
 
         // Configure the HTTP request pipeline.
@@ -136,6 +144,55 @@ public class Program
         app.UseAuthorization();
 
         app.UseAntiforgery();
+
+        // ---------------------------------------------------------------------
+        // API authentication gate.
+        //
+        // EasyApi's MapRequests() maps every contract with no authorization
+        // metadata and returns void, so it cannot be chained with
+        // RequireAuthorization(). Without this gate every /api endpoint was
+        // reachable anonymously — GET /api/clients?Page=1&PageSize=5 returned
+        // real client names and email addresses to an unauthenticated caller.
+        //
+        // Everything under /api therefore requires an authenticated user,
+        // except the client-facing routes below, which are authorised by an
+        // unguessable token in the URL (invoice/estimate links and the client
+        // portal) and are used by people who have no account.
+        //
+        // This runs after UseAuthentication so context.User is populated, and
+        // before endpoint execution, so it applies to every verb.
+        // ---------------------------------------------------------------------
+        app.Use(async (context, next) =>
+        {
+            var path = context.Request.Path;
+
+            // Admin endpoints need the Admin role, not just a login. Enforced
+            // here AND re-checked inside each handler — the UI hiding a nav
+            // link is not access control.
+            if (path.StartsWithSegments("/api/admin") && !context.User.IsInRole(AdminRoles.Admin))
+            {
+                var scp = context.Features.Get<Microsoft.AspNetCore.Diagnostics.IStatusCodePagesFeature>();
+                if (scp is not null) scp.Enabled = false;
+                context.Response.StatusCode = context.User.Identity?.IsAuthenticated == true
+                    ? StatusCodes.Status403Forbidden
+                    : StatusCodes.Status401Unauthorized;
+                return;
+            }
+
+            if (path.StartsWithSegments("/api")
+                && !ApiPublicPaths.IsPublic(path)
+                && context.User.Identity?.IsAuthenticated != true)
+            {
+                // Suppress UseStatusCodePagesWithReExecute for API calls — an API
+                // client wants a bare 401, not a 9KB HTML error page.
+                var statusCodePages = context.Features.Get<Microsoft.AspNetCore.Diagnostics.IStatusCodePagesFeature>();
+                if (statusCodePages is not null) statusCodePages.Enabled = false;
+                context.Response.StatusCode = StatusCodes.Status401Unauthorized;
+                return;
+            }
+
+            await next();
+        });
 
         // Map EasyApi endpoints
         app.MapRequests();

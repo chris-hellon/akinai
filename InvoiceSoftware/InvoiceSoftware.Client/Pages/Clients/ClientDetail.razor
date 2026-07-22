@@ -4,7 +4,7 @@
 @inject ICall<GetProjects, PaginatedResponse<ProjectDto>> GetProjectsCall
 @inject ICall<DeleteClient> DeleteClientCall
 
-<PageTitle>@(_client != null ? _client.Name : "Client") - InvoicePro</PageTitle>
+<PageTitle>@(_client != null ? _client.Name : "Client") - Akinai</PageTitle>
 
 <div class="space-y-6">
     <!-- Header with Breadcrumbs -->
@@ -171,7 +171,7 @@
                         <div class="divide-y divide-gray-100 dark:divide-slate-700">
                             @foreach (var project in _projects)
                             {
-                                <a href="projects/@project.Id" class="flex items-center justify-between px-6 py-4 hover:bg-gray-50 dark:hover:bg-[#2d2a4a]/50 transition-colors group">
+                                <a href="projects/@project.Id" class="flex items-center justify-between px-6 py-4 hover:bg-gray-50 dark:hover:bg-[#2f2924]/50 transition-colors group">
                                     <div class="min-w-0 flex-1">
                                         <div class="flex items-center gap-3">
                                             <span class="font-medium text-gray-900 dark:text-slate-100 group-hover:text-primary-600 dark:group-hover:text-primary-400 transition-colors">@project.Name</span>

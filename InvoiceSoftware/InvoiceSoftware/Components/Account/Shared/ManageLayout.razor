@@ -1,28 +1,17 @@
 @inherits LayoutComponentBase
 @layout MainLayout
 
+@*
+    Mirrors InvoiceSoftware.Client/Pages/Account/ManageLayout.razor — the
+    account section spans both projects (these pages are statically rendered),
+    so the two layouts must stay in step or the section changes appearance
+    halfway through.
+
+    No heading and no nav here: the section nav is in the app sidebar, and each
+    page supplies its own heading and cards its own content. Wrapping @Body in a
+    card as well would double-border every page that already has one.
+*@
+
 <div class="space-y-6">
-    <!-- Header -->
-    <div class="flex flex-col sm:flex-row sm:items-center sm:justify-between gap-4">
-        <div>
-            <h1 class="text-2xl font-bold text-gray-900 dark:text-slate-100 tracking-tight">Account Settings</h1>
-            <p class="mt-1 text-sm text-gray-500 dark:text-slate-400">Manage your account settings and preferences.</p>
-        </div>
-    </div>
-
-    <div class="flex flex-col lg:flex-row gap-6">
-        <!-- Sidebar Navigation -->
-        <aside class="lg:w-64 flex-shrink-0">
-            <div class="bg-white dark:bg-[#14181e] rounded-lg border border-gray-100 dark:border-[#242b34] p-4 sticky top-24">
-                <ManageNavMenu />
-            </div>
-        </aside>
-
-        <!-- Main Content -->
-        <main class="flex-1 min-w-0">
-            <div class="bg-white dark:bg-[#14181e] rounded-lg border border-gray-100 dark:border-[#242b34] p-6">
-                @Body
-            </div>
-        </main>
-    </div>
+    @Body
 </div>

@@ -7,7 +7,7 @@
 @inject ReportingCurrencyState Reporting
 @inject IJSRuntime JS
 
-<PageTitle>Reports - InvoicePro</PageTitle>
+<PageTitle>Reports - Akinai</PageTitle>
 
 <div class="space-y-6">
     <PageHeader Title="Reports"
@@ -33,15 +33,7 @@
 
     <!-- Period selector -->
     <div class="card p-4 flex flex-col lg:flex-row lg:items-center gap-3 lg:justify-between">
-        <div class="isel-seg inline-flex rounded-xl bg-gray-50 dark:bg-slate-800 p-1 gap-1 flex-wrap">
-            @foreach (var (key, label) in _presets)
-            {
-                <button type="button" @onclick="() => SelectPeriod(key)"
-                        class="px-3 py-1.5 text-sm font-medium rounded-lg transition-colors @(_period == key ? "bg-white dark:bg-slate-700 text-gray-900 dark:text-slate-100 shadow-sm" : "text-gray-500 dark:text-slate-400 hover:text-gray-800 dark:hover:text-slate-200")">
-                    @label
-                </button>
-            }
-        </div>
+        <SegmentedControl Options="_presets" Value="@_period" ValueChanged="SelectPeriod" />
         <div class="flex items-center gap-2">
             <DatePicker TValue="DateOnly?" Value="_from" ValueChanged="OnFromChanged" Placeholder="From" Class="w-full sm:w-40" />
             <span class="text-gray-400">→</span>
@@ -445,7 +437,7 @@
 
         _donutOptions = new ApexChartOptions<CatSlice>
         {
-            Chart = new Chart { Background = "transparent", FontFamily = "Inter, sans-serif" },
+            Chart = new Chart { Background = "transparent", FontFamily = "'Zen Kaku Gothic New', sans-serif" },
             Colors = DonutPalette.ToList(),
             Legend = new Legend { Show = false },
             Stroke = new Stroke { Show = false },

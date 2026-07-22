@@ -22,6 +22,9 @@ public class GetSignatureHandler(IDbContextFactory<ApplicationDbContext> dbFacto
             return HttpResult<SignatureDto?>.Ok(null);
 
         await using var db = await dbFactory.CreateDbContextAsync(cancellationToken);
+        if (!await OwnsLinkedEntityAsync(db, entityType, request.LinkedEntityId, userId, cancellationToken))
+            return HttpResult<SignatureDto?>.NotFound();
+
         var signature = await db.DigitalSignatures
             .Where(s => s.LinkedEntityType == entityType && s.LinkedEntityId == request.LinkedEntityId)
             .OrderByDescending(s => s.SignedAt)
@@ -43,4 +46,19 @@ public class GetSignatureHandler(IDbContextFactory<ApplicationDbContext> dbFacto
 
         return HttpResult<SignatureDto?>.Ok(dto);
     }
+
+    // A signature points at an entity by id + type, with no owner of its own.
+    // Ownership has to be resolved per type, or any signed-in user could read
+    // or forge a signature against someone else's invoice by guessing an id.
+    private static async Task<bool> OwnsLinkedEntityAsync(
+        ApplicationDbContext db, LinkedEntityType type, Guid id, string userId, CancellationToken ct)
+        => type switch
+        {
+            LinkedEntityType.Invoice  => await db.Invoices.AnyAsync(i => i.Id == id && i.Client.UserId == userId, ct),
+            LinkedEntityType.Estimate => await db.Estimates.AnyAsync(e => e.Id == id && e.UserId == userId, ct),
+            LinkedEntityType.Client   => await db.Clients.AnyAsync(c => c.Id == id && c.UserId == userId, ct),
+            LinkedEntityType.Project  => await db.Projects.AnyAsync(p => p.Id == id && p.Client.UserId == userId, ct),
+            // Expense has no owner column yet — deny until it does.
+            _ => false
+        };
 }

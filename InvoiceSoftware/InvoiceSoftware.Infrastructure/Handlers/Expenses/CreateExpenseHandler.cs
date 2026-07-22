@@ -4,11 +4,12 @@ using InvoiceSoftware.Domain.Entities;
 using InvoiceSoftware.Domain.Enums;
 using InvoiceSoftware.Infrastructure.Data;
 using InvoiceSoftware.Shared.Api.Expenses;
+using InvoiceSoftware.Shared.Services;
 using Microsoft.EntityFrameworkCore;
 
 namespace InvoiceSoftware.Infrastructure.Handlers.Expenses;
 
-public class CreateExpenseHandler(IDbContextFactory<ApplicationDbContext> dbFactory) : IHandle<CreateExpense, Guid>
+public class CreateExpenseHandler(IDbContextFactory<ApplicationDbContext> dbFactory, ICurrentUserService currentUserService) : IHandle<CreateExpense, Guid>
 {
     public async Task<HttpResult<Guid>> Handle(CreateExpense request, CancellationToken cancellationToken)
     {
@@ -16,7 +17,11 @@ public class CreateExpenseHandler(IDbContextFactory<ApplicationDbContext> dbFact
         var category = Enum.TryParse<ExpenseCategory>(request.Category, out var c) ? c : ExpenseCategory.Other;
         var paymentMethod = Enum.TryParse<PaymentMethod>(request.PaymentMethod, out var p) ? p : PaymentMethod.Other;
 
+        var userId = currentUserService.UserId;
+        if (string.IsNullOrEmpty(userId)) return HttpResult<Guid>.Unauthorized();
+
         var expense = Expense.Create(
+            userId,
             category,
             request.MerchantName,
             request.ExpenseDate,

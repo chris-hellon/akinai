@@ -1,100 +1,38 @@
 @inherits LayoutComponentBase
 
-<div class="min-h-screen flex">
-    <!-- Left Panel - Branding (hidden on mobile) -->
-    <div class="hidden lg:flex lg:w-1/2 relative overflow-hidden"
-         style="background: linear-gradient(135deg, #0a3238 0%, #0c4a53 50%, #147d87 100%);">
-        <!-- Subtle grid pattern overlay -->
-        <div class="absolute inset-0 opacity-[0.03]"
-             style="background-size: 40px 40px; background-image: linear-gradient(to right, white 1px, transparent 1px), linear-gradient(to bottom, white 1px, transparent 1px);">
+<div class="acct">
+    <!-- Left: brand panel (hidden on small screens) -->
+    <aside class="acct-brand">
+        <div class="acct-brand-in">
+            <a class="acct-logo" href="/">
+                <span class="acct-hanko">商</span>
+                <span class="acct-word">Akinai<span class="jp">あきない</span></span>
+            </a>
+
+            <div class="acct-pitch">
+                <span class="acct-eyebrow"><span class="kj">請</span>For freelancers &amp; studios</span>
+                <h2 class="acct-h">Bill in their language.<br><span class="thin">Get paid on</span> <span class="em">their rail.</span></h2>
+                <p class="acct-lead">Six languages, every payment rail, VietQR built in — and a bank-statement importer that lines each transaction up against your open invoices.</p>
+                <ul class="acct-list">
+                    <li>Track time and turn it straight into invoices</li>
+                    <li>Estimates your clients accept &amp; sign online</li>
+                    <li>Statements reconciled against open invoices</li>
+                </ul>
+            </div>
+
+            <div class="acct-foot">商い · AKINAI — for people who work across borders</div>
         </div>
+        <span class="acct-tate">請求</span>
+    </aside>
 
-        <!-- Gradient orbs for visual depth -->
-        <div class="absolute -top-24 -left-24 w-96 h-96 rounded-full opacity-20"
-             style="background: radial-gradient(circle, #33969f 0%, transparent 70%);"></div>
-        <div class="absolute -bottom-32 -right-32 w-[500px] h-[500px] rounded-full opacity-15"
-             style="background: radial-gradient(circle, #66b3ba 0%, transparent 70%);"></div>
-
-        <!-- Content -->
-        <div class="relative z-10 flex flex-col justify-between p-12 w-full">
-            <!-- Logo -->
-            <div class="flex items-center gap-3">
-                <div class="w-11 h-11 rounded-xl flex items-center justify-center bg-white/10 backdrop-blur-sm border border-white/20">
-                    <svg class="w-6 h-6 text-white" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                        <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M9 12h6m-6 4h6m2 5H7a2 2 0 01-2-2V5a2 2 0 012-2h5.586a1 1 0 01.707.293l5.414 5.414a1 1 0 01.293.707V19a2 2 0 01-2 2z" />
-                    </svg>
-                </div>
-                <span class="text-xl font-bold text-white">
-                    Invoice<span class="text-primary-300">Pro</span>
-                </span>
-            </div>
-
-            <!-- Center content -->
-            <div class="flex-1 flex flex-col justify-center max-w-lg">
-                <h2 class="text-4xl font-bold text-white mb-4 leading-tight">
-                    Professional invoicing made simple
-                </h2>
-                <p class="text-lg text-primary-200/80 leading-relaxed">
-                    Track time, manage clients, and send beautiful invoices - all in one place.
-                </p>
-
-                <!-- Feature highlights -->
-                <div class="mt-10 space-y-4">
-                    <div class="flex items-center gap-3">
-                        <div class="w-8 h-8 rounded-lg bg-white/10 flex items-center justify-center">
-                            <svg class="w-4 h-4 text-primary-300" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                                <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M5 13l4 4L19 7" />
-                            </svg>
-                        </div>
-                        <span class="text-primary-100">Track time effortlessly</span>
-                    </div>
-                    <div class="flex items-center gap-3">
-                        <div class="w-8 h-8 rounded-lg bg-white/10 flex items-center justify-center">
-                            <svg class="w-4 h-4 text-primary-300" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                                <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M5 13l4 4L19 7" />
-                            </svg>
-                        </div>
-                        <span class="text-primary-100">Beautiful PDF invoices</span>
-                    </div>
-                    <div class="flex items-center gap-3">
-                        <div class="w-8 h-8 rounded-lg bg-white/10 flex items-center justify-center">
-                            <svg class="w-4 h-4 text-primary-300" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                                <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M5 13l4 4L19 7" />
-                            </svg>
-                        </div>
-                        <span class="text-primary-100">Manage unlimited clients</span>
-                    </div>
-                </div>
-            </div>
-
-            <!-- Testimonial / social proof -->
-            <div class="pt-8 border-t border-white/10">
-                <p class="text-primary-200/60 text-sm">
-                    Trusted by freelancers and agencies worldwide
-                </p>
-            </div>
-        </div>
-    </div>
-
-    <!-- Right Panel - Form -->
-    <div class="flex-1 flex flex-col lg:w-1/2">
-        <!-- Mobile logo (shown only on mobile) -->
-        <div class="lg:hidden p-6 pb-0">
-            <div class="flex items-center gap-2">
-                <div class="w-9 h-9 rounded-xl flex items-center justify-center bg-primary-600">
-                    <svg class="w-5 h-5 text-white" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                        <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M9 12h6m-6 4h6m2 5H7a2 2 0 01-2-2V5a2 2 0 012-2h5.586a1 1 0 01.707.293l5.414 5.414a1 1 0 01.293.707V19a2 2 0 01-2 2z" />
-                    </svg>
-                </div>
-                <span class="text-lg font-bold text-gray-900">
-                    Invoice<span class="text-primary-600">Pro</span>
-                </span>
-            </div>
-        </div>
-
-        <!-- Form container -->
-        <main class="flex-1 flex items-center justify-center p-6 lg:p-12 bg-gray-50/50">
+    <!-- Right: form -->
+    <main class="acct-main">
+        <a class="acct-mobilelogo" href="/">
+            <span class="acct-hanko sm">商</span>
+            <span class="acct-word sm">Akinai</span>
+        </a>
+        <div class="acct-form">
             @Body
-        </main>
-    </div>
+        </div>
+    </main>
 </div>

@@ -5,21 +5,25 @@ using InvoiceSoftware.Infrastructure.Data;
 using InvoiceSoftware.Shared.Api.Invoices;
 using InvoiceSoftware.Shared.Dtos.Invoices;
 using InvoiceSoftware.Shared.Dtos.InvoiceTemplates;
+using InvoiceSoftware.Shared.Services;
 using Microsoft.EntityFrameworkCore;
 
 using Expense = InvoiceSoftware.Domain.Entities.Expense;
 
 namespace InvoiceSoftware.Infrastructure.Handlers.Invoices;
 
-public class GetInvoiceHandler(IDbContextFactory<ApplicationDbContext> dbFactory) : IHandle<GetInvoice, InvoiceDetailDto?>
+public class GetInvoiceHandler(IDbContextFactory<ApplicationDbContext> dbFactory, ICurrentUserService currentUserService) : IHandle<GetInvoice, InvoiceDetailDto?>
 {
     public async Task<HttpResult<InvoiceDetailDto?>> Handle(GetInvoice request, CancellationToken cancellationToken)
     {
         await using var db = await dbFactory.CreateDbContextAsync(cancellationToken);
+        var userId = currentUserService.UserId;
+        if (string.IsNullOrEmpty(userId)) return HttpResult<InvoiceDetailDto?>.Unauthorized();
+
         var invoice = await db.Invoices
             .Include(i => i.Client)
             .Include(i => i.Template)
-            .FirstOrDefaultAsync(i => i.Id == request.Id, cancellationToken);
+            .FirstOrDefaultAsync(i => i.Id == request.Id && i.Client.UserId == userId, cancellationToken);
 
         if (invoice is null) return HttpResult<InvoiceDetailDto?>.NotFound();
 

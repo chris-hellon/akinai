@@ -8,7 +8,7 @@
 @inject ICall<SendInvoice> SendInvoiceCall
 @inject NavigationManager Navigation
 
-<PageTitle>Invoices - InvoicePro</PageTitle>
+<PageTitle>Invoices - Akinai</PageTitle>
 
 <ListPageLayout Title="Invoices"
                 Description="Manage and track your invoices."
@@ -64,7 +64,7 @@
                 </HeaderTemplate>
                 <RowTemplate Context="invoice">
                     @{ var isOverdue = invoice.Status is "Sent" or "Overdue" && invoice.DueDate < DateOnly.FromDateTime(DateTime.Today); }
-                    <tr class="group hover:bg-gray-50/50 dark:hover:bg-[#2d2a4a]/50 transition-colors">
+                    <tr class="group hover:bg-gray-50/50 dark:hover:bg-[#2f2924]/50 transition-colors">
                         <td class="px-6 py-4 whitespace-nowrap">
                             <div class="text-sm font-medium text-gray-900 dark:text-slate-100">@invoice.InvoiceNumber</div>
                         </td>
@@ -151,7 +151,7 @@
                                 <div class="mt-1 text-xs @(cardOverdue ? "text-red-600 dark:text-red-400 font-medium" : "text-gray-500 dark:text-slate-400")">Due @invoice.DueDate.ToString("MMM d, yyyy")</div>
                             </div>
                         </div>
-                        <div class="mt-3 pt-3 border-t border-gray-50 dark:border-[#2d2a4a] flex items-center justify-end gap-1">
+                        <div class="mt-3 pt-3 border-t border-gray-50 dark:border-[#2f2924] flex items-center justify-end gap-1">
                             <IconButton Href="@($"invoices/{invoice.Id}")" Title="View">
                                 <ViewIcon />
                             </IconButton>

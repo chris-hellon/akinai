@@ -5,7 +5,7 @@
 @inject ICall<DeleteProject> DeleteProjectCall
 @inject NavigationManager NavigationManager
 
-<PageTitle>Projects - InvoicePro</PageTitle>
+<PageTitle>Projects - Akinai</PageTitle>
 
 <ListPageLayout Title="Projects"
                 Description="Manage your projects across all clients."
@@ -53,7 +53,7 @@
                     <th scope="col" class="relative px-6 py-4"><span class="sr-only">Actions</span></th>
                 </HeaderTemplate>
                 <RowTemplate Context="project">
-                    <tr class="group hover:bg-gray-50/50 dark:hover:bg-[#2d2a4a]/50 transition-colors">
+                    <tr class="group hover:bg-gray-50/50 dark:hover:bg-[#2f2924]/50 transition-colors">
                         <td class="px-6 py-4">
                             <a href="projects/@project.Id" class="text-sm font-medium text-gray-900 dark:text-slate-100 group-hover:text-primary-600 dark:group-hover:text-primary-400 transition-colors hover:underline">@project.Name</a>
                             @if (!string.IsNullOrEmpty(project.Description))
@@ -109,7 +109,7 @@
                                 </div>
                             </div>
                         </div>
-                        <div class="mt-3 pt-3 border-t border-gray-50 dark:border-[#2d2a4a] flex items-center justify-end gap-1">
+                        <div class="mt-3 pt-3 border-t border-gray-50 dark:border-[#2f2924] flex items-center justify-end gap-1">
                             <IconButton Href="@($"projects/{project.Id}")" Title="View">
                                 <ViewIcon />
                             </IconButton>

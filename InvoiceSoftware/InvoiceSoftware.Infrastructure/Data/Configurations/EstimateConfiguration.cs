@@ -8,6 +8,16 @@ public class EstimateConfiguration : IEntityTypeConfiguration<Estimate>
 {
     public void Configure(EntityTypeBuilder<Estimate> builder)
     {
+        // Ownership FK to the Identity user. Declared here — not as a navigation
+        // property on the entity — so the Domain project stays free of any EF or
+        // Identity dependency. Restrict, not Cascade: deleting an account must
+        // not silently destroy invoices and financial records, and cascading
+        // from 16 tables would trip SQL Server's multiple-cascade-paths rule.
+        builder.HasOne<ApplicationUser>()
+            .WithMany()
+            .HasForeignKey(x => x.UserId)
+            .OnDelete(DeleteBehavior.Restrict);
+
         builder.ToTable("Estimates");
 
         builder.HasKey(e => e.Id);

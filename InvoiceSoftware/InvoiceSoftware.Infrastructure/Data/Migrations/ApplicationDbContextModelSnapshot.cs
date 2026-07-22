@@ -876,6 +876,11 @@ namespace InvoiceSoftware.Infrastructure.Data.Migrations
                         .HasPrecision(18, 2)
                         .HasColumnType("decimal(18,2)");
 
+                    b.Property<string>("UserId")
+                        .IsRequired()
+                        .HasMaxLength(450)
+                        .HasColumnType("nvarchar(450)");
+
                     b.HasKey("Id");
 
                     b.HasIndex("Category");
@@ -893,6 +898,8 @@ namespace InvoiceSoftware.Infrastructure.Data.Migrations
                     b.HasIndex("ProjectId");
 
                     b.HasIndex("RecurringExpenseId");
+
+                    b.HasIndex("UserId");
 
                     b.ToTable("Expenses", "App");
                 });
@@ -1603,6 +1610,11 @@ namespace InvoiceSoftware.Infrastructure.Data.Migrations
                         .HasPrecision(18, 2)
                         .HasColumnType("decimal(18,2)");
 
+                    b.Property<string>("UserId")
+                        .IsRequired()
+                        .HasMaxLength(450)
+                        .HasColumnType("nvarchar(450)");
+
                     b.HasKey("Id");
 
                     b.HasIndex("Category");
@@ -1614,6 +1626,8 @@ namespace InvoiceSoftware.Infrastructure.Data.Migrations
                     b.HasIndex("NextExpenseDate");
 
                     b.HasIndex("ProjectId");
+
+                    b.HasIndex("UserId");
 
                     b.ToTable("RecurringExpenses", "App");
                 });
@@ -2090,6 +2104,24 @@ namespace InvoiceSoftware.Infrastructure.Data.Migrations
                         .IsRequired();
                 });
 
+            modelBuilder.Entity("InvoiceSoftware.Domain.Entities.Attachment", b =>
+                {
+                    b.HasOne("InvoiceSoftware.Infrastructure.Data.ApplicationUser", null)
+                        .WithMany()
+                        .HasForeignKey("UserId")
+                        .OnDelete(DeleteBehavior.Restrict)
+                        .IsRequired();
+                });
+
+            modelBuilder.Entity("InvoiceSoftware.Domain.Entities.BankConnection", b =>
+                {
+                    b.HasOne("InvoiceSoftware.Infrastructure.Data.ApplicationUser", null)
+                        .WithMany()
+                        .HasForeignKey("UserId")
+                        .OnDelete(DeleteBehavior.Restrict)
+                        .IsRequired();
+                });
+
             modelBuilder.Entity("InvoiceSoftware.Domain.Entities.BankTransaction", b =>
                 {
                     b.HasOne("InvoiceSoftware.Domain.Entities.Invoice", "MatchedInvoice")
@@ -2097,11 +2129,23 @@ namespace InvoiceSoftware.Infrastructure.Data.Migrations
                         .HasForeignKey("MatchedInvoiceId")
                         .OnDelete(DeleteBehavior.SetNull);
 
+                    b.HasOne("InvoiceSoftware.Infrastructure.Data.ApplicationUser", null)
+                        .WithMany()
+                        .HasForeignKey("UserId")
+                        .OnDelete(DeleteBehavior.Restrict)
+                        .IsRequired();
+
                     b.Navigation("MatchedInvoice");
                 });
 
             modelBuilder.Entity("InvoiceSoftware.Domain.Entities.BusinessProfile", b =>
                 {
+                    b.HasOne("InvoiceSoftware.Infrastructure.Data.ApplicationUser", null)
+                        .WithMany()
+                        .HasForeignKey("UserId")
+                        .OnDelete(DeleteBehavior.Restrict)
+                        .IsRequired();
+
                     b.OwnsOne("InvoiceSoftware.Domain.ValueObjects.Address", "Address", b1 =>
                         {
                             b1.Property<Guid>("BusinessProfileId")
@@ -2198,6 +2242,12 @@ namespace InvoiceSoftware.Infrastructure.Data.Migrations
 
             modelBuilder.Entity("InvoiceSoftware.Domain.Entities.Client", b =>
                 {
+                    b.HasOne("InvoiceSoftware.Infrastructure.Data.ApplicationUser", null)
+                        .WithMany()
+                        .HasForeignKey("UserId")
+                        .OnDelete(DeleteBehavior.Restrict)
+                        .IsRequired();
+
                     b.OwnsOne("InvoiceSoftware.Domain.ValueObjects.Address", "BillingAddress", b1 =>
                         {
                             b1.Property<Guid>("ClientId")
@@ -2321,7 +2371,22 @@ namespace InvoiceSoftware.Infrastructure.Data.Migrations
                         .OnDelete(DeleteBehavior.Cascade)
                         .IsRequired();
 
+                    b.HasOne("InvoiceSoftware.Infrastructure.Data.ApplicationUser", null)
+                        .WithMany()
+                        .HasForeignKey("UserId")
+                        .OnDelete(DeleteBehavior.Restrict)
+                        .IsRequired();
+
                     b.Navigation("Client");
+                });
+
+            modelBuilder.Entity("InvoiceSoftware.Domain.Entities.CurrencyPaymentSettings", b =>
+                {
+                    b.HasOne("InvoiceSoftware.Infrastructure.Data.ApplicationUser", null)
+                        .WithMany()
+                        .HasForeignKey("UserId")
+                        .OnDelete(DeleteBehavior.Restrict)
+                        .IsRequired();
                 });
 
             modelBuilder.Entity("InvoiceSoftware.Domain.Entities.Estimate", b =>
@@ -2340,6 +2405,12 @@ namespace InvoiceSoftware.Infrastructure.Data.Migrations
                     b.HasOne("InvoiceSoftware.Domain.Entities.InvoiceTemplate", "Template")
                         .WithMany()
                         .HasForeignKey("TemplateId");
+
+                    b.HasOne("InvoiceSoftware.Infrastructure.Data.ApplicationUser", null)
+                        .WithMany()
+                        .HasForeignKey("UserId")
+                        .OnDelete(DeleteBehavior.Restrict)
+                        .IsRequired();
 
                     b.Navigation("Client");
 
@@ -2414,6 +2485,12 @@ namespace InvoiceSoftware.Infrastructure.Data.Migrations
                         .WithMany("GeneratedExpenses")
                         .HasForeignKey("RecurringExpenseId")
                         .OnDelete(DeleteBehavior.SetNull);
+
+                    b.HasOne("InvoiceSoftware.Infrastructure.Data.ApplicationUser", null)
+                        .WithMany()
+                        .HasForeignKey("UserId")
+                        .OnDelete(DeleteBehavior.Restrict)
+                        .IsRequired();
 
                     b.OwnsOne("InvoiceSoftware.Domain.ValueObjects.Money", "Amount", b1 =>
                         {
@@ -2524,6 +2601,14 @@ namespace InvoiceSoftware.Infrastructure.Data.Migrations
                         .IsRequired();
                 });
 
+            modelBuilder.Entity("InvoiceSoftware.Domain.Entities.InvoiceTemplate", b =>
+                {
+                    b.HasOne("InvoiceSoftware.Infrastructure.Data.ApplicationUser", null)
+                        .WithMany()
+                        .HasForeignKey("UserId")
+                        .OnDelete(DeleteBehavior.Restrict);
+                });
+
             modelBuilder.Entity("InvoiceSoftware.Domain.Entities.Job", b =>
                 {
                     b.HasOne("InvoiceSoftware.Domain.Entities.Project", "Project")
@@ -2593,8 +2678,23 @@ namespace InvoiceSoftware.Infrastructure.Data.Migrations
                     b.Navigation("Job");
                 });
 
+            modelBuilder.Entity("InvoiceSoftware.Domain.Entities.Notification", b =>
+                {
+                    b.HasOne("InvoiceSoftware.Infrastructure.Data.ApplicationUser", null)
+                        .WithMany()
+                        .HasForeignKey("UserId")
+                        .OnDelete(DeleteBehavior.Restrict)
+                        .IsRequired();
+                });
+
             modelBuilder.Entity("InvoiceSoftware.Domain.Entities.Product", b =>
                 {
+                    b.HasOne("InvoiceSoftware.Infrastructure.Data.ApplicationUser", null)
+                        .WithMany()
+                        .HasForeignKey("UserId")
+                        .OnDelete(DeleteBehavior.Restrict)
+                        .IsRequired();
+
                     b.OwnsOne("InvoiceSoftware.Domain.ValueObjects.Money", "UnitPrice", b1 =>
                         {
                             b1.Property<Guid>("ProductId")
@@ -2677,6 +2777,12 @@ namespace InvoiceSoftware.Infrastructure.Data.Migrations
                         .HasForeignKey("ProjectId")
                         .OnDelete(DeleteBehavior.SetNull);
 
+                    b.HasOne("InvoiceSoftware.Infrastructure.Data.ApplicationUser", null)
+                        .WithMany()
+                        .HasForeignKey("UserId")
+                        .OnDelete(DeleteBehavior.Restrict)
+                        .IsRequired();
+
                     b.OwnsOne("InvoiceSoftware.Domain.ValueObjects.Money", "Amount", b1 =>
                         {
                             b1.Property<Guid>("RecurringExpenseId")
@@ -2714,6 +2820,12 @@ namespace InvoiceSoftware.Infrastructure.Data.Migrations
                     b.HasOne("InvoiceSoftware.Domain.Entities.Client", "Client")
                         .WithMany()
                         .HasForeignKey("ClientId")
+                        .OnDelete(DeleteBehavior.Restrict)
+                        .IsRequired();
+
+                    b.HasOne("InvoiceSoftware.Infrastructure.Data.ApplicationUser", null)
+                        .WithMany()
+                        .HasForeignKey("UserId")
                         .OnDelete(DeleteBehavior.Restrict)
                         .IsRequired();
 
@@ -2778,6 +2890,12 @@ namespace InvoiceSoftware.Infrastructure.Data.Migrations
                         .OnDelete(DeleteBehavior.Cascade)
                         .IsRequired();
 
+                    b.HasOne("InvoiceSoftware.Infrastructure.Data.ApplicationUser", null)
+                        .WithMany()
+                        .HasForeignKey("UserId")
+                        .OnDelete(DeleteBehavior.Restrict)
+                        .IsRequired();
+
                     b.OwnsOne("InvoiceSoftware.Domain.ValueObjects.Hours", "Hours", b1 =>
                         {
                             b1.Property<Guid>("TimeEntryId")
@@ -2802,6 +2920,15 @@ namespace InvoiceSoftware.Infrastructure.Data.Migrations
                     b.Navigation("Invoice");
 
                     b.Navigation("Job");
+                });
+
+            modelBuilder.Entity("InvoiceSoftware.Domain.Entities.UserLanguagePreference", b =>
+                {
+                    b.HasOne("InvoiceSoftware.Infrastructure.Data.ApplicationUser", null)
+                        .WithMany()
+                        .HasForeignKey("UserId")
+                        .OnDelete(DeleteBehavior.Restrict)
+                        .IsRequired();
                 });
 
             modelBuilder.Entity("Microsoft.AspNetCore.Identity.IdentityRoleClaim<string>", b =>

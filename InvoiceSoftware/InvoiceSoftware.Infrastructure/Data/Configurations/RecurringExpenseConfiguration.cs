@@ -8,6 +8,21 @@ public class RecurringExpenseConfiguration : IEntityTypeConfiguration<RecurringE
 {
     public void Configure(EntityTypeBuilder<RecurringExpense> builder)
     {
+        // Ownership FK to the Identity user. Declared here — not as a navigation
+        // property on the entity — so the Domain project stays free of any EF or
+        // Identity dependency. Restrict, not Cascade: deleting an account must
+        // not silently destroy invoices and financial records, and cascading
+        // from 16 tables would trip SQL Server's multiple-cascade-paths rule.
+        builder.HasOne<ApplicationUser>()
+            .WithMany()
+            .HasForeignKey(x => x.UserId)
+            .OnDelete(DeleteBehavior.Restrict);
+
+        // Owning user — matches the nvarchar(450) + index convention used by
+        // every other tenant-owned entity, so it can be indexed.
+        builder.Property(re => re.UserId).IsRequired().HasMaxLength(450);
+        builder.HasIndex(re => re.UserId);
+
         builder.ToTable("RecurringExpenses");
 
         builder.HasKey(re => re.Id);

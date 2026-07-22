@@ -4,16 +4,21 @@ using InvoiceSoftware.Infrastructure.Data;
 using InvoiceSoftware.Shared.Api;
 using InvoiceSoftware.Shared.Api.Clients;
 using InvoiceSoftware.Shared.Dtos.Clients;
+using InvoiceSoftware.Shared.Services;
 using Microsoft.EntityFrameworkCore;
 
 namespace InvoiceSoftware.Infrastructure.Handlers.Clients;
 
-public class GetClientsHandler(IDbContextFactory<ApplicationDbContext> dbFactory) : IHandle<GetClients, PaginatedResponse<ClientDto>>
+public class GetClientsHandler(IDbContextFactory<ApplicationDbContext> dbFactory, ICurrentUserService currentUserService) : IHandle<GetClients, PaginatedResponse<ClientDto>>
 {
     public async Task<HttpResult<PaginatedResponse<ClientDto>>> Handle(GetClients request, CancellationToken cancellationToken)
     {
+        var userId = currentUserService.UserId;
+        if (string.IsNullOrEmpty(userId))
+            return HttpResult<PaginatedResponse<ClientDto>>.Unauthorized();
+
         await using var db = await dbFactory.CreateDbContextAsync(cancellationToken);
-        var query = db.Clients.AsQueryable();
+        var query = db.Clients.Where(c => c.UserId == userId);
 
         if (request.ActiveOnly)
             query = query.Where(c => c.IsActive);

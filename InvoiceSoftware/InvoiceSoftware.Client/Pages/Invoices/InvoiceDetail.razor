@@ -12,7 +12,7 @@
 @inject ICall<GetInvoiceBankTransactions, List<BankTransactionDto>> GetInvoiceBankTransactionsCall
 @inject IJSRuntime JS
 
-<PageTitle>@(_invoice != null ? _invoice.InvoiceNumber : "Invoice") - InvoicePro</PageTitle>
+<PageTitle>@(_invoice != null ? _invoice.InvoiceNumber : "Invoice") - Akinai</PageTitle>
 
 <div class="space-y-6">
     <PageHeader Title="@(_invoice?.InvoiceNumber ?? "Loading...")"
@@ -319,6 +319,10 @@
                     new PageHeader.BreadcrumbItem(_invoice.InvoiceNumber)
                 ];
             }
+        }
+        catch (Exception ex) when (EmptyResponse.IsEmptyOk(ex))
+        {
+            // Empty state for a new account, not a failure — see EmptyResponse.
         }
         catch (Exception ex)
         {
