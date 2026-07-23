@@ -1,0 +1,103 @@
+@page "/invoice/print/{Token:guid}"
+@attribute [AllowAnonymous]
+@attribute [ExcludeFromInteractiveRouting]
+@layout EmptyLayout
+
+@using BlazorUtils.EasyApi
+@using Microsoft.AspNetCore.Authorization
+@using Akinai.Client.Components
+@using Akinai.Shared.Api.Invoices
+@using Akinai.Shared.Dtos.Invoices
+
+@inject ICall<GetPublicInvoice, PublicInvoiceDto?> GetPublicInvoiceCall
+
+@*
+    The invoice as the PDF renderer sees it.
+
+    Deliberately a separate route from /invoice/view rather than a print
+    stylesheet on it, for one reason: ExcludeFromInteractiveRouting makes this
+    render as static server HTML. The public view is Interactive Auto, so a
+    headless browser would have to guess when hydration had finished before
+    printing. Here the markup is complete in the first response.
+
+    Same data and the same InvoiceViewContent component as the public page, so
+    the PDF cannot say anything different from the link the client opens — that
+    equivalence is the whole point of rendering the PDF from HTML.
+
+    Authorised by the unguessable token, exactly as the public view is. The
+    renderer fetches it over loopback with no cookies.
+*@
+
+<PageTitle>@(_invoice?.InvoiceNumber ?? "Invoice")</PageTitle>
+
+@if (_invoice is not null)
+{
+    <div class="print-sheet">
+        <InvoiceViewContent
+            InvoiceNumber="@_invoice.InvoiceNumber"
+            Status="@_invoice.Status"
+            Currency="@_invoice.Currency"
+            Language="@_invoice.Language"
+            IssueDate="@_invoice.IssueDate"
+            DueDate="@_invoice.DueDate"
+            PaidDate="@_invoice.PaidDate"
+            BusinessName="@_invoice.BusinessName"
+            BusinessAddress="@_invoice.BusinessAddress"
+            BusinessEmail="@_invoice.BusinessEmail"
+            BusinessPhone="@_invoice.BusinessPhone"
+            BusinessLogo="@_invoice.BusinessLogo"
+            TaxNumber="@_invoice.TaxNumber"
+            RegistrationNumber="@_invoice.RegistrationNumber"
+            ClientName="@_invoice.ClientName"
+            ClientCompanyName="@_invoice.ClientCompanyName"
+            ClientAddress="@_invoice.ClientAddress"
+            ClientEmail="@_invoice.ClientEmail"
+            Subtotal="@_invoice.Subtotal"
+            TaxRate="@_invoice.TaxRate"
+            TaxAmount="@_invoice.TaxAmount"
+            Total="@_invoice.Total"
+            Notes="@_invoice.Notes"
+            LineItems="@_invoice.LineItems"
+            ExpenseLineItems="@_invoice.ExpenseLineItems"
+            ProductLineItems="@_invoice.ProductLineItems"
+            PrimaryColor="@PrimaryColor"
+            AccentColor="@AccentColor"
+            ShowLogo="@ShowLogo"
+            ShowItemDescriptions="@ShowItemDescriptions"
+            HeaderLayout="@HeaderLayout"
+            ItemsLayout="@ItemsLayout"
+            FooterLayout="@FooterLayout"
+            PayPalMeUsername="@_invoice.PayPalMeUsername"
+            WiseEmail="@_invoice.WiseEmail"
+            RevolutUsername="@_invoice.RevolutUsername"
+            DefaultCurrency="@_invoice.DefaultCurrency"
+            VndToDefaultCurrencyRate="@_invoice.VndToDefaultCurrencyRate"
+            CurrencyPaymentSettings="@_invoice.CurrencyPaymentSettings" />
+    </div>
+
+    @* Belt and braces with the renderer's media emulation: strip dark mode
+       even if a stored preference or the OS would otherwise apply it, so
+       opening this route in a normal browser prints correctly too. *@
+    <script>document.documentElement.classList.remove('dark');</script>
+
+    @* Tells the renderer the document is ready. It waits for this rather than a
+       fixed delay, so a slow first paint cannot truncate the PDF. *@
+    <div id="print-ready" style="display:none"></div>
+}
+
+@code {
+    [Parameter] public Guid Token { get; set; }
+
+    private PublicInvoiceDto? _invoice;
+
+    private string PrimaryColor => _invoice?.Template?.PrimaryColor ?? "#0e5c66";
+    private string AccentColor => _invoice?.Template?.AccentColor ?? "#147d87";
+    private bool ShowLogo => _invoice?.Template?.ShowLogo ?? true;
+    private bool ShowItemDescriptions => _invoice?.Template?.ShowItemDescriptions ?? true;
+    private string HeaderLayout => _invoice?.Template?.HeaderLayout?.ToLowerInvariant() ?? "standard";
+    private string ItemsLayout => _invoice?.Template?.ItemsLayout?.ToLowerInvariant() ?? "standard";
+    private string FooterLayout => _invoice?.Template?.FooterLayout?.ToLowerInvariant() ?? "standard";
+
+    protected override async Task OnInitializedAsync()
+        => _invoice = await GetPublicInvoiceCall.Call(new GetPublicInvoice { Token = Token });
+}

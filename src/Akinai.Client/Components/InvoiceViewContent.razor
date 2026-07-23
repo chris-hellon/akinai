@@ -1,0 +1,819 @@
+@using Akinai.Shared.Localization
+@{
+    // The invoice's fixed headings in whatever language it was written in.
+    // Freeform text arrives already translated from the server; these are
+    // looked up locally so they cost nothing and always render.
+    var L = InvoiceLabels.For(Language);
+    // One culture for every date on the document, so a Vietnamese invoice
+    // does not mix Vietnamese headings with US date order.
+    var culture = L.Culture;
+    var isOverdue = Status is "Sent" or "Overdue" && DueDate < DateOnly.FromDateTime(DateTime.Today);
+    var isPaid = Status == "Paid";
+}
+
+<!-- Status Banner -->
+@if (isPaid)
+{
+    <StatusBanner Variant="StatusBanner.StatusVariant.Success"
+                  Title="@L.StatusPaid"
+                  Subtitle="@PaidDate?.ToString("d MMMM yyyy", culture)" />
+}
+else if (isOverdue)
+{
+    var daysPastDue = DateOnly.FromDateTime(DateTime.Today).DayNumber - DueDate.DayNumber;
+    <StatusBanner Variant="StatusBanner.StatusVariant.Danger"
+                  Title="@L.StatusOverdue"
+                  Subtitle="@string.Format(culture, L.DaysPastDue, daysPastDue)" />
+}
+else if (Status == "Sent")
+{
+    <StatusBanner Variant="StatusBanner.StatusVariant.Info"
+                  Title="@L.StatusPaymentDue"
+                  Subtitle="@string.Format(culture, L.DueByDate, DueDate.ToString("d MMMM yyyy", culture))" />
+}
+else if (Status == "Draft")
+{
+    <StatusBanner Variant="StatusBanner.StatusVariant.Warning"
+                  Title="@L.StatusDraft"
+                  Subtitle="@L.DraftNotSent" />
+}
+else if (Status == "Void")
+{
+    <StatusBanner Variant="StatusBanner.StatusVariant.Muted"
+                  Title="@L.StatusVoid"
+                  Subtitle="@L.VoidSubtitle" />
+}
+
+<!-- Invoice Header -->
+<div class="p-8 border-b border-gray-100 dark:border-slate-700">
+    @if (HeaderLayout == "centered")
+    {
+        <!-- Centered Header Layout with colored background -->
+        <div class="rounded-xl p-6 mb-6 text-center" style="background-color: @PrimaryColor;">
+            @if (ShowLogo && BusinessLogo is { Length: > 0 })
+            {
+                <div class="mb-4 flex justify-center">
+                    <img src="data:image/png;base64,@Convert.ToBase64String(BusinessLogo)" alt="Business Logo" class="h-12 object-contain brightness-0 invert" />
+                </div>
+            }
+            @if (!string.IsNullOrEmpty(BusinessName))
+            {
+                <h2 class="text-xl font-bold text-white">@BusinessName</h2>
+            }
+            @if (!string.IsNullOrEmpty(BusinessAddress))
+            {
+                <div class="mt-2 text-sm text-white/80 whitespace-pre-line">@BusinessAddress</div>
+            }
+        </div>
+        <div class="text-center">
+            <div class="text-3xl font-bold text-gray-900 dark:text-white">
+                @InvoiceNumber
+            </div>
+            <div class="text-sm text-gray-500 dark:text-slate-400 mt-1">@L.Invoice</div>
+            <div class="flex justify-center gap-6 mt-4 text-sm">
+                <div>
+                    <span class="text-gray-500 dark:text-slate-400">@L.Issued:</span>
+                    <span class="font-medium text-gray-900 dark:text-white ml-1">@IssueDate.ToString("d MMM yyyy", culture)</span>
+                </div>
+                <div>
+                    <span class="text-gray-500 dark:text-slate-400">@L.Due:</span>
+                    <span class="font-medium @(isOverdue ? "text-red-600 dark:text-red-400" : "text-gray-900 dark:text-white") ml-1">@DueDate.ToString("d MMM yyyy", culture)</span>
+                </div>
+            </div>
+        </div>
+    }
+    else if (HeaderLayout == "minimal")
+    {
+        <!-- Minimal Header Layout -->
+        <div class="flex items-center justify-between">
+            <div class="flex items-center gap-4">
+                @if (ShowLogo && BusinessLogo is { Length: > 0 })
+                {
+                    <img src="data:image/png;base64,@Convert.ToBase64String(BusinessLogo)" alt="Business Logo" class="h-10 object-contain" />
+                }
+                <div>
+                    <div class="text-2xl font-bold text-gray-900 dark:text-white">
+                        @InvoiceNumber
+                    </div>
+                    <div class="text-xs text-gray-500 dark:text-slate-400">
+                        @IssueDate.ToString("d MMM yyyy", culture) — Due @DueDate.ToString("d MMM yyyy", culture)
+                    </div>
+                </div>
+            </div>
+            <div class="text-right">
+                <div class="text-3xl font-bold @(isPaid ? "text-emerald-600" : "")" style="@(isPaid ? "" : $"color: {PrimaryColor};")">
+                    @CurrencyExtensions.GetSymbol(Currency)@Total.ToString("N2")
+                </div>
+            </div>
+        </div>
+    }
+    else
+    {
+        <!-- Standard Header Layout (default) with colored background -->
+        <div class="rounded-xl p-6 mb-6" style="background-color: @PrimaryColor;">
+            <div class="flex flex-col lg:flex-row lg:items-start lg:justify-between gap-6">
+                <!-- From (Business) -->
+                <div>
+                    @if (ShowLogo && BusinessLogo is { Length: > 0 })
+                    {
+                        <div class="mb-4">
+                            <img src="data:image/png;base64,@Convert.ToBase64String(BusinessLogo)" alt="Business Logo" class="h-12 object-contain brightness-0 invert" />
+                        </div>
+                    }
+                    @if (!string.IsNullOrEmpty(BusinessName))
+                    {
+                        <h2 class="text-xl font-bold text-white">@BusinessName</h2>
+                    }
+                    @if (!string.IsNullOrEmpty(BusinessAddress))
+                    {
+                        <div class="mt-2 text-sm text-white/80 whitespace-pre-line">@BusinessAddress</div>
+                    }
+                </div>
+            </div>
+        </div>
+        <!-- Invoice Number & Dates below colored header -->
+        <div class="flex flex-col lg:flex-row lg:items-start lg:justify-between gap-6">
+            <div>
+                @if (!string.IsNullOrEmpty(BusinessEmail))
+                {
+                    <div class="text-sm text-gray-500 dark:text-slate-500">@BusinessEmail</div>
+                }
+                @if (!string.IsNullOrEmpty(BusinessPhone))
+                {
+                    <div class="text-sm text-gray-500 dark:text-slate-500">@BusinessPhone</div>
+                }
+                @if (!string.IsNullOrEmpty(TaxNumber))
+                {
+                    <div class="mt-2 text-xs text-gray-400 dark:text-slate-500">Tax/VAT: @TaxNumber</div>
+                }
+                @if (!string.IsNullOrEmpty(RegistrationNumber))
+                {
+                    <div class="text-xs text-gray-400 dark:text-slate-500">Reg: @RegistrationNumber</div>
+                }
+            </div>
+            <div class="text-left lg:text-right">
+                <div class="text-3xl font-bold text-gray-900 dark:text-white">
+                    @InvoiceNumber
+                </div>
+                <div class="text-sm text-gray-500 dark:text-slate-400 mt-1">@L.Invoice</div>
+                <div class="flex flex-wrap items-center gap-4 mt-4 text-sm">
+                    <div>
+                        <span class="text-gray-500 dark:text-slate-400">@L.Issued:</span>
+                        <span class="font-medium text-gray-900 dark:text-white ml-1">@IssueDate.ToString("d MMM yyyy", culture)</span>
+                    </div>
+                    <div>
+                        <span class="text-gray-500 dark:text-slate-400">@L.Due:</span>
+                        <span class="font-medium @(isOverdue ? "text-red-600 dark:text-red-400" : "text-gray-900 dark:text-white") ml-1">@DueDate.ToString("d MMM yyyy", culture)</span>
+                    </div>
+                </div>
+            </div>
+        </div>
+    }
+
+    <!-- Bill To Section -->
+    <div class="mt-8 pt-6 border-t border-gray-100 dark:border-slate-700">
+        <div class="grid grid-cols-1 md:grid-cols-2 gap-6 @(HeaderLayout == "centered" ? "text-center md:text-left" : "")">
+            <!-- Bill To -->
+            <div>
+                <div class="text-xs font-semibold uppercase tracking-wider text-gray-400 dark:text-slate-500 mb-2">@L.BillTo</div>
+                <div class="text-base font-semibold text-gray-900 dark:text-white">@ClientName</div>
+                @if (!string.IsNullOrEmpty(ClientCompanyName))
+                {
+                    <div class="text-sm text-gray-600 dark:text-slate-400">@ClientCompanyName</div>
+                }
+                @if (!string.IsNullOrEmpty(ClientAddress))
+                {
+                    <div class="mt-2 text-sm text-gray-600 dark:text-slate-400 whitespace-pre-line">@ClientAddress</div>
+                }
+                @if (!string.IsNullOrEmpty(ClientEmail))
+                {
+                    <div class="mt-2 text-sm text-gray-500 dark:text-slate-500">@ClientEmail</div>
+                }
+            </div>
+
+            <!-- Amount Due (hide for minimal layout - shown in header) -->
+            @if (HeaderLayout != "minimal")
+            {
+                <div class="@(HeaderLayout == "centered" ? "text-center md:text-right" : "text-right")">
+                    <div class="text-xs font-semibold uppercase tracking-wider text-gray-400 dark:text-slate-500 mb-2">@L.AmountDue</div>
+                    <div class="text-4xl font-bold @(isPaid ? "text-emerald-600" : "")" style="@(isPaid ? "" : $"color: {PrimaryColor};")">
+                        @CurrencyExtensions.GetSymbol(Currency)@Total.ToString("N2")
+                    </div>
+                    @if (isPaid)
+                    {
+                        <div class="text-sm text-emerald-600">@L.PaidInFull</div>
+                    }
+                </div>
+            }
+        </div>
+    </div>
+</div>
+
+<!-- Services Section (Time Entries) -->
+@if (LineItems?.Any() == true)
+{
+    <div class="px-8 py-3 border-b" style="background-color: @(AccentColor)10; border-color: @(AccentColor)30;">
+        <div class="flex items-center gap-2">
+            <svg class="w-4 h-4" style="color: @AccentColor;" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M12 8v4l3 3m6-3a9 9 0 11-18 0 9 9 0 0118 0z" />
+            </svg>
+            <span class="text-xs font-semibold uppercase tracking-wider" style="color: @AccentColor;">@L.Services</span>
+        </div>
+    </div>
+    <div class="overflow-x-auto">
+        <table class="w-full">
+            <thead>
+                <tr class="bg-gray-50/50 dark:bg-slate-800/30 @(ItemsLayout == "bordered" ? "border border-gray-200 dark:border-slate-600" : "")">
+                    <th class="px-8 py-4 text-left text-xs font-semibold uppercase tracking-wider text-gray-500 dark:text-slate-400 @(ItemsLayout == "bordered" ? "border border-gray-200 dark:border-slate-600" : "")">@L.Description</th>
+                    <th class="px-6 py-4 text-center text-xs font-semibold uppercase tracking-wider text-gray-500 dark:text-slate-400 @(ItemsLayout == "bordered" ? "border border-gray-200 dark:border-slate-600" : "")">@L.Hours</th>
+                    <th class="px-6 py-4 text-right text-xs font-semibold uppercase tracking-wider text-gray-500 dark:text-slate-400 @(ItemsLayout == "bordered" ? "border border-gray-200 dark:border-slate-600" : "")">@L.Rate</th>
+                    <th class="px-8 py-4 text-right text-xs font-semibold uppercase tracking-wider text-gray-500 dark:text-slate-400 @(ItemsLayout == "bordered" ? "border border-gray-200 dark:border-slate-600" : "")">@L.Amount</th>
+                </tr>
+            </thead>
+            <tbody class="divide-y divide-gray-100 dark:divide-slate-700">
+                @{
+                    var serviceIndex = 0;
+                }
+                @foreach (var item in LineItems)
+                {
+                    var rowClass = ItemsLayout switch
+                    {
+                        "striped" => serviceIndex % 2 == 0 ? "bg-gray-50/50 dark:bg-slate-800/30" : "",
+                        _ => "hover:bg-gray-50/50 dark:hover:bg-slate-700/30 transition-colors"
+                    };
+                    <tr class="@rowClass">
+                        <td class="px-8 py-5 @(ItemsLayout == "bordered" ? "border border-gray-200 dark:border-slate-600" : "")">
+                            <div class="text-sm font-medium text-gray-900 dark:text-white">@item.JobName</div>
+                            @if (ShowItemDescriptions)
+                            {
+                                <div class="flex items-center gap-2 mt-0.5">
+                                    @if (!string.IsNullOrEmpty(item.ProjectName))
+                                    {
+                                        <span class="text-xs text-gray-600 dark:text-slate-400">@item.ProjectName</span>
+                                    }
+                                    @if (item.Date.HasValue)
+                                    {
+                                        <span class="text-xs text-gray-500 dark:text-slate-400">@item.Date.Value.ToString("d MMM yyyy", culture)</span>
+                                    }
+                                    @if (!string.IsNullOrEmpty(item.SectionName))
+                                    {
+                                        <span class="inline-flex items-center px-1.5 py-0.5 rounded text-xs font-medium bg-primary-100 dark:bg-primary-900/30 text-primary-700 dark:text-primary-300">@item.SectionName</span>
+                                    }
+                                </div>
+                            }
+                        </td>
+                        <td class="px-6 py-5 text-sm text-gray-700 dark:text-slate-300 text-center @(ItemsLayout == "bordered" ? "border border-gray-200 dark:border-slate-600" : "")">@item.Quantity.ToString("N2")</td>
+                        <td class="px-6 py-5 text-sm text-gray-600 dark:text-slate-400 text-right @(ItemsLayout == "bordered" ? "border border-gray-200 dark:border-slate-600" : "")">@CurrencyExtensions.GetSymbol(Currency)@item.UnitPrice.ToString("N2")</td>
+                        <td class="px-8 py-5 text-sm font-semibold text-gray-900 dark:text-white text-right @(ItemsLayout == "bordered" ? "border border-gray-200 dark:border-slate-600" : "")">@CurrencyExtensions.GetSymbol(Currency)@item.LineTotal.ToString("N2")</td>
+                    </tr>
+                    serviceIndex++;
+                }
+            </tbody>
+        </table>
+    </div>
+}
+
+<!-- Expenses Section -->
+@if (ExpenseLineItems?.Any() == true)
+{
+    <div class="px-8 py-3 border-b bg-amber-50 border-amber-300/30">
+        <div class="flex items-center gap-2">
+            <svg class="w-4 h-4 text-amber-600" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M9 14l6-6m-5.5.5h.01m4.99 5h.01M19 21V5a2 2 0 00-2-2H7a2 2 0 00-2 2v16l3.5-2 3.5 2 3.5-2 3.5 2z" />
+            </svg>
+            <span class="text-xs font-semibold uppercase tracking-wider text-amber-600">@L.Expenses</span>
+        </div>
+    </div>
+    <div class="overflow-x-auto">
+        <table class="w-full">
+            <thead>
+                <tr class="bg-gray-50/50 dark:bg-slate-800/30 @(ItemsLayout == "bordered" ? "border border-gray-200 dark:border-slate-600" : "")">
+                    <th class="px-8 py-4 text-left text-xs font-semibold uppercase tracking-wider text-gray-500 dark:text-slate-400 @(ItemsLayout == "bordered" ? "border border-gray-200 dark:border-slate-600" : "")">@L.Description</th>
+                    <th class="px-6 py-4 text-left text-xs font-semibold uppercase tracking-wider text-gray-500 dark:text-slate-400 @(ItemsLayout == "bordered" ? "border border-gray-200 dark:border-slate-600" : "")">@L.Category</th>
+                    <th class="px-6 py-4 text-right text-xs font-semibold uppercase tracking-wider text-gray-500 dark:text-slate-400 @(ItemsLayout == "bordered" ? "border border-gray-200 dark:border-slate-600" : "")">@L.Date</th>
+                    <th class="px-8 py-4 text-right text-xs font-semibold uppercase tracking-wider text-gray-500 dark:text-slate-400 @(ItemsLayout == "bordered" ? "border border-gray-200 dark:border-slate-600" : "")">@L.Amount</th>
+                </tr>
+            </thead>
+            <tbody class="divide-y divide-gray-100 dark:divide-slate-700">
+                @{
+                    var expenseIndex = 0;
+                }
+                @foreach (var expense in ExpenseLineItems)
+                {
+                    var rowClass = ItemsLayout switch
+                    {
+                        "striped" => expenseIndex % 2 == 0 ? "bg-gray-50/50 dark:bg-slate-800/30" : "",
+                        _ => "hover:bg-gray-50/50 dark:hover:bg-slate-700/30 transition-colors"
+                    };
+                    <tr class="@rowClass">
+                        <td class="px-8 py-5 @(ItemsLayout == "bordered" ? "border border-gray-200 dark:border-slate-600" : "")">
+                            <div class="text-sm font-medium text-gray-900 dark:text-white">@expense.MerchantName</div>
+                            @if (ShowItemDescriptions && !string.IsNullOrEmpty(expense.ProjectName))
+                            {
+                                <div class="text-xs text-gray-600 dark:text-slate-400 mt-0.5">@expense.ProjectName</div>
+                            }
+                        </td>
+                        <td class="px-6 py-5 text-sm text-gray-700 dark:text-slate-300 @(ItemsLayout == "bordered" ? "border border-gray-200 dark:border-slate-600" : "")">@InvoiceLabels.ExpenseCategory(Language, expense.Category)</td>
+                        <td class="px-6 py-5 text-sm text-gray-600 dark:text-slate-400 text-right @(ItemsLayout == "bordered" ? "border border-gray-200 dark:border-slate-600" : "")">@expense.ExpenseDate.ToString("d MMM yyyy", culture)</td>
+                        <td class="px-8 py-5 text-sm font-semibold text-gray-900 dark:text-white text-right @(ItemsLayout == "bordered" ? "border border-gray-200 dark:border-slate-600" : "")">@CurrencyExtensions.GetSymbol(Currency)@expense.LineTotal.ToString("N2")</td>
+                    </tr>
+                    expenseIndex++;
+                }
+            </tbody>
+        </table>
+    </div>
+}
+
+<!-- Products Section -->
+@if (ProductLineItems?.Any() == true)
+{
+    <div class="px-8 py-3 border-b bg-blue-50 border-blue-300/30">
+        <div class="flex items-center gap-2">
+            <svg class="w-4 h-4 text-blue-600" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M20 7l-8-4-8 4m16 0l-8 4m8-4v10l-8 4m0-10L4 7m8 4v10M4 7v10l8 4" />
+            </svg>
+            <span class="text-xs font-semibold uppercase tracking-wider text-blue-600">@L.Products</span>
+        </div>
+    </div>
+    <div class="overflow-x-auto">
+        <table class="w-full">
+            <thead>
+                <tr class="bg-gray-50/50 dark:bg-slate-800/30 @(ItemsLayout == "bordered" ? "border border-gray-200 dark:border-slate-600" : "")">
+                    <th class="px-8 py-4 text-left text-xs font-semibold uppercase tracking-wider text-gray-500 dark:text-slate-400 @(ItemsLayout == "bordered" ? "border border-gray-200 dark:border-slate-600" : "")">@L.Description</th>
+                    <th class="px-6 py-4 text-center text-xs font-semibold uppercase tracking-wider text-gray-500 dark:text-slate-400 @(ItemsLayout == "bordered" ? "border border-gray-200 dark:border-slate-600" : "")">@L.Qty</th>
+                    <th class="px-6 py-4 text-right text-xs font-semibold uppercase tracking-wider text-gray-500 dark:text-slate-400 @(ItemsLayout == "bordered" ? "border border-gray-200 dark:border-slate-600" : "")">@L.Price</th>
+                    <th class="px-8 py-4 text-right text-xs font-semibold uppercase tracking-wider text-gray-500 dark:text-slate-400 @(ItemsLayout == "bordered" ? "border border-gray-200 dark:border-slate-600" : "")">@L.Amount</th>
+                </tr>
+            </thead>
+            <tbody class="divide-y divide-gray-100 dark:divide-slate-700">
+                @{
+                    var productIndex = 0;
+                }
+                @foreach (var product in ProductLineItems)
+                {
+                    var rowClass = ItemsLayout switch
+                    {
+                        "striped" => productIndex % 2 == 0 ? "bg-gray-50/50 dark:bg-slate-800/30" : "",
+                        _ => "hover:bg-gray-50/50 dark:hover:bg-slate-700/30 transition-colors"
+                    };
+                    <tr class="@rowClass">
+                        <td class="px-8 py-5 @(ItemsLayout == "bordered" ? "border border-gray-200 dark:border-slate-600" : "")">
+                            <div class="text-sm font-medium text-gray-900 dark:text-white">@product.Description</div>
+                            @if (ShowItemDescriptions && !string.IsNullOrEmpty(product.ProductName))
+                            {
+                                <div class="text-xs text-gray-500 dark:text-slate-400 mt-0.5">@product.ProductName</div>
+                            }
+                        </td>
+                        <td class="px-6 py-5 text-sm text-gray-700 dark:text-slate-300 text-center @(ItemsLayout == "bordered" ? "border border-gray-200 dark:border-slate-600" : "")">@product.Quantity.ToString("N2")</td>
+                        <td class="px-6 py-5 text-sm text-gray-600 dark:text-slate-400 text-right @(ItemsLayout == "bordered" ? "border border-gray-200 dark:border-slate-600" : "")">@CurrencyExtensions.GetSymbol(Currency)@product.UnitPrice.ToString("N2")</td>
+                        <td class="px-8 py-5 text-sm font-semibold text-gray-900 dark:text-white text-right @(ItemsLayout == "bordered" ? "border border-gray-200 dark:border-slate-600" : "")">@CurrencyExtensions.GetSymbol(Currency)@product.LineTotal.ToString("N2")</td>
+                    </tr>
+                    productIndex++;
+                }
+            </tbody>
+        </table>
+    </div>
+}
+
+<!-- Totals Section -->
+@* Subtotal, tax and total read as one figure — splitting them across a page break invites a misread. *@
+<div class="no-break p-8 border-t border-gray-100 dark:border-slate-700 bg-gray-50/30 dark:bg-slate-800/20">
+    <div class="flex justify-end">
+        <div class="w-72 space-y-3">
+            @if (FooterLayout == "detailed" || TaxRate > 0)
+            {
+                <div class="flex justify-between text-sm">
+                    <span class="text-gray-500 dark:text-slate-400">@L.Subtotal</span>
+                    <span class="text-gray-900 dark:text-white">@CurrencyExtensions.GetSymbol(Currency)@Subtotal.ToString("N2")</span>
+                </div>
+                @if (TaxRate > 0)
+                {
+                    <div class="flex justify-between text-sm">
+                        <span class="text-gray-500 dark:text-slate-400">Tax (@TaxRate.ToString("N1")%)</span>
+                        <span class="text-gray-900 dark:text-white">@CurrencyExtensions.GetSymbol(Currency)@TaxAmount.ToString("N2")</span>
+                    </div>
+                }
+                else if (FooterLayout == "detailed")
+                {
+                    <div class="flex justify-between text-sm">
+                        <span class="text-gray-500 dark:text-slate-400">@L.Tax</span>
+                        <span class="text-gray-900 dark:text-white">@CurrencyExtensions.GetSymbol(Currency)0.00</span>
+                    </div>
+                }
+                <div class="pt-3 border-t border-gray-200 dark:border-slate-600"></div>
+            }
+            <div class="flex justify-between items-center pt-2">
+                <span class="text-base font-semibold text-gray-900 dark:text-white">@L.Total</span>
+                <span class="text-2xl font-bold @(isPaid ? "text-emerald-600" : "")" style="@(isPaid ? "" : $"color: {PrimaryColor};")">@CurrencyExtensions.GetSymbol(Currency)@Total.ToString("N2")</span>
+            </div>
+        </div>
+    </div>
+</div>
+
+<!-- Notes Section -->
+@if (!string.IsNullOrEmpty(Notes))
+{
+    <div class="p-8 border-t border-gray-100 dark:border-slate-700 bg-gray-50/50 dark:bg-slate-800/30">
+        <div class="flex gap-4">
+            <div class="flex-shrink-0">
+                <svg class="w-5 h-5 text-gray-400" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                    <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M11 5H6a2 2 0 00-2 2v11a2 2 0 002 2h11a2 2 0 002-2v-5m-1.414-9.414a2 2 0 112.828 2.828L11.828 15H9v-2.828l8.586-8.586z" />
+                </svg>
+            </div>
+            <div>
+                <div class="text-xs font-semibold uppercase tracking-wider text-gray-400 dark:text-slate-500 mb-2">@L.Notes</div>
+                <div class="text-sm text-gray-600 dark:text-slate-400 whitespace-pre-line">@Notes</div>
+            </div>
+        </div>
+    </div>
+}
+
+<!-- Payment Options Section -->
+@if (Status != "Paid" && Status != "Void" && HasPaymentOptions())
+{
+    @* no-break: how to pay must not be split across a page. A bank heading on
+       one sheet and the account number on the next is the sort of thing that
+       gets an invoice paid late or into the wrong account. *@
+    <div class="no-break px-8 py-6 border-t border-gray-100 dark:border-slate-700 bg-gradient-to-r from-blue-50/50 to-primary-50/50 dark:from-blue-900/20 dark:to-primary-900/20">
+        <div class="text-xs font-semibold text-gray-500 dark:text-slate-400 uppercase tracking-wider mb-4">@L.PaymentOptions</div>
+
+        @* PayPal, Wise, and Revolut buttons - shown for VND if conversion rate is set *@
+        @if ((Currency != "VND" || VndToDefaultCurrencyRate.HasValue) && (!string.IsNullOrEmpty(PayPalMeUsername) || !string.IsNullOrEmpty(WiseEmail) || !string.IsNullOrEmpty(RevolutUsername)))
+        {
+            <div class="flex flex-wrap gap-4">
+                @if (!string.IsNullOrEmpty(PayPalMeUsername))
+                {
+                    <a href="@GetPayPalLink()" target="_blank" rel="noopener noreferrer"
+                       class="inline-flex items-center gap-3 px-5 py-3 bg-[#003087] hover:bg-[#001f5c] text-white rounded-xl transition-all duration-200 shadow-md hover:shadow-lg">
+                        <svg class="w-6 h-6" viewBox="0 0 24 24" fill="currentColor">
+                            <path d="M7.016 19.198h-4.2a.562.562 0 0 1-.555-.65L5.093.584A.69.69 0 0 1 5.775 0h7.063c3.126 0 5.063 1.607 5.063 4.285 0 .2-.016.403-.048.602-1.227 6.066-5.068 6.066-7.048 6.066h-1.88c-.42 0-.778.303-.844.714L7.016 19.198zM19.79 6.142c-.398 1.96-1.407 3.462-2.87 4.403-1.394.896-3.09 1.238-5.175 1.238h-.023l-.263 1.66-.355 2.25-.05.313a.562.562 0 0 0 .555.65h3.612a.69.69 0 0 0 .682-.584l.741-4.69.048-.242a.69.69 0 0 1 .682-.584h.44c3.466 0 6.173-1.406 6.963-5.474.262-1.35.158-2.467-.347-3.28a3.558 3.558 0 0 0-.64-.66z"/>
+                        </svg>
+                        <div class="text-left">
+                            <div class="text-sm font-semibold">@L.PayWithPayPal</div>
+                            <div class="text-xs opacity-80">@GetPaymentDisplayText()</div>
+                        </div>
+                        <svg class="w-4 h-4 ml-1" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                            <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M10 6H6a2 2 0 00-2 2v10a2 2 0 002 2h10a2 2 0 002-2v-4M14 4h6m0 0v6m0-6L10 14" />
+                        </svg>
+                    </a>
+                }
+                @if (!string.IsNullOrEmpty(WiseEmail))
+                {
+                    <a href="@GetWiseLink()" target="_blank" rel="noopener noreferrer"
+                       class="inline-flex items-center gap-3 px-5 py-3 bg-[#9FE870] hover:bg-[#8cd85f] text-[#163300] rounded-xl transition-all duration-200 shadow-md hover:shadow-lg">
+                        <svg class="w-6 h-6" viewBox="0 0 24 24" fill="currentColor">
+                            <path d="M6.488 7.469 0 15.05h11.585l1.301-3.576H7.922l3.033-3.507.01-.092L8.993 4.48h8.873l-6.878 18.925h4.706L24 .595H2.543l3.945 6.874Z"/>
+                        </svg>
+                        <div class="text-left">
+                            <div class="text-sm font-semibold">@L.PayWithWise</div>
+                            <div class="text-xs opacity-70">@GetPaymentDisplayText()</div>
+                        </div>
+                        <svg class="w-4 h-4 ml-1" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                            <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M10 6H6a2 2 0 00-2 2v10a2 2 0 002 2h10a2 2 0 002-2v-4M14 4h6m0 0v6m0-6L10 14" />
+                        </svg>
+                    </a>
+                }
+                @if (!string.IsNullOrEmpty(RevolutUsername))
+                {
+                    <a href="@GetRevolutLink()" target="_blank" rel="noopener noreferrer"
+                       class="inline-flex items-center gap-3 px-5 py-3 bg-black hover:bg-gray-900 text-white rounded-xl transition-all duration-200 shadow-md hover:shadow-lg">
+                        <svg class="w-6 h-6" viewBox="0 0 24 24" fill="currentColor">
+                            <path d="M20.9133 6.9566C20.9133 3.1208 17.7898 0 13.9503 0H2.424v3.8605h10.9782c1.7376 0 3.177 1.3651 3.2087 3.043.016.84-.2994 1.633-.8878 2.2324-.5886.5998-1.375.9303-2.2144.9303H9.2322a.2756.2756 0 0 0-.2755.2752v3.431c0 .0585.018.1142.052.1612L16.2646 24h5.3114l-7.2727-10.094c3.6625-.1838 6.61-3.2612 6.61-6.9494zM6.8943 5.9229H2.424V24h4.4704z"/>
+                        </svg>
+                        <div class="text-left">
+                            <div class="text-sm font-semibold">@L.PayWithRevolut</div>
+                            <div class="text-xs opacity-80">@GetPaymentDisplayText()</div>
+                        </div>
+                        <svg class="w-4 h-4 ml-1" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                            <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M10 6H6a2 2 0 00-2 2v10a2 2 0 002 2h10a2 2 0 002-2v-4M14 4h6m0 0v6m0-6L10 14" />
+                        </svg>
+                    </a>
+                }
+            </div>
+        }
+
+        @* VietQR section - only for VND *@
+        @if (HasVietQr())
+        {
+            <div class="@(HasOnlinePaymentButtons() ? "mt-6 pt-6 border-t border-gray-200 dark:border-slate-600" : "")">
+                <div class="text-xs font-semibold text-gray-500 dark:text-slate-400 uppercase tracking-wider mb-3">Vietnamese Bank Transfer (VietQR)</div>
+                <div class="flex flex-col sm:flex-row items-start gap-4">
+                    <div class="bg-white p-2 rounded-lg shadow-sm border border-gray-100">
+                        <img src="@GetVietQrUrl()" alt="VietQR Payment Code" class="w-48 h-48 object-contain" />
+                    </div>
+                    <div class="text-sm text-gray-600 dark:text-slate-400">
+                        <p class="font-medium text-gray-700 dark:text-slate-300 mb-2">@L.ScanWithBankingApp</p>
+                        <ul class="space-y-1.5">
+                            <li class="flex items-center gap-2">
+                                <svg class="w-4 h-4 text-emerald-500" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                                    <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M5 13l4 4L19 7" />
+                                </svg>
+                                Amount: @(((long)Total).ToString("N0")) VND
+                            </li>
+                            @if (!string.IsNullOrEmpty(CurrencyPaymentSettings?.BankName))
+                            {
+                                <li class="flex items-center gap-2">
+                                    <svg class="w-4 h-4 text-emerald-500" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                                        <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M5 13l4 4L19 7" />
+                                    </svg>
+                                    Bank: @CurrencyPaymentSettings.BankName
+                                </li>
+                            }
+                            @if (!string.IsNullOrEmpty(CurrencyPaymentSettings?.BankAccountName))
+                            {
+                                <li class="flex items-center gap-2">
+                                    <svg class="w-4 h-4 text-emerald-500" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                                        <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M5 13l4 4L19 7" />
+                                    </svg>
+                                    Account: @CurrencyPaymentSettings.BankAccountName
+                                </li>
+                            }
+                            @if (!string.IsNullOrEmpty(CurrencyPaymentSettings?.BankAccountNumber))
+                            {
+                                <li class="flex items-center gap-2">
+                                    <svg class="w-4 h-4 text-emerald-500" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                                        <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M5 13l4 4L19 7" />
+                                    </svg>
+                                    Account No: @CurrencyPaymentSettings.BankAccountNumber
+                                </li>
+                            }
+                            <li class="flex items-center gap-2">
+                                <svg class="w-4 h-4 text-emerald-500" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                                    <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M5 13l4 4L19 7" />
+                                </svg>
+                                Reference: Invoice @InvoiceNumber
+                            </li>
+                        </ul>
+                    </div>
+                </div>
+            </div>
+        }
+        @* Bank transfer details for non-VND currencies *@
+        else if (HasBankTransferDetails())
+        {
+            <div class="@(HasOnlinePaymentButtons() ? "mt-6 pt-6 border-t border-gray-200 dark:border-slate-600" : "")">
+                <div class="text-xs font-semibold text-gray-500 dark:text-slate-400 uppercase tracking-wider mb-3">@L.BankTransfer</div>
+                <div class="bg-white dark:bg-slate-800 rounded-lg border border-gray-100 dark:border-slate-700 p-4">
+                    <div class="grid grid-cols-1 sm:grid-cols-2 gap-3 text-sm">
+                        @if (!string.IsNullOrEmpty(CurrencyPaymentSettings?.BankName))
+                        {
+                            <div>
+                                <span class="text-gray-500 dark:text-slate-400">Bank:</span>
+                                <span class="font-medium text-gray-900 dark:text-white ml-2">@CurrencyPaymentSettings.BankName</span>
+                            </div>
+                        }
+                        @if (!string.IsNullOrEmpty(CurrencyPaymentSettings?.BankAccountName))
+                        {
+                            <div>
+                                <span class="text-gray-500 dark:text-slate-400">Account Name:</span>
+                                <span class="font-medium text-gray-900 dark:text-white ml-2">@CurrencyPaymentSettings.BankAccountName</span>
+                            </div>
+                        }
+                        @if (!string.IsNullOrEmpty(CurrencyPaymentSettings?.BankAccountNumber))
+                        {
+                            <div>
+                                <span class="text-gray-500 dark:text-slate-400">Account No:</span>
+                                <span class="font-medium text-gray-900 dark:text-white ml-2">@CurrencyPaymentSettings.BankAccountNumber</span>
+                            </div>
+                        }
+                        @if (!string.IsNullOrEmpty(CurrencyPaymentSettings?.BankSortCode))
+                        {
+                            <div>
+                                <span class="text-gray-500 dark:text-slate-400">Sort Code:</span>
+                                <span class="font-medium text-gray-900 dark:text-white ml-2">@CurrencyPaymentSettings.BankSortCode</span>
+                            </div>
+                        }
+                        @if (!string.IsNullOrEmpty(CurrencyPaymentSettings?.BankIban))
+                        {
+                            <div class="sm:col-span-2">
+                                <span class="text-gray-500 dark:text-slate-400">IBAN:</span>
+                                <span class="font-medium text-gray-900 dark:text-white ml-2">@CurrencyPaymentSettings.BankIban</span>
+                            </div>
+                        }
+                        @if (!string.IsNullOrEmpty(CurrencyPaymentSettings?.BankSwift))
+                        {
+                            <div>
+                                <span class="text-gray-500 dark:text-slate-400">SWIFT/BIC:</span>
+                                <span class="font-medium text-gray-900 dark:text-white ml-2">@CurrencyPaymentSettings.BankSwift</span>
+                            </div>
+                        }
+                        @* Only rendered when filled in — an invoice should not carry
+                           empty routing rows. Kept next to the direct details because
+                           the payer's bank asks for them on the same form. *@
+                        @if (!string.IsNullOrEmpty(CurrencyPaymentSettings?.BankAddress))
+                        {
+                            <div class="sm:col-span-2">
+                                <span class="text-gray-500 dark:text-slate-400">Bank address:</span>
+                                <span class="font-medium text-gray-900 dark:text-white ml-2 whitespace-pre-line">@CurrencyPaymentSettings.BankAddress</span>
+                            </div>
+                        }
+                        @if (!string.IsNullOrEmpty(CurrencyPaymentSettings?.IntermediaryBankName))
+                        {
+                            <div>
+                                <span class="text-gray-500 dark:text-slate-400">Correspondent bank:</span>
+                                <span class="font-medium text-gray-900 dark:text-white ml-2">@CurrencyPaymentSettings.IntermediaryBankName</span>
+                            </div>
+                        }
+                        @if (!string.IsNullOrEmpty(CurrencyPaymentSettings?.IntermediaryBankSwift))
+                        {
+                            <div>
+                                <span class="text-gray-500 dark:text-slate-400">Correspondent SWIFT/BIC:</span>
+                                <span class="font-medium text-gray-900 dark:text-white ml-2">@CurrencyPaymentSettings.IntermediaryBankSwift</span>
+                            </div>
+                        }
+                        @if (!string.IsNullOrEmpty(CurrencyPaymentSettings?.IntermediaryAccountNumber))
+                        {
+                            <div>
+                                <span class="text-gray-500 dark:text-slate-400">Account at correspondent:</span>
+                                <span class="font-medium text-gray-900 dark:text-white ml-2">@CurrencyPaymentSettings.IntermediaryAccountNumber</span>
+                            </div>
+                        }
+                        @if (!string.IsNullOrEmpty(CurrencyPaymentSettings?.PaymentPurposeCode))
+                        {
+                            <div>
+                                <span class="text-gray-500 dark:text-slate-400">Payment purpose:</span>
+                                <span class="font-medium text-gray-900 dark:text-white ml-2">@CurrencyPaymentSettings.PaymentPurposeCode</span>
+                            </div>
+                        }
+                        <div class="sm:col-span-2 pt-2 border-t border-gray-100 dark:border-slate-700 mt-2">
+                            <span class="text-gray-500 dark:text-slate-400">Reference:</span>
+                            <span class="font-medium text-gray-900 dark:text-white ml-2">Invoice @InvoiceNumber</span>
+                        </div>
+                    </div>
+                </div>
+            </div>
+        }
+    </div>
+}
+
+<!-- Footer -->
+<div class="px-8 py-4 border-t border-gray-100 dark:border-slate-700 bg-gray-50 dark:bg-slate-800/50">
+    <p class="text-center text-xs text-gray-400 dark:text-slate-500">
+        @string.Format(culture, L.ThanksAndDueBy, DueDate.ToString("d MMMM yyyy", culture))
+    </p>
+</div>
+
+@code {
+    // Invoice identification
+    [Parameter] public string InvoiceNumber { get; set; } = "";
+    [Parameter] public string Status { get; set; } = "";
+    [Parameter] public string Currency { get; set; } = "GBP";
+
+    /// <summary>
+    /// SupportedLanguage name the invoice is written in. Chooses the fixed
+    /// labels and the culture used to format dates. Unknown values fall back
+    /// to English rather than throwing.
+    /// </summary>
+    [Parameter] public string Language { get; set; } = "English";
+    [Parameter] public DateOnly IssueDate { get; set; }
+    [Parameter] public DateOnly DueDate { get; set; }
+    [Parameter] public DateOnly? PaidDate { get; set; }
+
+    // Business info
+    [Parameter] public string? BusinessName { get; set; }
+    [Parameter] public string? BusinessAddress { get; set; }
+    [Parameter] public string? BusinessEmail { get; set; }
+    [Parameter] public string? BusinessPhone { get; set; }
+    [Parameter] public byte[]? BusinessLogo { get; set; }
+    [Parameter] public string? TaxNumber { get; set; }
+    [Parameter] public string? RegistrationNumber { get; set; }
+
+    // Client info
+    [Parameter] public string ClientName { get; set; } = "";
+    [Parameter] public string? ClientCompanyName { get; set; }
+    [Parameter] public string? ClientAddress { get; set; }
+    [Parameter] public string? ClientEmail { get; set; }
+
+    // Amounts
+    [Parameter] public decimal Subtotal { get; set; }
+    [Parameter] public decimal TaxRate { get; set; }
+    [Parameter] public decimal TaxAmount { get; set; }
+    [Parameter] public decimal Total { get; set; }
+    [Parameter] public string? Notes { get; set; }
+
+    // Line items
+    [Parameter] public List<InvoiceLineItemDto>? LineItems { get; set; }
+    [Parameter] public List<InvoiceExpenseLineItemDto>? ExpenseLineItems { get; set; }
+    [Parameter] public List<InvoiceProductLineItemDto>? ProductLineItems { get; set; }
+
+    // VND Conversion
+    [Parameter] public string? DefaultCurrency { get; set; }
+    [Parameter] public decimal? VndToDefaultCurrencyRate { get; set; }
+
+    // Template settings
+    [Parameter] public string PrimaryColor { get; set; } = "#0e5c66";
+    [Parameter] public string AccentColor { get; set; } = "#059669";
+    [Parameter] public bool ShowLogo { get; set; } = true;
+    [Parameter] public bool ShowItemDescriptions { get; set; } = true;
+    [Parameter] public string HeaderLayout { get; set; } = "standard";
+    [Parameter] public string ItemsLayout { get; set; } = "standard";
+    [Parameter] public string FooterLayout { get; set; } = "standard";
+
+    // Payment options
+    [Parameter] public string? PayPalMeUsername { get; set; }
+    [Parameter] public string? WiseEmail { get; set; }
+    [Parameter] public string? RevolutUsername { get; set; }
+    [Parameter] public CurrencyPaymentSettingsDto? CurrencyPaymentSettings { get; set; }
+
+    // Payment helper methods
+    private bool HasOnlinePaymentButtons()
+    {
+        var hasOnlinePayments = !string.IsNullOrEmpty(PayPalMeUsername) ||
+                                !string.IsNullOrEmpty(WiseEmail) ||
+                                !string.IsNullOrEmpty(RevolutUsername);
+        // Show for non-VND, or VND with conversion rate set
+        return hasOnlinePayments && (Currency != "VND" || VndToDefaultCurrencyRate.HasValue);
+    }
+
+    private bool HasPaymentOptions()
+    {
+        return HasOnlinePaymentButtons() || HasVietQr() || HasBankTransferDetails();
+    }
+
+    private bool HasVietQr()
+    {
+        return Currency == "VND" &&
+               !string.IsNullOrEmpty(CurrencyPaymentSettings?.VietQrBankCode) &&
+               !string.IsNullOrEmpty(CurrencyPaymentSettings?.BankAccountNumber);
+    }
+
+    private bool HasBankTransferDetails()
+    {
+        return CurrencyPaymentSettings != null &&
+               !string.IsNullOrEmpty(CurrencyPaymentSettings.BankAccountNumber);
+    }
+
+    private string GetVietQrUrl()
+    {
+        if (CurrencyPaymentSettings == null)
+            return "";
+
+        var bankId = CurrencyPaymentSettings.VietQrBankCode;
+        var accountNo = CurrencyPaymentSettings.BankAccountNumber;
+        var amount = ((long)Total).ToString();
+        var description = Uri.EscapeDataString($"Invoice {InvoiceNumber}");
+        var accountName = Uri.EscapeDataString(CurrencyPaymentSettings.BankAccountName ?? "");
+
+        return $"https://img.vietqr.io/image/{bankId}-{accountNo}-compact.png?amount={amount}&addInfo={description}&accountName={accountName}";
+    }
+
+    private decimal GetPaymentAmount()
+    {
+        if (Currency == "VND" && VndToDefaultCurrencyRate.HasValue && VndToDefaultCurrencyRate.Value > 0)
+        {
+            return Math.Round(Total / VndToDefaultCurrencyRate.Value, 2);
+        }
+        return Total;
+    }
+
+    private string GetPaymentCurrency()
+    {
+        if (Currency == "VND" && VndToDefaultCurrencyRate.HasValue)
+        {
+            return DefaultCurrency ?? "USD";
+        }
+        return Currency;
+    }
+
+    private string GetPaymentDisplayText()
+    {
+        if (Currency == "VND" && VndToDefaultCurrencyRate.HasValue)
+        {
+            var convertedAmount = GetPaymentAmount();
+            var paymentCurrency = GetPaymentCurrency();
+            return $"{CurrencyExtensions.GetSymbol(paymentCurrency)}{convertedAmount:N2} ({paymentCurrency})";
+        }
+        return $"{CurrencyExtensions.GetSymbol(Currency)}{Total:N2}";
+    }
+
+    private string GetPayPalLink()
+    {
+        if (string.IsNullOrEmpty(PayPalMeUsername))
+            return "#";
+
+        var amount = GetPaymentAmount().ToString("F2", System.Globalization.CultureInfo.InvariantCulture);
+        return $"https://paypal.me/{PayPalMeUsername}/{amount}";
+    }
+
+    private string GetWiseLink()
+    {
+        if (string.IsNullOrEmpty(WiseEmail))
+            return "#";
+
+        var amount = GetPaymentAmount().ToString("F2", System.Globalization.CultureInfo.InvariantCulture);
+        var email = Uri.EscapeDataString(WiseEmail);
+        var currency = GetPaymentCurrency();
+        return $"https://wise.com/pay/me?email={email}&amount={amount}&currency={currency}";
+    }
+
+    private string GetRevolutLink()
+    {
+        if (string.IsNullOrEmpty(RevolutUsername))
+            return "#";
+
+        var paymentAmount = GetPaymentAmount();
+        var amountInSmallestUnit = (long)(paymentAmount * 100);
+        var currency = GetPaymentCurrency();
+        return $"https://revolut.me/{RevolutUsername}?currency={currency}&amount={amountInSmallestUnit}";
+    }
+}

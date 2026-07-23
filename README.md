@@ -1,238 +1,170 @@
-# InvoicePro
+# Akinai 商い
 
-A modern, full-featured invoicing and business management application built with .NET 10 and Blazor Web App using Interactive Auto render mode.
+Invoicing for people who bill across borders.
+
+Your client receives the invoice in **their** language, priced in **their** currency, payable on a **rail they already use** — VietQR, bank transfer, PayPal, Wise or Revolut. You keep working in English.
+
+Built with .NET 10 and Blazor Web App (Interactive Auto).
+
+---
+
+## What makes it different
+
+Most invoicing tools assume you and your client share a language and a banking system. Akinai assumes you don't.
+
+- **Documents in the client's language.** Fixed labels — Subtotal, Amount Due, Bill To — come from a translation table in code, so they render instantly, cost nothing, and use the term a local accountant expects. Only the text *you* wrote (job descriptions, notes) goes through machine translation.
+- **Language pins to the invoice.** Once issued, an invoice keeps the language it was sent in. Changing your default later cannot rewrite a document your client already has.
+- **The PDF is the web page.** Both are rendered from the same Blazor component — the PDF is printed from `/invoice/print/{token}` by headless Chromium. There is no second implementation to drift.
+- **Cross-border payment details.** Correspondent bank, SWIFT/BIC, purpose-of-payment codes — the fields that stop a wire from Asia being returned.
+
+Eight languages: English, Spanish, French, German, Chinese, Vietnamese, Russian, Korean.
+
+---
 
 ## Features
 
-### Core Invoicing
-- **Invoice Management** - Create, edit, send, and track invoices with customizable templates
-- **Estimates/Quotes** - Create estimates that can be accepted by clients and converted to invoices
-- **Recurring Invoices** - Set up automated recurring billing on custom schedules
-- **PDF Generation** - Professional PDF invoices and estimates using QuestPDF
-- **Public Invoice Links** - Share invoices via secure token-based URLs
+**Invoicing** — invoices, estimates clients can accept and sign online, recurring billing, public share links, four visual templates, view tracking (know when your client opened it).
 
-### Client Management
-- **Client Database** - Store client details, billing addresses, and contact information
-- **Client Portal** - Dedicated client-facing area for viewing invoices and estimates
-- **Client-specific Settings** - Per-client language preferences and billing configurations
+**Work tracking** — timesheets against projects and jobs, expenses, recurring expenses, a product/service catalogue.
 
-### Time & Expense Tracking
-- **Timesheet** - Track billable hours with project and job associations
-- **Expense Tracking** - Log and categorize business expenses
-- **Recurring Expenses** - Automate regular expense entries
-- **Bank Statement Import** - Import CSV bank statements and match transactions to invoices
+**Money in** — multi-currency with live exchange rates, per-currency bank details, VietQR, PayPal/Wise/Revolut links, CSV bank-statement import matched against open invoices.
 
-### Project Management
-- **Projects** - Organize work into projects with sections
-- **Jobs** - Define billable work items with hourly rates
-- **Product/Service Catalog** - Maintain a reusable catalog of products and services
+**Billing** — Free and Pro plans, editable from the admin area without a deploy. Entitlements are resolved server-side, never trusted from the UI.
 
-### Business Settings
-- **Business Profile** - Company details, logo, tax numbers, and registration info
-- **Invoice Templates** - Multiple customizable visual styles (Minimal, Professional, Modern, Classic)
-- **Multi-Currency Support** - Handle invoices in different currencies with per-currency payment settings
-- **Multi-Language Support** - Localized invoices and estimates
-- **Payment Options** - Bank transfer details, PayPal, Wise, Revolut integration
-- **VietQR Integration** - QR code payments for Vietnamese bank transfers
+**AI** — invoice text translated through Azure Translator, cached by content hash so the same phrase is paid for once, and capped per account per month.
 
-### Security & Authentication
-- **ASP.NET Core Identity** - Full authentication with email confirmation
-- **Two-Factor Authentication** - TOTP authenticator app support
-- **Passkey/WebAuthn** - Modern passwordless authentication
-- **External OAuth** - Support for external login providers
+**Security** — ASP.NET Core Identity, two-factor, passkeys/WebAuthn, external OAuth.
 
-## Technology Stack
+---
 
-- **.NET 10** (Preview)
-- **Blazor Web App** - Interactive Auto render mode (Server + WebAssembly)
-- **Entity Framework Core** - SQL Server database
-- **ASP.NET Core Identity** - Authentication and authorization
-- **QuestPDF** - PDF generation
-- **Tailwind CSS** - Styling
-- **BlazorUtils.EasyApi** - Simplified API handling
-
-## Project Structure
+## Project structure
 
 ```
-InvoiceSoftware/
-├── InvoiceSoftware/                 # Server project (ASP.NET Core host)
-│   ├── Components/
-│   │   ├── Account/                 # Identity UI pages
-│   │   └── Pages/                   # Server-rendered pages
-│   └── Data/                        # DbContext and migrations
-│
-├── InvoiceSoftware.Client/          # WebAssembly client project
-│   ├── Pages/                       # Application pages
-│   │   ├── Invoices/
-│   │   ├── Estimates/
-│   │   ├── Clients/
-│   │   ├── Projects/
-│   │   ├── Jobs/
-│   │   ├── Timesheet/
-│   │   ├── Expenses/
-│   │   ├── Products/
-│   │   ├── RecurringInvoices/
-│   │   ├── RecurringExpenses/
-│   │   ├── BankImport/
-│   │   ├── ClientPortal/
-│   │   ├── Settings/
-│   │   └── Account/
-│   ├── Components/                  # Shared UI components
-│   └── Layout/                      # App layout components
-│
-├── InvoiceSoftware.Domain/          # Domain entities and business logic
-│   ├── Entities/
-│   ├── Enums/
-│   └── ValueObjects/
-│
-├── InvoiceSoftware.Infrastructure/  # Data access and services
-│   ├── Data/                        # EF Core configurations
-│   ├── Handlers/                    # API request handlers
-│   └── Services/                    # Business services (PDF, etc.)
-│
-└── InvoiceSoftware.Shared/          # Shared DTOs and API contracts
-    ├── Api/                         # API request/response definitions
-    ├── Dtos/                        # Data transfer objects
-    └── Services/                    # Shared service interfaces
+Akinai.sln
+├── src/
+│   ├── Akinai/                  # ASP.NET Core host, Identity UI, print routes
+│   ├── Akinai.Client/           # Blazor WebAssembly — app pages and components
+│   ├── Akinai.Domain/           # Entities, enums, value objects
+│   ├── Akinai.Infrastructure/   # EF Core, handlers, services (PDF, translation, billing)
+│   ├── Akinai.Shared/           # API contracts, DTOs, plan catalogue, invoice labels
+│   └── fetch-fonts.sh           # Downloads PDF fonts at build time
+└── tests/
+    └── Akinai.Tests/            # xUnit
 ```
 
-## Getting Started
+---
+
+## Getting started
 
 ### Prerequisites
 
-- [.NET 10 SDK](https://dotnet.microsoft.com/download/dotnet/10.0) (Preview)
-- A code editor (VS Code, Visual Studio 2022, or JetBrains Rider)
+- [.NET 10 SDK](https://dotnet.microsoft.com/download/dotnet/10.0)
+- SQL Server (or SQLite — see *Database provider* below)
+- Node.js — only to rebuild the Tailwind stylesheet
 
-### Running the Application
-
-1. Clone the repository:
-   ```bash
-   git clone <repository-url>
-   cd InvoiceSoftware
-   ```
-
-2. Build the solution:
-   ```bash
-   dotnet build InvoiceSoftware.sln
-   ```
-
-3. Run the application:
-   ```bash
-   dotnet run --project InvoiceSoftware/InvoiceSoftware/InvoiceSoftware.csproj
-   ```
-
-4. Open your browser and navigate to `https://localhost:5001` or `http://localhost:5000`
-
-### Development with Hot Reload
+### Run it
 
 ```bash
-dotnet watch --project InvoiceSoftware/InvoiceSoftware/InvoiceSoftware.csproj
+git clone <repository-url>
+cd Akinai
+
+# Configuration is gitignored; start from the example
+cp src/Akinai/appsettings.example.json src/Akinai/appsettings.json
+
+dotnet build Akinai.sln
+dotnet run --project src/Akinai/Akinai.csproj
 ```
 
-### Database Migrations
+The schema is applied at startup — SQL Server runs EF migrations, SQLite is created from the model.
 
-Create a new migration:
+### Other commands
+
 ```bash
-dotnet ef migrations add <MigrationName> --project InvoiceSoftware/InvoiceSoftware
+# Hot reload
+dotnet watch --project src/Akinai/Akinai.csproj
+
+# Tests
+dotnet test Akinai.sln
+
+# Rebuild Tailwind after editing wwwroot/css/input.css
+cd src/Akinai && npm run css:build
 ```
 
-Apply migrations:
+### Migrations
+
+Migrations live in Infrastructure, but the connection string lives in the host — so both projects are needed:
+
 ```bash
-dotnet ef database update --project InvoiceSoftware/InvoiceSoftware
+dotnet ef migrations add <Name> --project src/Akinai.Infrastructure --startup-project src/Akinai
+dotnet ef database update      --project src/Akinai.Infrastructure --startup-project src/Akinai
 ```
+
+Migrations are **SQL Server-specific**. Keep `DatabaseProvider` set to `SqlServer` when adding one.
+
+---
 
 ## Configuration
 
-### Database
+All of the below live in `src/Akinai/appsettings.json`, which is gitignored — put real secrets there, not in the example file.
 
-The application uses SQL Server. Copy `appsettings.json.example` to `appsettings.json` and configure your connection string:
+| Section | Needed for | Without it |
+|---|---|---|
+| `ConnectionStrings` | The database | Won't start |
+| `Admin` | Seeds the first admin account | No admin user |
+| `Translation` | Azure Translator key + region | Documents show English text under translated labels |
+| `ExchangeRate` | Live FX rates | Falls back to hardcoded rates |
+| `Smtp` | Sending invoices by email | Emails are logged, not sent |
 
-```bash
-cp InvoiceSoftware/InvoiceSoftware/appsettings.json.example InvoiceSoftware/InvoiceSoftware/appsettings.json
-```
+**The Azure Translator region must match your resource** — a mismatch returns 401, and because translation fails soft you'll simply see untranslated text with no error.
 
-Then edit `appsettings.json` with your SQL Server credentials:
-```json
-{
-  "ConnectionStrings": {
-    "DefaultConnection": "Server=localhost;Database=InvoiceSoftware;User Id=YOUR_USERNAME;Password=YOUR_PASSWORD;TrustServerCertificate=True;Encrypt=False;"
-  }
-}
-```
+### Database provider
 
-### Email Configuration
+SQL Server by default. Set `"DatabaseProvider": "Sqlite"` to use SQLite instead — handy for local work, but note SQLite has no native `decimal`, so money ordering and aggregation are approximate. Fine for development; weigh it for production.
 
-The application uses a no-op email sender by default. For production, configure a real SMTP provider in `Program.cs`:
+### PDF rendering
 
-```csharp
-builder.Services.AddTransient<IEmailSender<ApplicationUser>, SmtpEmailSender>();
-```
+PDFs are produced by printing the app's own invoice page with headless Chromium (PuppeteerSharp). Chromium downloads on first use (~150 MB) and is cached.
 
-### External Authentication
+Fonts are **fetched at build time**, not committed — `src/fetch-fonts.sh` pulls Noto Sans and Noto Sans SC into `src/Akinai.Infrastructure/Fonts/`, which is gitignored. Without them the PDF falls back to Lato and non-Latin scripts won't render.
 
-Configure OAuth providers in `Program.cs`:
+In a container, bake Chromium into the image rather than fetching at runtime.
 
-```csharp
-builder.Services.AddAuthentication()
-    .AddGoogle(options =>
-    {
-        options.ClientId = "your-client-id";
-        options.ClientSecret = "your-client-secret";
-    });
-```
+---
 
-## Domain Entities
+## Architecture notes
 
-| Entity | Description |
-|--------|-------------|
-| `Client` | Customer/client information |
-| `Project` | Work projects with sections |
-| `Job` | Billable work items |
-| `TimeEntry` | Logged time entries |
-| `Invoice` | Customer invoices |
-| `Estimate` | Quotes/estimates |
-| `Expense` | Business expenses |
-| `Product` | Product/service catalog items |
-| `RecurringInvoice` | Recurring billing templates |
-| `RecurringExpense` | Recurring expense templates |
-| `InvoiceTemplate` | Visual invoice styles |
-| `BankTransaction` | Imported bank transactions |
-| `Attachment` | File attachments |
-| `DigitalSignature` | Electronic signatures |
-| `BusinessProfile` | Company settings |
+**API layer** — [BlazorUtils.EasyApi](https://github.com/) gives a contract/handler pattern. Contracts in `Akinai.Shared/Api/`, handlers in `Akinai.Infrastructure/Handlers/`, called client-side through `ICall<TRequest, TResponse>`.
 
-## API Architecture
+> Parameters need explicit `[RouteParam]`, `[QueryStringParam]` or `[BodyParam]` attributes. Without them, route placeholders aren't substituted and body values aren't serialised — and because server-side calls bypass HTTP, the bug only appears once the page is running on WebAssembly.
 
-The application uses **BlazorUtils.EasyApi** for a clean request/response pattern:
+**Entitlements** — resolved from the plan catalogue, never from the UI. A lapsed or past-due subscription resolves to Free even if the stored plan says otherwise. The catalogue reads from the database and falls back to the compiled defaults in `Plans.cs` rather than failing open.
 
-- API contracts are defined in `InvoiceSoftware.Shared/Api/`
-- Handlers implement the contracts in `InvoiceSoftware.Infrastructure/Handlers/`
-- Client-side calls use `ICall<TRequest, TResponse>` injection
+**Render mode** — Interactive Auto: the same component runs on Blazor Server until the WebAssembly runtime is cached, then in the browser. Anything writing to the response (cookies, headers) must be triggered from browser JS, not from a component.
 
-Example:
-```csharp
-// Contract (Shared)
-public record GetInvoice(Guid Id) : IGet<InvoiceDetailDto>;
+### Key entities
 
-// Handler (Infrastructure)
-public class GetInvoiceHandler : IHandle<GetInvoice, InvoiceDetailDto>
-{
-    public async Task<HttpResult<InvoiceDetailDto>> Handle(GetInvoice request, CancellationToken ct)
-    {
-        // Implementation
-    }
-}
+| Entity | Purpose |
+|---|---|
+| `Client`, `Project`, `Job`, `TimeEntry` | Who you work for and what you did |
+| `Invoice`, `InvoiceLineItem`, `Estimate` | The documents |
+| `RecurringInvoice`, `RecurringExpense` | Scheduled billing |
+| `Expense`, `Product` | Costs and catalogue |
+| `BankTransaction` | Imported statement lines, matched to invoices |
+| `BusinessProfile`, `CurrencyPaymentSettings` | Your details and per-currency payment info |
+| `UserLanguagePreference`, `ClientLanguageSetting` | Document language defaults and per-client overrides |
+| `PlanSettings`, `SubscriptionEvent`, `CheckoutSession` | Billing |
+| `AiUsage`, `TranslationCacheEntry` | AI spend tracking and the translation cache |
 
-// Usage (Client)
-@inject ICall<GetInvoice, InvoiceDetailDto> GetInvoiceCall
+---
 
-var invoice = await GetInvoiceCall.Call(new GetInvoice(invoiceId));
-```
+## Status
+
+Payments are **simulated**. `SimulatedBillingProvider` marks a checkout paid immediately — the flow, entitlements and audit trail are real, but no money moves. Going live means implementing `IBillingProvider` against Stripe and calling `CompleteCheckoutAsync` from a signature-verified webhook.
+
+Estimates lag invoices: they still use the QuestPDF generator and aren't translated.
+
+---
 
 ## License
 
-This project is proprietary software. All rights reserved.
-
-## Support
-
-For issues and feature requests, please contact the development team.
+Proprietary. All rights reserved.

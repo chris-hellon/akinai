@@ -160,6 +160,8 @@ package-lock.json
 !.env.example
 appsettings.json
 appsettings.*.json
+# …except the template, which documents what needs filling in.
+!**/appsettings.example.json
 !appsettings.json.example
 secrets.json
 
@@ -206,4 +208,4 @@ CLAUDE.md
 .fake
 # PDF fonts — fetched by InvoiceSoftware/fetch-fonts.sh at build time rather
 # than committed. ~24 MB of binaries that would sit in git history forever.
-InvoiceSoftware/InvoiceSoftware.Infrastructure/Fonts/*.ttf
+src/Akinai.Infrastructure/Fonts/*.ttf

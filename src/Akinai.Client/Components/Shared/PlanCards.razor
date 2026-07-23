@@ -1,0 +1,89 @@
+@using Akinai.Shared.Billing
+
+@*
+    The plan line-up. Reads straight from the Plans catalogue that the
+    server-side gates read, so the pricing shown and the limits enforced cannot
+    drift apart.
+*@
+
+<div class="grid gap-4 @(Plans.All.Count > 1 ? "md:grid-cols-2" : "")">
+    @foreach (var plan in Plans.All)
+    {
+        var isCurrent = CurrentPlan == plan.Plan;
+        <div class="rounded-2xl border p-6 flex flex-col @(isCurrent
+                ? "border-primary-600 dark:border-primary-400 ring-1 ring-primary-600/20"
+                : "border-gray-200 dark:border-[#2f2924]")">
+
+            <div class="flex items-start justify-between gap-3">
+                <div>
+                    <h3 class="text-lg font-semibold text-gray-900 dark:text-slate-100">@plan.Name</h3>
+                    <p class="mt-1 text-sm text-gray-500 dark:text-slate-400">@plan.Tagline</p>
+                </div>
+                @if (isCurrent)
+                {
+                    <span class="shrink-0 px-2.5 py-1 text-xs font-medium rounded-full bg-primary-50 dark:bg-primary-900/30 text-primary-700 dark:text-primary-300">
+                        Current
+                    </span>
+                }
+            </div>
+
+            <div class="mt-5">
+                @if (plan.IsPaid)
+                {
+                    <div class="flex items-baseline gap-1">
+                        <span class="text-3xl font-bold text-gray-900 dark:text-slate-100">
+                            @plan.CurrencySymbol@FormatPrice(plan.PriceFor(Cycle))
+                        </span>
+                        <span class="text-sm text-gray-500 dark:text-slate-400">
+                            @(Cycle == BillingCycle.Annual ? "/year" : "/month")
+                        </span>
+                    </div>
+                    @if (Cycle == BillingCycle.Annual)
+                    {
+                        <p class="mt-1 text-xs text-primary-700 dark:text-primary-300">
+                            @plan.AnnualMonthsFree months free versus paying monthly
+                        </p>
+                    }
+                }
+                else
+                {
+                    <div class="flex items-baseline gap-1">
+                        <span class="text-3xl font-bold text-gray-900 dark:text-slate-100">Free</span>
+                        <span class="text-sm text-gray-500 dark:text-slate-400">forever</span>
+                    </div>
+                    <p class="mt-1 text-xs text-gray-500 dark:text-slate-400">No card required</p>
+                }
+            </div>
+
+            <ul class="mt-5 space-y-2 flex-1">
+                @foreach (var highlight in plan.Highlights)
+                {
+                    <li class="flex items-start gap-2 text-sm text-gray-700 dark:text-slate-300">
+                        <svg class="w-4 h-4 mt-0.5 shrink-0 text-primary-600 dark:text-primary-400" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                            <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M5 13l4 4L19 7" />
+                        </svg>
+                        <span>@highlight</span>
+                    </li>
+                }
+            </ul>
+
+            @if (ActionTemplate is not null)
+            {
+                <div class="mt-6">
+                    @ActionTemplate(plan)
+                </div>
+            }
+        </div>
+    }
+</div>
+
+@code {
+    [Parameter] public BillingPlan? CurrentPlan { get; set; }
+    [Parameter] public BillingCycle Cycle { get; set; } = BillingCycle.Monthly;
+
+    /// <summary>Rendered at the foot of each card — the button differs by context.</summary>
+    [Parameter] public RenderFragment<PlanDefinition>? ActionTemplate { get; set; }
+
+    private static string FormatPrice(decimal price)
+        => price == Math.Floor(price) ? price.ToString("0") : price.ToString("0.00");
+}

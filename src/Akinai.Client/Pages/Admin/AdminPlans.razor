@@ -1,0 +1,211 @@
+@page "/admin/plans"
+@attribute [Authorize(Roles = "Admin")]
+
+@using Akinai.Shared.Billing
+@inject ICall<GetPlanSettings, List<PlanDefinition>> GetPlansCall
+@inject ICall<SavePlanSettings> SavePlanCall
+
+<PageTitle>Plans - Akinai</PageTitle>
+
+<div class="space-y-6">
+    <PageHeader Title="Plans"
+                Description="What each tier costs and what it unlocks. Changes take effect immediately."
+                Breadcrumbs="@(new List<PageHeader.BreadcrumbItem> { new("Admin", "/admin"), new("Plans") })" />
+
+    @if (_isLoading)
+    {
+        <LoadingSpinner Padding="py-20" />
+    }
+    else
+    {
+        @if (!string.IsNullOrEmpty(_status))
+        {
+            <div class="@(_isError ? "bg-red-50 border-red-200 text-red-700" : "bg-emerald-50 border-emerald-200 text-emerald-700") p-4 border rounded-xl text-sm">
+                @_status
+            </div>
+        }
+
+        @foreach (var p in _plans)
+        {
+            <Card Title="@p.Name">
+                <div class="space-y-5">
+                    <div class="grid grid-cols-1 gap-4 sm:grid-cols-2">
+                        <div>
+                            <label class="block text-sm font-medium text-gray-700 dark:text-slate-300 mb-2">Name</label>
+                            <input type="text" @bind="p.Name" class="form-control" />
+                        </div>
+                        <div>
+                            <label class="block text-sm font-medium text-gray-700 dark:text-slate-300 mb-2">Tagline</label>
+                            <input type="text" @bind="p.Tagline" class="form-control" />
+                        </div>
+                    </div>
+
+                    <div class="grid grid-cols-1 gap-4 sm:grid-cols-3">
+                        <div>
+                            <label class="block text-sm font-medium text-gray-700 dark:text-slate-300 mb-2">Monthly price</label>
+                            <input type="number" step="0.01" min="0" @bind="p.MonthlyPrice" disabled="@(!p.IsPaidTier)" class="form-control" />
+                        </div>
+                        <div>
+                            <label class="block text-sm font-medium text-gray-700 dark:text-slate-300 mb-2">Annual price</label>
+                            <input type="number" step="0.01" min="0" @bind="p.AnnualPrice" disabled="@(!p.IsPaidTier)" class="form-control" />
+                        </div>
+                        <div>
+                            <label class="block text-sm font-medium text-gray-700 dark:text-slate-300 mb-2">
+                                Invoices / month
+                                <span class="font-normal text-gray-500">— blank for unlimited</span>
+                            </label>
+                            <input type="number" min="0" @bind="p.InvoicesPerMonth" class="form-control" />
+                        </div>
+                    </div>
+
+                    <div>
+                        <label class="block text-sm font-medium text-gray-700 dark:text-slate-300 mb-2">Features unlocked</label>
+                        <div class="grid grid-cols-2 gap-2 sm:grid-cols-4">
+                            <label class="flex items-center gap-2 text-sm"><input type="checkbox" @bind="p.MultiCurrency" /> Multi-currency</label>
+                            <label class="flex items-center gap-2 text-sm"><input type="checkbox" @bind="p.AllLanguages" /> All languages</label>
+                            <label class="flex items-center gap-2 text-sm"><input type="checkbox" @bind="p.BankImport" /> Bank import</label>
+                            <label class="flex items-center gap-2 text-sm"><input type="checkbox" @bind="p.RecurringBilling" /> Recurring</label>
+                            <label class="flex items-center gap-2 text-sm"><input type="checkbox" @bind="p.Estimates" /> Estimates</label>
+                            <label class="flex items-center gap-2 text-sm"><input type="checkbox" @bind="p.CustomTemplates" /> Templates</label>
+                            <label class="flex items-center gap-2 text-sm"><input type="checkbox" @bind="p.RemoveBranding" /> No branding</label>
+                        </div>
+                    </div>
+
+                    <div>
+                        <label class="block text-sm font-medium text-gray-700 dark:text-slate-300 mb-2">
+                            Monthly AI allowance (USD)
+                            <span class="font-normal text-gray-500">— blank for none</span>
+                        </label>
+                        <input type="number" step="0.01" min="0" @bind="p.AiSpendLimitUsd" class="form-control sm:max-w-xs" />
+                    </div>
+
+                    <div>
+                        <label class="block text-sm font-medium text-gray-700 dark:text-slate-300 mb-2">
+                            Pricing-page bullets
+                            <span class="font-normal text-gray-500">— one per line</span>
+                        </label>
+                        <textarea @bind="p.Highlights" rows="8" class="form-control resize-none font-mono text-xs"></textarea>
+                        @* The bullets are prose, not the enforced limits. Nothing keeps
+                           "5 invoices per month" in step with the number above it, so say so. *@
+                        <p class="mt-1.5 text-xs text-amber-700 dark:text-amber-500">
+                            These are marketing copy only — they are not what gets enforced.
+                            If you change a limit above, update the matching bullet yourself.
+                        </p>
+                    </div>
+
+                    <div class="flex justify-end">
+                        <PrimaryButton Text="Save" OnClick="@(() => SaveAsync(p))" IsLoading="@(_savingPlan == p.Plan)" ShowIcon="false" />
+                    </div>
+                </div>
+            </Card>
+        }
+    }
+</div>
+
+@code {
+    private List<EditablePlan> _plans = new();
+    private bool _isLoading = true;
+    private string? _savingPlan;
+    private string? _status;
+    private bool _isError;
+
+    protected override async Task OnInitializedAsync() => await LoadAsync();
+
+    private async Task LoadAsync()
+    {
+        _isLoading = true;
+        var plans = await GetPlansCall.Call(new GetPlanSettings()) ?? new();
+        _plans = plans.Select(EditablePlan.From).ToList();
+        _isLoading = false;
+    }
+
+    private async Task SaveAsync(EditablePlan p)
+    {
+        _savingPlan = p.Plan;
+        _status = null;
+        try
+        {
+            await SavePlanCall.Call(new SavePlanSettings
+            {
+                Plan = p.Plan,
+                Name = p.Name,
+                Tagline = p.Tagline,
+                MonthlyPrice = p.MonthlyPrice,
+                AnnualPrice = p.AnnualPrice,
+                Currency = p.Currency,
+                CurrencySymbol = p.CurrencySymbol,
+                InvoicesPerMonth = p.InvoicesPerMonth,
+                MultiCurrency = p.MultiCurrency,
+                AllLanguages = p.AllLanguages,
+                BankImport = p.BankImport,
+                RecurringBilling = p.RecurringBilling,
+                Estimates = p.Estimates,
+                CustomTemplates = p.CustomTemplates,
+                RemoveBranding = p.RemoveBranding,
+                AiSpendLimitUsd = p.AiSpendLimitUsd,
+                Highlights = p.Highlights,
+            });
+            _status = $"{p.Name} saved. It applies to every account from the next request.";
+            _isError = false;
+        }
+        catch (Exception ex)
+        {
+            _status = $"Could not save {p.Name}: {ex.Message}";
+            _isError = true;
+        }
+        finally
+        {
+            _savingPlan = null;
+        }
+    }
+
+    /// <summary>
+    /// A mutable copy for the form. PlanDefinition is a record used across the
+    /// app and must stay immutable — binding inputs straight to it would let the
+    /// editor mutate what the entitlement checks are reading.
+    /// </summary>
+    private sealed class EditablePlan
+    {
+        public string Plan { get; set; } = "";
+        public string Name { get; set; } = "";
+        public string Tagline { get; set; } = "";
+        public decimal MonthlyPrice { get; set; }
+        public decimal AnnualPrice { get; set; }
+        public string Currency { get; set; } = "GBP";
+        public string CurrencySymbol { get; set; } = "£";
+        public int? InvoicesPerMonth { get; set; }
+        public bool MultiCurrency { get; set; }
+        public bool AllLanguages { get; set; }
+        public bool BankImport { get; set; }
+        public bool RecurringBilling { get; set; }
+        public bool Estimates { get; set; }
+        public bool CustomTemplates { get; set; }
+        public bool RemoveBranding { get; set; }
+        public decimal? AiSpendLimitUsd { get; set; }
+        public string Highlights { get; set; } = "";
+
+        /// <summary>The free tier's price fields are fixed at zero, so they are read-only.</summary>
+        public bool IsPaidTier => Plan != BillingPlan.Free.ToString();
+
+        public static EditablePlan From(PlanDefinition d) => new()
+        {
+            Plan = d.Plan.ToString(),
+            Name = d.Name,
+            Tagline = d.Tagline,
+            MonthlyPrice = d.MonthlyPrice,
+            AnnualPrice = d.AnnualPrice,
+            Currency = d.Currency,
+            CurrencySymbol = d.CurrencySymbol,
+            InvoicesPerMonth = d.InvoicesPerMonth,
+            MultiCurrency = d.MultiCurrency,
+            AllLanguages = d.AllLanguages,
+            BankImport = d.BankImport,
+            RecurringBilling = d.RecurringBilling,
+            Estimates = d.Estimates,
+            CustomTemplates = d.CustomTemplates,
+            RemoveBranding = d.RemoveBranding,
+            AiSpendLimitUsd = d.AiSpendLimitUsd,
+            Highlights = string.Join('\n', d.Highlights),
+        };
+    }
+}

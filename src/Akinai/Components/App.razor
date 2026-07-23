@@ -1,0 +1,121 @@
+﻿<!DOCTYPE html>
+<html lang="en">
+<script>
+    // Apply dark mode immediately to prevent flash - runs before any content renders
+    (function() {
+        try {
+            var p = location.pathname.toLowerCase().replace(/\/+$/, '');
+            var alwaysLight = (p === '') ||
+                (p.indexOf('/account/') === 0 && p.indexOf('/account/manage') !== 0);
+            if (alwaysLight) return;
+
+            var stored = localStorage.getItem('darkMode');
+            // Only apply if user has explicitly set preference, or fall back to system preference
+            if (stored === 'true' || (stored === null && window.matchMedia && window.matchMedia('(prefers-color-scheme: dark)').matches)) {
+                document.documentElement.classList.add('dark');
+            }
+        } catch (e) {}
+    })();
+</script>
+<head>
+    <meta charset="utf-8"/>
+    <meta name="viewport" content="width=device-width, initial-scale=1.0"/>
+    <base href="/"/>
+    <ResourcePreloader/>
+    @if (!IsPrintRoute)
+    {
+        <link rel="preconnect" href="https://fonts.googleapis.com">
+            <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+            <link href="https://fonts.googleapis.com/css2?family=Inter:wght@300;400;500;600;700&family=Sora:wght@400;500;600;700;800&family=IBM+Plex+Mono:wght@400;500;600&family=Caveat:wght@500;600&family=Shippori+Mincho:wght@500;600;700;800&family=Noto+Sans:wght@400;500;600;700&family=Zen+Kaku+Gothic+New:wght@400;500;700&display=swap" rel="stylesheet">
+    }
+    <link rel="stylesheet" href="@Assets["css/shared.css"]"/>
+    <link rel="stylesheet" href="@Assets["Akinai.styles.css"]"/>
+    <ImportMap/>
+    <link rel="icon" type="image/svg+xml" href="favicon.svg"/>
+    <link rel="icon" type="image/png" href="favicon.png"/>
+    <HeadOutlet @rendermode="PageRenderMode"/>
+</head>
+
+<body>
+<Routes @rendermode="PageRenderMode"/>
+@if (!IsPrintRoute)
+{
+    <ReconnectModal/>
+    <script src="@Assets["_framework/blazor.web.js"]"></script>
+}
+<script src="@Assets["Components/Account/Shared/PasskeySubmit.razor.js"]" type="module"></script>
+<script src="@Assets["js/tooltip.js"]"></script>
+<script src="@Assets["js/formcontrols.js"]"></script>
+<script>
+    window.downloadFile = function(fileName, base64, contentType) {
+        const link = document.createElement('a');
+        link.href = 'data:' + contentType + ';base64,' + base64;
+        link.download = fileName;
+        document.body.appendChild(link);
+        link.click();
+        document.body.removeChild(link);
+    };
+</script>
+<script>
+    (function () {
+        function run() {
+            var reduce = window.matchMedia && window.matchMedia('(prefers-reduced-motion: reduce)').matches;
+            var els = document.querySelectorAll('.reveal:not(.in)');
+            if (!els.length) return;
+            if (reduce || !('IntersectionObserver' in window)) { els.forEach(function (el) { el.classList.add('in'); }); return; }
+            if (!window.__revealIO) {
+                window.__revealIO = new IntersectionObserver(function (es) {
+                    es.forEach(function (e) { if (e.isIntersecting) { e.target.classList.add('in'); window.__revealIO.unobserve(e.target); } });
+                }, { threshold: 0.12, rootMargin: '0px 0px -7% 0px' });
+            }
+            els.forEach(function (el) { window.__revealIO.observe(el); });
+        }
+        document.addEventListener('DOMContentLoaded', run);
+        var mo = new MutationObserver(run);
+        mo.observe(document.documentElement, { childList: true, subtree: true });
+        setTimeout(run, 300); setTimeout(run, 1200); setTimeout(function () { mo.disconnect(); }, 4000);
+    })();
+</script>
+<script>
+    document.addEventListener('click', function (e) {
+        if (e.target.closest && e.target.closest('.mobilemenu a')) {
+            var cb = document.getElementById('navtoggle');
+            if (cb) cb.checked = false;
+        }
+    });
+</script>
+<script>
+    document.addEventListener('click', function (e) {
+        var a = e.target.closest && e.target.closest('a[href^="#"]');
+        if (!a) return;
+        var href = a.getAttribute('href') || '';
+        if (href.length < 2) return;
+        var el = document.getElementById(href.slice(1));
+        if (!el) return;
+        e.preventDefault();
+        e.stopPropagation();
+        var cb = document.getElementById('navtoggle');
+        if (cb) cb.checked = false;
+        el.scrollIntoView({ behavior: 'smooth', block: 'start' });
+        if (history.replaceState) history.replaceState(null, '', href);
+    }, true);
+</script>
+</body>
+
+</html>
+
+@code {
+    [CascadingParameter] private HttpContext HttpContext { get; set; } = null!;
+
+    private IComponentRenderMode? PageRenderMode =>
+        HttpContext.AcceptsInteractiveRouting() ? new InteractiveAutoRenderMode(false) : null;
+
+    /// <summary>
+    /// The headless-Chromium print route. It renders static HTML and is thrown
+    /// away after one screenshot, so every script on it is wasted work — and
+    /// worse, work the renderer blocks on.
+    /// </summary>
+    private bool IsPrintRoute =>
+        HttpContext.Request.Path.StartsWithSegments("/invoice/print");
+
+}

@@ -1,0 +1,116 @@
+@page "/account/manage/delete-personal-data"
+
+@using System.ComponentModel.DataAnnotations
+@using Microsoft.AspNetCore.Identity
+@using Akinai.Infrastructure.Data
+
+@inject UserManager<ApplicationUser> UserManager
+@inject SignInManager<ApplicationUser> SignInManager
+@inject IdentityRedirectManager RedirectManager
+@inject ILogger<DeletePersonalData> Logger
+
+<PageTitle>Delete Personal Data - Akinai</PageTitle>
+
+<div class="space-y-6">
+    <div>
+        <h2 class="text-lg font-semibold text-gray-900">Delete Personal Data</h2>
+        <p class="mt-1 text-sm text-gray-500">Permanently delete your account and all data.</p>
+    </div>
+
+    <StatusMessage Message="@message" />
+
+    <div class="p-4 bg-red-50 border border-red-200 rounded-xl">
+        <div class="flex gap-3">
+            <svg class="h-5 w-5 text-red-500 shrink-0 mt-0.5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M12 9v2m0 4h.01m-6.938 4h13.856c1.54 0 2.502-1.667 1.732-3L13.732 4c-.77-1.333-2.694-1.333-3.464 0L3.34 16c-.77 1.333.192 3 1.732 3z" />
+            </svg>
+            <div>
+                <p class="text-sm font-medium text-red-800">This action cannot be undone</p>
+                <p class="mt-1 text-sm text-red-700">Deleting this data will permanently remove your account, and this cannot be recovered.</p>
+            </div>
+        </div>
+    </div>
+
+    <EditForm Model="Input" FormName="delete-user" OnValidSubmit="OnValidSubmitAsync" method="post" class="space-y-5">
+        <DataAnnotationsValidator />
+        <ValidationSummary class="p-4 bg-red-50 border border-red-200 rounded-xl text-sm text-red-700" role="alert" />
+
+        @if (requirePassword)
+        {
+            <div>
+                <label for="Input.Password" class="block text-sm font-medium text-gray-700 mb-2">Confirm Password</label>
+                <InputText type="password" @bind-Value="Input.Password" id="Input.Password"
+                    class="w-full px-4 py-3 text-sm text-gray-900 bg-white border border-gray-200 rounded-xl transition-all duration-200 placeholder:text-gray-400 focus:outline-none focus:border-primary-400 focus:ring-4 focus:ring-primary-500/10 hover:border-gray-300"
+                    autocomplete="current-password" placeholder="Enter your password to confirm" />
+                <ValidationMessage For="() => Input.Password" class="mt-1.5 text-xs text-red-600" />
+            </div>
+        }
+
+        <div class="pt-4">
+            <button type="submit"
+                class="inline-flex items-center px-6 py-3 text-sm font-medium text-white bg-red-600 rounded-xl hover:bg-red-700 transition-all duration-200 hover:shadow-lg active:scale-[0.98]">
+                <svg class="w-4 h-4 mr-2" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                    <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M19 7l-.867 12.142A2 2 0 0116.138 21H7.862a2 2 0 01-1.995-1.858L5 7m5 4v6m4-6v6m1-10V4a1 1 0 00-1-1h-4a1 1 0 00-1 1v3M4 7h16" />
+                </svg>
+                Delete data and close my account
+            </button>
+        </div>
+    </EditForm>
+</div>
+
+@code {
+    private string? message;
+    private ApplicationUser? user;
+    private bool requirePassword;
+
+    [CascadingParameter] private HttpContext HttpContext { get; set; } = null!;
+
+    [SupplyParameterFromForm] private InputModel Input { get; set; } = null!;
+
+    protected override async Task OnInitializedAsync()
+    {
+        Input ??= new();
+
+        user = await UserManager.GetUserAsync(HttpContext.User);
+        if (user is null)
+        {
+            RedirectManager.RedirectToInvalidUser(UserManager, HttpContext);
+            return;
+        }
+
+        requirePassword = await UserManager.HasPasswordAsync(user);
+    }
+
+    private async Task OnValidSubmitAsync()
+    {
+        if (user is null)
+        {
+            RedirectManager.RedirectToInvalidUser(UserManager, HttpContext);
+            return;
+        }
+
+        if (requirePassword && !await UserManager.CheckPasswordAsync(user, Input.Password))
+        {
+            message = "Error: Incorrect password.";
+            return;
+        }
+
+        var result = await UserManager.DeleteAsync(user);
+        if (!result.Succeeded)
+        {
+            throw new InvalidOperationException("Unexpected error occurred deleting user.");
+        }
+
+        await SignInManager.SignOutAsync();
+
+        var userId = await UserManager.GetUserIdAsync(user);
+        Logger.LogInformation("User with ID '{UserId}' deleted themselves.", userId);
+
+        RedirectManager.RedirectToCurrentPage();
+    }
+
+    private sealed class InputModel
+    {
+        [DataType(DataType.Password)] public string Password { get; set; } = "";
+    }
+}

@@ -1,0 +1,105 @@
+@page "/account/register-confirmation"
+
+@using System.Text
+@using Microsoft.AspNetCore.Identity
+@using Microsoft.AspNetCore.WebUtilities
+@using Akinai.Infrastructure.Data
+
+@inject UserManager<ApplicationUser> UserManager
+@inject IEmailSender<ApplicationUser> EmailSender
+@inject NavigationManager NavigationManager
+@inject IdentityRedirectManager RedirectManager
+
+<PageTitle>Registration Confirmation - Akinai</PageTitle>
+
+<div class="w-full max-w-md">
+    <!-- Card -->
+    <div class="bg-white rounded-lg shadow-xl border border-gray-100 p-8">
+        <!-- Logo & Header -->
+        <div class="text-center mb-6">
+            <div class="mx-auto w-14 h-14 rounded-lg flex items-center justify-center mb-4 brand-mark">
+                <svg class="w-7 h-7 text-white" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                    <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M3 8l7.89 5.26a2 2 0 002.22 0L21 8M5 19h14a2 2 0 002-2V7a2 2 0 00-2-2H5a2 2 0 00-2 2v10a2 2 0 002 2z" />
+                </svg>
+            </div>
+            <h2 class="text-xl font-bold text-gray-900 tracking-tight mb-1">
+                Akin<span class="wm-ai">ai</span><span class="text-gray-400 text-sm font-medium ml-1.5">あきない</span>
+            </h2>
+            <h1 class="text-2xl font-bold text-gray-900 tracking-tight">Check your email</h1>
+
+            @if (!string.IsNullOrEmpty(statusMessage))
+            {
+                <div class="mt-4 p-4 bg-red-50 border border-red-100 rounded-xl">
+                    <p class="text-red-700 text-sm">@statusMessage</p>
+                </div>
+            }
+            else if (emailConfirmationLink is not null)
+            {
+                <p class="text-gray-500 text-sm mt-2 mb-6">
+                    A confirmation email is ready for you.
+                </p>
+                <div class="p-4 bg-amber-50 border border-amber-200 rounded-xl mb-4">
+                    <p class="text-amber-700 text-sm mb-3">
+                        Email sending is not configured. Use this link to confirm your account:
+                    </p>
+                    <a href="@emailConfirmationLink"
+                       class="inline-block px-4 py-2 text-sm font-medium text-white rounded-xl transition-all duration-200 hover:shadow-lg bg-primary-600">
+                        Confirm Email
+                    </a>
+                </div>
+            }
+            else
+            {
+                <p class="text-gray-500 text-sm mt-2">
+                    We've sent a confirmation link to your email address. Please check your inbox and click the link to activate your account.
+                </p>
+            }
+        </div>
+
+        <!-- Back to Login -->
+        <div class="mt-8 text-center">
+            <a href="account/login" class="text-sm font-medium text-primary-600 hover:text-primary-700 inline-flex items-center transition-colors">
+                <svg class="w-4 h-4 mr-1" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                    <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M10 19l-7-7m0 0l7-7m-7 7h18" />
+                </svg>
+                Back to sign in
+            </a>
+        </div>
+    </div>
+</div>
+
+@code {
+    private string? emailConfirmationLink;
+    private string? statusMessage;
+
+    [CascadingParameter] private HttpContext HttpContext { get; set; } = null!;
+
+    [SupplyParameterFromQuery] private string? Email { get; set; }
+
+    [SupplyParameterFromQuery] private string? ReturnUrl { get; set; }
+
+    protected override async Task OnInitializedAsync()
+    {
+        if (Email is null)
+        {
+            RedirectManager.RedirectTo("");
+            return;
+        }
+
+        var user = await UserManager.FindByEmailAsync(Email);
+        if (user is null)
+        {
+            HttpContext.Response.StatusCode = StatusCodes.Status404NotFound;
+            statusMessage = "Error finding user for unspecified email";
+        }
+        else if (EmailSender is IdentityNoOpEmailSender)
+        {
+            var userId = await UserManager.GetUserIdAsync(user);
+            var code = await UserManager.GenerateEmailConfirmationTokenAsync(user);
+            code = WebEncoders.Base64UrlEncode(Encoding.UTF8.GetBytes(code));
+            emailConfirmationLink = NavigationManager.GetUriWithQueryParameters(
+                NavigationManager.ToAbsoluteUri("account/confirm-email").AbsoluteUri,
+                new Dictionary<string, object?> { ["userId"] = userId, ["code"] = code, ["returnUrl"] = ReturnUrl });
+        }
+    }
+}

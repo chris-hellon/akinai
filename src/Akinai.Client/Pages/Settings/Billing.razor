@@ -1,0 +1,302 @@
+@page "/settings/billing"
+
+@attribute [Authorize]
+
+@using Akinai.Shared.Api.Billing
+@using Akinai.Shared.Billing
+@using Akinai.Shared.Dtos.Billing
+
+@inject ICall<GetSubscription, SubscriptionDto> GetSubscriptionCall
+@inject ICall<GetEntitlements, EntitlementsDto> GetEntitlementsCall
+@inject ICall<GetBillingHistory, List<SubscriptionEventDto>> GetHistoryCall
+@inject ICall<StartCheckout, CheckoutSessionDto> StartCheckoutCall
+@inject ICall<CancelSubscription, SubscriptionDto> CancelCall
+@inject ICall<ResumeSubscription, SubscriptionDto> ResumeCall
+@inject NavigationManager Nav
+@inject EntitlementState Entitlements
+
+<PageTitle>Billing - Akinai</PageTitle>
+
+<div class="space-y-6">
+    <PageHeader Title="Billing"
+                Description="Your plan, what it includes, and what you've used."
+                Breadcrumbs="@(new List<PageHeader.BreadcrumbItem> { new("Settings", "/settings"), new("Billing") })" />
+
+    @if (_isLoading)
+    {
+        <LoadingSpinner Padding="py-20" />
+    }
+    else
+    {
+        @if (_subscription?.IsSimulated == true)
+        {
+            <div class="p-4 rounded-xl border border-amber-200 dark:border-amber-800 bg-amber-50 dark:bg-amber-900/30">
+                <p class="text-sm text-amber-800 dark:text-amber-200">
+                    <strong>Test mode.</strong> Payment is simulated — subscribing here takes no money and
+                    charges no card. Every subscription created this way is flagged in the history below.
+                </p>
+            </div>
+        }
+
+        @if (!string.IsNullOrEmpty(_message))
+        {
+            <div class="@(_isError ? "bg-red-50 dark:bg-red-900/30 border-red-200 dark:border-red-800 text-red-700 dark:text-red-300" : "bg-emerald-50 dark:bg-emerald-900/30 border-emerald-200 dark:border-emerald-800 text-emerald-700 dark:text-emerald-300") p-4 rounded-xl border text-sm">
+                @_message
+            </div>
+        }
+
+        <!-- Current plan -->
+        <div class="bg-white dark:bg-[#1b1612] rounded-2xl border border-gray-200 dark:border-[#2f2924] p-6 space-y-5">
+            <div class="flex flex-wrap items-start justify-between gap-4">
+                <div>
+                    <div class="text-sm text-gray-500 dark:text-slate-400">Current plan</div>
+                    <div class="mt-1 flex items-center gap-3">
+                        <span class="text-2xl font-bold text-gray-900 dark:text-slate-100">@_subscription?.PlanName</span>
+                        @if (_subscription is not null)
+                        {
+                            <SubscriptionStatusPill Status="@_subscription.Status" />
+                        }
+                    </div>
+                    @if (_subscription?.CurrentPeriodEndUtc is DateTime end)
+                    {
+                        <p class="mt-2 text-sm text-gray-500 dark:text-slate-400">
+                            @if (_subscription.CancelAtPeriodEnd)
+                            {
+                                <span>Cancelled. You keep @_subscription.PlanName until <strong>@end.ToLocalTime().ToString("d MMMM yyyy")</strong>, then move to Free.</span>
+                            }
+                            else if (_subscription.Status == SubscriptionStatus.Active)
+                            {
+                                <span>Renews @end.ToLocalTime().ToString("d MMMM yyyy")@(_subscription.RenewalAmount is decimal amt ? $" for {_subscription.CurrencySymbol}{amt:0.##}" : "").</span>
+                            }
+                        </p>
+                    }
+                </div>
+
+                <div class="flex items-center gap-2">
+                    @if (_subscription?.CancelAtPeriodEnd == true)
+                    {
+                        <button type="button" class="btn-secondary text-xs" disabled="@_isBusy" @onclick="ResumeAsync">Resume subscription</button>
+                    }
+                    else if (_subscription?.Status == SubscriptionStatus.Active)
+                    {
+                        <button type="button" class="btn-secondary text-xs" disabled="@_isBusy" @onclick="CancelAsync">Cancel subscription</button>
+                    }
+                </div>
+            </div>
+
+            <!-- Usage -->
+            @if (_entitlements is not null)
+            {
+                <div class="pt-5 border-t border-gray-100 dark:border-[#2f2924]">
+                    <div class="flex items-center justify-between text-sm">
+                        <span class="text-gray-700 dark:text-slate-300">Invoices this month</span>
+                        <span class="text-gray-900 dark:text-slate-100 font-medium">
+                            @if (_entitlements.InvoicesPerMonth is int cap)
+                            {
+                                <span>@_entitlements.InvoicesUsedThisMonth of @cap</span>
+                            }
+                            else
+                            {
+                                <span>@_entitlements.InvoicesUsedThisMonth — unlimited</span>
+                            }
+                        </span>
+                    </div>
+                    @if (_entitlements.InvoicesPerMonth is int limit)
+                    {
+                        var pct = limit == 0 ? 100 : Math.Min(100, (int)Math.Round(_entitlements.InvoicesUsedThisMonth * 100.0 / limit));
+                        <div class="mt-2 h-2 rounded-full bg-gray-100 dark:bg-[#2f2924] overflow-hidden">
+                            <div class="h-full rounded-full @(pct >= 100 ? "bg-red-500" : "bg-primary-600")" style="width:@(pct)%"></div>
+                        </div>
+                        @if (!_entitlements.CanCreateInvoice)
+                        {
+                            <p class="mt-2 text-xs text-red-600 dark:text-red-400">
+                                You've used this month's invoices. Existing invoices are unaffected — upgrade to create more.
+                            </p>
+                        }
+                    }
+                </div>
+            }
+        </div>
+
+        <!-- Plans -->
+        <div class="bg-white dark:bg-[#1b1612] rounded-2xl border border-gray-200 dark:border-[#2f2924] p-6 space-y-5">
+            <div class="flex flex-wrap items-center justify-between gap-4">
+                <h2 class="text-lg font-semibold text-gray-900 dark:text-slate-100">Plans</h2>
+                <SegmentedControl Options="_cycleOptions" Value="@_cycle.ToString()" ValueChanged="OnCycleChanged" />
+            </div>
+
+            <PlanCards CurrentPlan="_entitlements?.Plan" Cycle="_cycle">
+                <ActionTemplate Context="plan">
+                    @if (!plan.IsPaid)
+                    {
+                        <button type="button" class="btn-secondary w-full text-xs" disabled>
+                            @(_entitlements?.Plan == BillingPlan.Free ? "Your current plan" : "Included")
+                        </button>
+                    }
+                    else if (_entitlements?.Plan == plan.Plan && _subscription?.CancelAtPeriodEnd != true)
+                    {
+                        <button type="button" class="btn-secondary w-full text-xs" disabled="@_isBusy" @onclick="() => SubscribeAsync(plan.Plan)">
+                            Extend by another @(_cycle == BillingCycle.Annual ? "year" : "month")
+                        </button>
+                    }
+                    else
+                    {
+                        <button type="button" disabled="@_isBusy" @onclick="() => SubscribeAsync(plan.Plan)"
+                                class="w-full inline-flex items-center justify-center px-5 py-2.5 text-sm font-medium text-white rounded-xl transition-all duration-200 hover:shadow-lg active:scale-[0.98] brand-mark">
+                            Upgrade to @plan.Name
+                        </button>
+                    }
+                </ActionTemplate>
+            </PlanCards>
+        </div>
+
+        <!-- History -->
+        @if (_history.Count > 0)
+        {
+            <div class="bg-white dark:bg-[#1b1612] rounded-2xl border border-gray-200 dark:border-[#2f2924] p-6 space-y-4">
+                <h2 class="text-lg font-semibold text-gray-900 dark:text-slate-100">Billing history</h2>
+                <div class="rounded-xl border border-gray-200 dark:border-[#2f2924] divide-y divide-gray-100 dark:divide-[#2f2924]">
+                    @foreach (var entry in _history)
+                    {
+                        <div class="p-4 flex flex-wrap items-center justify-between gap-3">
+                            <div class="min-w-0">
+                                <div class="text-sm font-medium text-gray-900 dark:text-slate-100">
+                                    @entry.Type
+                                    @if (entry.FromPlan != entry.ToPlan)
+                                    {
+                                        <span class="text-gray-500 dark:text-slate-400 font-normal">— @entry.FromPlan to @entry.ToPlan</span>
+                                    }
+                                </div>
+                                <div class="text-xs text-gray-500 dark:text-slate-400">
+                                    @entry.OccurredAtUtc.ToLocalTime().ToString("d MMM yyyy, HH:mm")
+                                    @if (!string.IsNullOrEmpty(entry.Note))
+                                    {
+                                        <span> · @entry.Note</span>
+                                    }
+                                </div>
+                            </div>
+                            <div class="flex items-center gap-2 shrink-0">
+                                @if (entry.Amount is decimal amount)
+                                {
+                                    <span class="text-sm text-gray-900 dark:text-slate-100">@FormatMoney(entry.Currency, amount)</span>
+                                }
+                                @if (entry.Simulated)
+                                {
+                                    <span class="px-2 py-0.5 text-xs rounded-full bg-amber-50 dark:bg-amber-900/30 text-amber-700 dark:text-amber-300">Simulated</span>
+                                }
+                            </div>
+                        </div>
+                    }
+                </div>
+            </div>
+        }
+    }
+</div>
+
+@code {
+    private SubscriptionDto? _subscription;
+    private EntitlementsDto? _entitlements;
+    private List<SubscriptionEventDto> _history = [];
+
+    private BillingCycle _cycle = BillingCycle.Monthly;
+    private bool _isLoading = true;
+    private bool _isBusy;
+    private string? _message;
+    private bool _isError;
+
+    private readonly IReadOnlyList<(string Value, string Label)> _cycleOptions =
+    [
+        (nameof(BillingCycle.Monthly), "Monthly"),
+        (nameof(BillingCycle.Annual), "Annual"),
+    ];
+
+    protected override async Task OnInitializedAsync() => await LoadAsync();
+
+    private async Task LoadAsync()
+    {
+        _isLoading = true;
+        try
+        {
+            _subscription = await GetSubscriptionCall.Call(new GetSubscription());
+            _entitlements = await GetEntitlementsCall.Call(new GetEntitlements());
+            _history = await GetHistoryCall.Call(new GetBillingHistory()) ?? [];
+
+            if (_subscription?.Cycle is BillingCycle cycle) _cycle = cycle;
+        }
+        catch (Exception ex)
+        {
+            SetError($"Could not load your billing details: {ex.Message}");
+        }
+        _isLoading = false;
+    }
+
+    private void OnCycleChanged(string value)
+    {
+        if (Enum.TryParse<BillingCycle>(value, out var cycle)) _cycle = cycle;
+    }
+
+    private async Task SubscribeAsync(BillingPlan plan)
+    {
+        _isBusy = true;
+        _message = null;
+        try
+        {
+            var session = await StartCheckoutCall.Call(new StartCheckout { Plan = plan, Cycle = _cycle });
+            if (session is null)
+            {
+                SetError("Could not start checkout.");
+            }
+            else
+            {
+                // Mirrors a hosted checkout: the server decides where we go next.
+                Nav.NavigateTo(session.RedirectUrl);
+                return;
+            }
+        }
+        catch (Exception ex)
+        {
+            SetError($"Could not start checkout: {ex.Message}");
+        }
+        _isBusy = false;
+    }
+
+    private async Task CancelAsync()
+    {
+        _isBusy = true;
+        try
+        {
+            _subscription = await CancelCall.Call(new CancelSubscription());
+            await Entitlements.ReloadAsync();
+            await LoadAsync();
+            SetSuccess("Your subscription is cancelled. You keep your plan until the end of the paid period.");
+        }
+        catch (Exception ex) { SetError($"Could not cancel: {ex.Message}"); }
+        _isBusy = false;
+    }
+
+    private async Task ResumeAsync()
+    {
+        _isBusy = true;
+        try
+        {
+            _subscription = await ResumeCall.Call(new ResumeSubscription());
+            await Entitlements.ReloadAsync();
+            await LoadAsync();
+            SetSuccess("Your subscription is active again.");
+        }
+        catch (Exception ex) { SetError($"Could not resume: {ex.Message}"); }
+        _isBusy = false;
+    }
+
+    private static string FormatMoney(string? currency, decimal amount)
+        => currency switch
+        {
+            "GBP" => $"£{amount:0.##}",
+            "USD" => $"${amount:0.##}",
+            "EUR" => $"€{amount:0.##}",
+            _ => $"{amount:0.##} {currency}",
+        };
+
+    private void SetSuccess(string message) { _message = message; _isError = false; }
+    private void SetError(string message) { _message = message; _isError = true; }
+}
