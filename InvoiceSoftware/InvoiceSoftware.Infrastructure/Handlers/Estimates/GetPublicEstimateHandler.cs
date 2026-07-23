@@ -74,7 +74,7 @@ public class GetPublicEstimateHandler(IDbContextFactory<ApplicationDbContext> db
             estimate.TaxRate,
             estimate.CalculateTax().Amount,
             estimate.CalculateTotal().Amount,
-            businessProfile?.TradingName ?? businessProfile?.CompanyName,
+            string.IsNullOrWhiteSpace(businessProfile?.TradingName) ? businessProfile?.CompanyName : businessProfile.TradingName,
             businessProfile?.Email?.Value,
             businessProfile?.Phone?.Value,
             businessProfile?.Address?.Street1,

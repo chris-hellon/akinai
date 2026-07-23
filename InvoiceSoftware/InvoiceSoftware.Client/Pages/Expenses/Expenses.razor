@@ -12,7 +12,7 @@
                 SearchPlaceholder="Search expenses..."
                 SearchValue="@_searchTerm"
                 SearchValueChanged="OnSearchChanged"
-                Breadcrumbs="@(new List<PageHeader.BreadcrumbItem> { new("Expenses") })">
+                Breadcrumbs="@(new List<PageHeader.BreadcrumbItem> { new("Time & Billing", "/time-billing"), new("Expenses") })">
     <Filters>
         <Select TValue="string" Value="_selectedCategory" ValueChanged="OnCategoryChanged" Class="w-full sm:w-52"
                 Options="@(new[] { new SelectOption<string>("", "All Categories") }.Concat(Enum.GetValues<ExpenseCategory>().Select(c => new SelectOption<string>(c.ToString(), c.GetDisplayName()))).ToList())" />

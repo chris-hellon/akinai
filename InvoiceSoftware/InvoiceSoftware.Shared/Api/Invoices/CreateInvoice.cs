@@ -32,4 +32,11 @@ public class CreateInvoice : IPost<Guid>
 
     [BodyParam]
     public Guid? TemplateId { get; init; }
+
+    /// <summary>
+    /// Language for this invoice, as a <c>SupportedLanguage</c> name. Null means
+    /// inherit from the client override, then the account default.
+    /// </summary>
+    [BodyParam]
+    public string? Language { get; init; }
 }

@@ -8,5 +8,6 @@ public enum SupportedLanguage
     German = 3,
     Chinese = 4,
     Vietnamese = 5,
-    Russian = 6
+    Russian = 6,
+    Korean = 7
 }

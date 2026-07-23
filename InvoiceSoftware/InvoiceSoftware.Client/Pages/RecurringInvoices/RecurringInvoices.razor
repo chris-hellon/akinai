@@ -17,7 +17,7 @@
                     SearchPlaceholder="Search recurring invoices..."
                     SearchValue="@_searchTerm"
                     SearchValueChanged="OnSearchChanged"
-                    Breadcrumbs="@(new List<PageHeader.BreadcrumbItem> { new("Recurring Invoices") })">
+                    Breadcrumbs="@(new List<PageHeader.BreadcrumbItem> { new("Time & Billing", "/time-billing"), new("Recurring Invoices") })">
         <Filters>
             <Select TValue="string" Value="_selectedActive" ValueChanged="OnActiveChanged" Searchable="false" Class="w-full sm:w-44"
                     Options="@(new List<SelectOption<string>> { new("", "All Status"), new("true", "Active"), new("false", "Paused") })" />

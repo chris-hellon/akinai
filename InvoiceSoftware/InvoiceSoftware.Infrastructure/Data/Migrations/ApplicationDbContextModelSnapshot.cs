@@ -38,6 +38,50 @@ namespace InvoiceSoftware.Infrastructure.Data.Migrations
                     b.ToTable("InvoiceRecurringInvoice", "App");
                 });
 
+            modelBuilder.Entity("InvoiceSoftware.Domain.Entities.AiUsage", b =>
+                {
+                    b.Property<Guid>("Id")
+                        .ValueGeneratedOnAdd()
+                        .HasColumnType("uniqueidentifier");
+
+                    b.Property<int>("Characters")
+                        .HasColumnType("int");
+
+                    b.Property<decimal>("CostUsd")
+                        .HasPrecision(18, 10)
+                        .HasColumnType("decimal(18,10)");
+
+                    b.Property<string>("Feature")
+                        .IsRequired()
+                        .HasMaxLength(40)
+                        .HasColumnType("nvarchar(40)");
+
+                    b.Property<int>("InputTokens")
+                        .HasColumnType("int");
+
+                    b.Property<string>("Model")
+                        .IsRequired()
+                        .HasMaxLength(60)
+                        .HasColumnType("nvarchar(60)");
+
+                    b.Property<DateTime>("OccurredAtUtc")
+                        .HasColumnType("datetime2");
+
+                    b.Property<int>("OutputTokens")
+                        .HasColumnType("int");
+
+                    b.Property<string>("UserId")
+                        .IsRequired()
+                        .HasMaxLength(450)
+                        .HasColumnType("nvarchar(450)");
+
+                    b.HasKey("Id");
+
+                    b.HasIndex("UserId", "OccurredAtUtc");
+
+                    b.ToTable("AiUsages", "App");
+                });
+
             modelBuilder.Entity("InvoiceSoftware.Domain.Entities.Attachment", b =>
                 {
                     b.Property<Guid>("Id")
@@ -98,92 +142,6 @@ namespace InvoiceSoftware.Infrastructure.Data.Migrations
                     b.HasIndex("LinkedEntityType", "LinkedEntityId");
 
                     b.ToTable("Attachments", "App");
-                });
-
-            modelBuilder.Entity("InvoiceSoftware.Domain.Entities.BankConnection", b =>
-                {
-                    b.Property<Guid>("Id")
-                        .ValueGeneratedOnAdd()
-                        .HasColumnType("uniqueidentifier");
-
-                    b.Property<string>("AccessToken")
-                        .HasColumnType("nvarchar(max)");
-
-                    b.Property<DateOnly?>("ConsentExpiresAt")
-                        .HasColumnType("date");
-
-                    b.Property<DateTime>("CreatedAt")
-                        .HasColumnType("datetime2");
-
-                    b.Property<string>("CreatedBy")
-                        .IsRequired()
-                        .HasColumnType("nvarchar(max)");
-
-                    b.Property<string>("ExternalAccountId")
-                        .HasMaxLength(200)
-                        .HasColumnType("nvarchar(200)");
-
-                    b.Property<string>("InstitutionId")
-                        .IsRequired()
-                        .HasMaxLength(200)
-                        .HasColumnType("nvarchar(200)");
-
-                    b.Property<string>("InstitutionName")
-                        .IsRequired()
-                        .HasMaxLength(200)
-                        .HasColumnType("nvarchar(200)");
-
-                    b.Property<string>("LastError")
-                        .HasMaxLength(1000)
-                        .HasColumnType("nvarchar(1000)");
-
-                    b.Property<DateTime?>("LastSyncedAt")
-                        .HasColumnType("datetime2");
-
-                    b.Property<DateTime?>("ModifiedAt")
-                        .HasColumnType("datetime2");
-
-                    b.Property<string>("ModifiedBy")
-                        .HasColumnType("nvarchar(max)");
-
-                    b.Property<string>("Provider")
-                        .IsRequired()
-                        .HasMaxLength(50)
-                        .HasColumnType("nvarchar(50)");
-
-                    b.Property<string>("Reference")
-                        .IsRequired()
-                        .HasMaxLength(100)
-                        .HasColumnType("nvarchar(100)");
-
-                    b.Property<string>("RefreshToken")
-                        .HasColumnType("nvarchar(max)");
-
-                    b.Property<string>("RequisitionId")
-                        .IsRequired()
-                        .HasMaxLength(200)
-                        .HasColumnType("nvarchar(200)");
-
-                    b.Property<string>("Status")
-                        .IsRequired()
-                        .HasMaxLength(20)
-                        .HasColumnType("nvarchar(20)");
-
-                    b.Property<DateTime?>("TokenExpiresAt")
-                        .HasColumnType("datetime2");
-
-                    b.Property<string>("UserId")
-                        .IsRequired()
-                        .HasMaxLength(450)
-                        .HasColumnType("nvarchar(450)");
-
-                    b.HasKey("Id");
-
-                    b.HasIndex("Reference");
-
-                    b.HasIndex("UserId");
-
-                    b.ToTable("BankConnections", "App");
                 });
 
             modelBuilder.Entity("InvoiceSoftware.Domain.Entities.BankTransaction", b =>
@@ -598,6 +556,10 @@ namespace InvoiceSoftware.Infrastructure.Data.Migrations
                         .HasMaxLength(50)
                         .HasColumnType("nvarchar(50)");
 
+                    b.Property<string>("BankAddress")
+                        .HasMaxLength(400)
+                        .HasColumnType("nvarchar(400)");
+
                     b.Property<string>("BankIban")
                         .HasMaxLength(50)
                         .HasColumnType("nvarchar(50)");
@@ -626,11 +588,27 @@ namespace InvoiceSoftware.Infrastructure.Data.Migrations
                         .HasMaxLength(3)
                         .HasColumnType("nvarchar(3)");
 
+                    b.Property<string>("IntermediaryAccountNumber")
+                        .HasMaxLength(50)
+                        .HasColumnType("nvarchar(50)");
+
+                    b.Property<string>("IntermediaryBankName")
+                        .HasMaxLength(200)
+                        .HasColumnType("nvarchar(200)");
+
+                    b.Property<string>("IntermediaryBankSwift")
+                        .HasMaxLength(20)
+                        .HasColumnType("nvarchar(20)");
+
                     b.Property<DateTime?>("ModifiedAt")
                         .HasColumnType("datetime2");
 
                     b.Property<string>("ModifiedBy")
                         .HasColumnType("nvarchar(max)");
+
+                    b.Property<string>("PaymentPurposeCode")
+                        .HasMaxLength(200)
+                        .HasColumnType("nvarchar(200)");
 
                     b.Property<string>("UserId")
                         .IsRequired()
@@ -979,6 +957,9 @@ namespace InvoiceSoftware.Infrastructure.Data.Migrations
                     b.Property<DateOnly>("DueDate")
                         .HasColumnType("date");
 
+                    b.Property<DateTime?>("FirstViewedAtUtc")
+                        .HasColumnType("datetime2");
+
                     b.Property<string>("InvoiceNumber")
                         .IsRequired()
                         .HasMaxLength(50)
@@ -986,6 +967,13 @@ namespace InvoiceSoftware.Infrastructure.Data.Migrations
 
                     b.Property<DateOnly>("IssueDate")
                         .HasColumnType("date");
+
+                    b.Property<string>("Language")
+                        .HasMaxLength(20)
+                        .HasColumnType("nvarchar(20)");
+
+                    b.Property<DateTime?>("LastViewedAtUtc")
+                        .HasColumnType("datetime2");
 
                     b.Property<DateTime?>("ModifiedAt")
                         .HasColumnType("datetime2");
@@ -1026,6 +1014,9 @@ namespace InvoiceSoftware.Infrastructure.Data.Migrations
                     b.Property<decimal>("Total")
                         .HasPrecision(18, 2)
                         .HasColumnType("decimal(18,2)");
+
+                    b.Property<int>("ViewCount")
+                        .HasColumnType("int");
 
                     b.HasKey("Id");
 
@@ -1403,6 +1394,102 @@ namespace InvoiceSoftware.Infrastructure.Data.Migrations
                     b.HasIndex("UserId", "IsRead");
 
                     b.ToTable("Notifications", "App");
+                });
+
+            modelBuilder.Entity("InvoiceSoftware.Domain.Entities.PlanSettings", b =>
+                {
+                    b.Property<Guid>("Id")
+                        .ValueGeneratedOnAdd()
+                        .HasColumnType("uniqueidentifier");
+
+                    b.Property<decimal?>("AiSpendLimitUsd")
+                        .HasPrecision(18, 10)
+                        .HasColumnType("decimal(18,10)");
+
+                    b.Property<bool>("AllLanguages")
+                        .HasColumnType("bit");
+
+                    b.Property<decimal>("AnnualPrice")
+                        .HasPrecision(18, 2)
+                        .HasColumnType("decimal(18,2)");
+
+                    b.Property<bool>("BankImport")
+                        .HasColumnType("bit");
+
+                    b.Property<DateTime>("CreatedAt")
+                        .HasColumnType("datetime2");
+
+                    b.Property<string>("CreatedBy")
+                        .IsRequired()
+                        .HasColumnType("nvarchar(max)");
+
+                    b.Property<string>("Currency")
+                        .IsRequired()
+                        .HasMaxLength(3)
+                        .HasColumnType("nvarchar(3)");
+
+                    b.Property<string>("CurrencySymbol")
+                        .IsRequired()
+                        .HasMaxLength(4)
+                        .HasColumnType("nvarchar(4)");
+
+                    b.Property<bool>("CustomTemplates")
+                        .HasColumnType("bit");
+
+                    b.Property<bool>("Estimates")
+                        .HasColumnType("bit");
+
+                    b.Property<string>("Highlights")
+                        .IsRequired()
+                        .HasMaxLength(4000)
+                        .HasColumnType("nvarchar(4000)");
+
+                    b.Property<int?>("InvoicesPerMonth")
+                        .HasColumnType("int");
+
+                    b.Property<DateTime?>("ModifiedAt")
+                        .HasColumnType("datetime2");
+
+                    b.Property<string>("ModifiedBy")
+                        .HasColumnType("nvarchar(max)");
+
+                    b.Property<decimal>("MonthlyPrice")
+                        .HasPrecision(18, 2)
+                        .HasColumnType("decimal(18,2)");
+
+                    b.Property<bool>("MultiCurrency")
+                        .HasColumnType("bit");
+
+                    b.Property<string>("Name")
+                        .IsRequired()
+                        .HasMaxLength(60)
+                        .HasColumnType("nvarchar(60)");
+
+                    b.Property<string>("Plan")
+                        .IsRequired()
+                        .HasMaxLength(20)
+                        .HasColumnType("nvarchar(20)");
+
+                    b.Property<bool>("RecurringBilling")
+                        .HasColumnType("bit");
+
+                    b.Property<bool>("RemoveBranding")
+                        .HasColumnType("bit");
+
+                    b.Property<int>("SortOrder")
+                        .HasColumnType("int");
+
+                    b.Property<string>("Tagline")
+                        .IsRequired()
+                        .HasMaxLength(200)
+                        .HasColumnType("nvarchar(200)");
+
+                    b.HasKey("Id");
+
+                    b.HasIndex("Plan")
+                        .IsUnique();
+
+                    b.ToTable("PlanSettings", "App");
                 });
 
             modelBuilder.Entity("InvoiceSoftware.Domain.Entities.Product", b =>
@@ -1920,6 +2007,49 @@ namespace InvoiceSoftware.Infrastructure.Data.Migrations
                     b.ToTable("TimeEntries", "App");
                 });
 
+            modelBuilder.Entity("InvoiceSoftware.Domain.Entities.TranslationCacheEntry", b =>
+                {
+                    b.Property<Guid>("Id")
+                        .ValueGeneratedOnAdd()
+                        .HasColumnType("uniqueidentifier");
+
+                    b.Property<DateTime>("CreatedAtUtc")
+                        .HasColumnType("datetime2");
+
+                    b.Property<string>("SourceHash")
+                        .IsRequired()
+                        .HasMaxLength(64)
+                        .IsUnicode(false)
+                        .HasColumnType("varchar(64)");
+
+                    b.Property<string>("SourceLanguage")
+                        .IsRequired()
+                        .HasMaxLength(20)
+                        .HasColumnType("nvarchar(20)");
+
+                    b.Property<string>("SourceText")
+                        .IsRequired()
+                        .HasMaxLength(4000)
+                        .HasColumnType("nvarchar(4000)");
+
+                    b.Property<string>("TargetLanguage")
+                        .IsRequired()
+                        .HasMaxLength(20)
+                        .HasColumnType("nvarchar(20)");
+
+                    b.Property<string>("TranslatedText")
+                        .IsRequired()
+                        .HasMaxLength(4000)
+                        .HasColumnType("nvarchar(4000)");
+
+                    b.HasKey("Id");
+
+                    b.HasIndex("SourceHash", "SourceLanguage", "TargetLanguage")
+                        .IsUnique();
+
+                    b.ToTable("TranslationCache", "App");
+                });
+
             modelBuilder.Entity("InvoiceSoftware.Domain.Entities.UserLanguagePreference", b =>
                 {
                     b.Property<Guid>("Id")
@@ -1932,13 +2062,6 @@ namespace InvoiceSoftware.Infrastructure.Data.Migrations
                     b.Property<string>("CreatedBy")
                         .IsRequired()
                         .HasColumnType("nvarchar(max)");
-
-                    b.Property<string>("DefaultLanguage")
-                        .IsRequired()
-                        .ValueGeneratedOnAdd()
-                        .HasMaxLength(20)
-                        .HasColumnType("nvarchar(20)")
-                        .HasDefaultValue("English");
 
                     b.Property<string>("EstimateLanguage")
                         .IsRequired()
@@ -2236,7 +2359,7 @@ namespace InvoiceSoftware.Infrastructure.Data.Migrations
                         .IsRequired();
                 });
 
-            modelBuilder.Entity("InvoiceSoftware.Domain.Entities.Attachment", b =>
+            modelBuilder.Entity("InvoiceSoftware.Domain.Entities.AiUsage", b =>
                 {
                     b.HasOne("InvoiceSoftware.Infrastructure.Data.ApplicationUser", null)
                         .WithMany()
@@ -2245,7 +2368,7 @@ namespace InvoiceSoftware.Infrastructure.Data.Migrations
                         .IsRequired();
                 });
 
-            modelBuilder.Entity("InvoiceSoftware.Domain.Entities.BankConnection", b =>
+            modelBuilder.Entity("InvoiceSoftware.Domain.Entities.Attachment", b =>
                 {
                     b.HasOne("InvoiceSoftware.Infrastructure.Data.ApplicationUser", null)
                         .WithMany()

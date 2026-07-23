@@ -7,6 +7,18 @@
         <NoDefaultLaunchSettingsFile>true</NoDefaultLaunchSettingsFile>
         <StaticWebAssetProjectMode>Default</StaticWebAssetProjectMode>
         <BlazorDisableThrowNavigationException>true</BlazorDisableThrowNavigationException>
+
+        <!--
+          Ship the full ICU data rather than the default EFIGS subset.
+
+          Blazor WebAssembly normally bundles locale data for English, French,
+          Italian, German and Spanish only. Akinai bills in Vietnamese, Chinese
+          and Russian too, and without this a Vietnamese invoice silently fell
+          back to invariant formatting — "8 August 2026" instead of the local
+          date form — which is precisely the detail the product exists to get
+          right. Costs roughly 1.5 MB of ICU payload, cached after first load.
+        -->
+        <BlazorWebAssemblyLoadAllGlobalizationData>true</BlazorWebAssemblyLoadAllGlobalizationData>
     </PropertyGroup>
 
     <ItemGroup>

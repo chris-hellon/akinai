@@ -46,7 +46,12 @@ public class SaveCurrencyPaymentSettingsHandler(IDbContextFactory<ApplicationDbC
             request.BankSortCode,
             request.BankIban,
             request.BankSwift,
-            request.VietQrBankCode);
+            request.VietQrBankCode,
+            request.IntermediaryBankName,
+            request.IntermediaryBankSwift,
+            request.IntermediaryAccountNumber,
+            request.BankAddress,
+            request.PaymentPurposeCode);
 
         await db.SaveChangesAsync(cancellationToken);
         return HttpResult.NoContent();

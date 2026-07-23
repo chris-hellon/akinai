@@ -17,7 +17,8 @@ public static class ApiPublicPaths
     [
         "/api/invoices/public/",   // GetPublicInvoice          — emailed invoice link
         "/api/estimates/public/",  // GetPublicEstimate, Accept/RejectEstimatePublic
-        "/api/portal/"             // GetClientPortal* — the client portal
+        "/api/portal/",            // GetClientPortal* — the client portal
+        "/api/plans"               // GetPlans — the pricing section, before signup
     ];
 
     public static bool IsPublic(PathString path)

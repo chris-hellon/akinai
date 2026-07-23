@@ -18,9 +18,16 @@
                 {
                     <span class="font-medium text-gray-900 dark:text-slate-100">@crumb.Label</span>
                 }
-                else
+                else if (!string.IsNullOrEmpty(crumb.Href))
                 {
                     <a href="@crumb.Href" class="text-gray-500 dark:text-slate-400 hover:text-primary-600 dark:hover:text-primary-400 transition-colors">@crumb.Label</a>
+                }
+                else
+                {
+                    @* A crumb with no href is a grouping label, not a destination.
+                       Rendering it as <a href=""> made it resolve against the base
+                       href, so "Settings" silently navigated to the home page. *@
+                    <span class="text-gray-500 dark:text-slate-400">@crumb.Label</span>
                 }
             }
         </nav>

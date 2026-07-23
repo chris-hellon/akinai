@@ -13,14 +13,14 @@
 @inject ICall<CancelSubscription, SubscriptionDto> CancelCall
 @inject ICall<ResumeSubscription, SubscriptionDto> ResumeCall
 @inject NavigationManager Nav
-@inject InvoiceSoftware.Client.Services.EntitlementState Entitlements
+@inject EntitlementState Entitlements
 
 <PageTitle>Billing - Akinai</PageTitle>
 
 <div class="space-y-6">
     <PageHeader Title="Billing"
                 Description="Your plan, what it includes, and what you've used."
-                Breadcrumbs="@(new List<PageHeader.BreadcrumbItem> { new("Settings"), new("Billing") })" />
+                Breadcrumbs="@(new List<PageHeader.BreadcrumbItem> { new("Settings", "/settings"), new("Billing") })" />
 
     @if (_isLoading)
     {

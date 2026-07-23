@@ -6,7 +6,6 @@ namespace InvoiceSoftware.Domain.Entities;
 public class UserLanguagePreference : AggregateRoot, IAuditableEntity
 {
     public string UserId { get; private set; } = null!;
-    public SupportedLanguage DefaultLanguage { get; private set; } = SupportedLanguage.English;
     public SupportedLanguage InvoiceLanguage { get; private set; } = SupportedLanguage.English;
     public SupportedLanguage EstimateLanguage { get; private set; } = SupportedLanguage.English;
 
@@ -25,11 +24,6 @@ public class UserLanguagePreference : AggregateRoot, IAuditableEntity
         };
     }
 
-    public void UpdateDefaultLanguage(SupportedLanguage language)
-    {
-        DefaultLanguage = language;
-    }
-
     public void UpdateInvoiceLanguage(SupportedLanguage language)
     {
         InvoiceLanguage = language;
@@ -42,7 +36,6 @@ public class UserLanguagePreference : AggregateRoot, IAuditableEntity
 
     public void UpdateAllLanguages(SupportedLanguage language)
     {
-        DefaultLanguage = language;
         InvoiceLanguage = language;
         EstimateLanguage = language;
     }
@@ -57,6 +50,8 @@ public class UserLanguagePreference : AggregateRoot, IAuditableEntity
             SupportedLanguage.German => "de",
             SupportedLanguage.Chinese => "zh",
             SupportedLanguage.Vietnamese => "vi",
+            SupportedLanguage.Russian => "ru",
+            SupportedLanguage.Korean => "ko",
             _ => "en"
         };
     }
@@ -71,6 +66,8 @@ public class UserLanguagePreference : AggregateRoot, IAuditableEntity
             SupportedLanguage.German => "Deutsch",
             SupportedLanguage.Chinese => "中文",
             SupportedLanguage.Vietnamese => "Tiếng Việt",
+            SupportedLanguage.Russian => "Русский",
+            SupportedLanguage.Korean => "한국어",
             _ => "English"
         };
     }

@@ -12,7 +12,7 @@
                 SearchPlaceholder="Search by name or description..."
                 SearchValue="@_searchTerm"
                 SearchValueChanged="OnSearchChanged"
-                Breadcrumbs="@(new List<PageHeader.BreadcrumbItem> { new("Products") })">
+                Breadcrumbs="@(new List<PageHeader.BreadcrumbItem> { new("Management", "/management"), new("Products") })">
     <Filters>
         <Select TValue="bool" Value="_showInactive" ValueChanged="OnShowInactiveChanged" Searchable="false" Class="w-full sm:w-44"
                 Options="@(new List<SelectOption<bool>> { new(false, "Active products"), new(true, "All products") })" />

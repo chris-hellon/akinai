@@ -209,7 +209,8 @@
 
     private readonly List<PageHeader.BreadcrumbItem> _breadcrumbs = new()
     {
-        new() { Label = "Cash flow", Href = "cash-flow" }
+        new() { Label = "Finance", Href = "/finance" },
+        new() { Label = "Cash flow" }
     };
 
     protected override async Task OnInitializedAsync()

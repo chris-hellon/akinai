@@ -15,7 +15,7 @@ public class SendInvoiceHandler(
     ICurrentUserService currentUserService,
     EmailTemplateService emailTemplateService,
     PdfGeneratorService pdfService,
-    Services.IExchangeRateService exchangeRates,
+    IExchangeRateService exchangeRates,
     IHttpContextAccessor httpContextAccessor,
     IInvoiceEmailSender emailSender,
     INotificationService notifications) : IHandle<SendInvoice>
@@ -65,7 +65,7 @@ public class SendInvoiceHandler(
                 .FirstOrDefaultAsync(c => c.UserId == userId && c.CurrencyCode == invoice.Currency, cancellationToken);
             if (businessProfile != null)
             {
-                companyName = businessProfile.TradingName ?? businessProfile.CompanyName ?? companyName;
+                companyName = (string.IsNullOrWhiteSpace(businessProfile.TradingName) ? businessProfile.CompanyName : businessProfile.TradingName) ?? companyName;
             }
         }
 
@@ -90,7 +90,7 @@ public class SendInvoiceHandler(
 
         // Generate the invoice PDF and attach it to the email.
         var attachments = new List<EmailAttachment>();
-        var vndRate = await Services.VndPaymentRate.GetAsync(exchangeRates, businessProfile?.DefaultCurrency, cancellationToken);
+        var vndRate = await VndPaymentRate.GetAsync(exchangeRates, businessProfile?.DefaultCurrency, cancellationToken);
         var pdfBytes = await pdfService.GenerateInvoicePdfAsync(
             invoice, timeEntries, expenses, productLineItems, businessProfile, currencySettings, invoice.Template, vndRate);
         if (pdfBytes.Length > 0)

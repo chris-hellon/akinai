@@ -9,7 +9,7 @@
 @inject ICall<ResendConfirmationEmail> ResendConfirmCall
 @inject ICall<DeleteUser> DeleteUserCall
 @inject ICall<SetUserPlan> SetUserPlanCall
-@inject InvoiceSoftware.Client.Services.EntitlementState Entitlements
+@inject EntitlementState Entitlements
 
 @using InvoiceSoftware.Shared.Billing
 
@@ -26,7 +26,7 @@
     <div class="card p-4 space-y-3">
         <div class="flex flex-col sm:flex-row gap-3">
             <input class="form-control flex-1" placeholder="Invite by email…"
-                   value="@_inviteEmail" @oninput="OnInviteEmailChanged"\"" />
+                   value="@_inviteEmail" @oninput="OnInviteEmailChanged" />
             <button type="button" class="btn-primary" disabled="@(_isBusy || string.IsNullOrWhiteSpace(_inviteEmail))"
                     @onclick="InviteAsync">Send invite</button>
         </div>
@@ -236,7 +236,7 @@
                 Type <strong>@_deleteTarget.Email</strong> to confirm:
             </p>
             <input class="form-control" placeholder="Confirm the email address"
-                   value="@_deleteConfirm" @oninput="OnDeleteConfirmChanged"\"" />
+                   value="@_deleteConfirm" @oninput="OnDeleteConfirmChanged" />
             <div class="flex items-center gap-3">
                 <button type="button" class="px-4 py-2.5 text-sm font-medium text-white bg-red-600 rounded-xl"
                         disabled="@(_isBusy || _deleteConfirm != _deleteTarget.Email)"
@@ -253,7 +253,7 @@
     private bool _isBusy;
     private string _search = "";
 
-    private readonly List<PageHeader.BreadcrumbItem> _breadcrumbs = [new("Admin"), new("Users")];
+    private readonly List<PageHeader.BreadcrumbItem> _breadcrumbs = [new("Admin", "/admin"), new("Users")];
 
     protected override async Task OnInitializedAsync() => await LoadAsync();
 

@@ -12,12 +12,6 @@
 @inject ICall<DeleteBankTransaction> DeleteBankTransactionCall
 @inject ICall<ClearBankTransactions, int> ClearBankTransactionsCall
 @inject ICall<GetBankTransactionCurrencies, List<string>> GetCurrenciesCall
-@inject ICall<GetBankInstitutions, List<BankInstitutionDto>> GetInstitutionsCall
-@inject ICall<StartBankConnection, BankLinkDto> StartConnectionCall
-@inject ICall<FinalizeBankConnection, BankConnectionDto?> FinalizeConnectionCall
-@inject ICall<GetBankConnections, List<BankConnectionDto>> GetConnectionsCall
-@inject ICall<SyncBankConnection, BankSyncResultDto> SyncConnectionCall
-@inject ICall<DeleteBankConnection> DeleteConnectionCall
 @inject NavigationManager Nav
 
 <PageTitle>Bank Import - Akinai</PageTitle>
@@ -28,7 +22,7 @@
     <div class="space-y-6">
         <PageHeader Title="Bank Import"
                     Description="Import bank statements and match transactions to invoices."
-                    Breadcrumbs="@(new List<PageHeader.BreadcrumbItem> { new("Bank Import") })">
+                    Breadcrumbs="@(new List<PageHeader.BreadcrumbItem> { new("Finance", "/finance"), new("Bank Import") })">
             <Actions>
                 @if (_response is { TotalCount: > 0 })
                 {
@@ -60,42 +54,6 @@
             </Actions>
         </PageHeader>
 
-        @if (_connections.Any())
-        {
-            <Card>
-                <div class="space-y-3">
-                    <div class="text-sm font-semibold text-gray-900 dark:text-slate-100">Connected banks</div>
-                    @foreach (var c in _connections)
-                    {
-                        <div class="flex items-center justify-between gap-3 py-2 border-b border-gray-50 dark:border-slate-700/50 last:border-0">
-                            <div class="min-w-0">
-                                <div class="flex items-center gap-2">
-                                    <span class="font-medium text-gray-900 dark:text-slate-100 truncate">@c.InstitutionName</span>
-                                    <span class="px-2 py-0.5 text-[11px] font-semibold rounded-full @ConnStatusClass(c.Status)">@c.Status</span>
-                                </div>
-                                <div class="text-xs text-gray-500 dark:text-slate-400">
-                                    @(c.LastSyncedAt is { } s ? $"Last synced {s.ToLocalTime():d MMM HH:mm}" : "Not synced yet")
-                                    @if (c.ConsentExpiresAt is { } e) { <span> · consent to @e.ToString("d MMM")</span> }
-                                    @if (!string.IsNullOrEmpty(c.LastError)) { <span class="text-red-500"> · @c.LastError</span> }
-                                </div>
-                            </div>
-                            <div class="flex items-center gap-1 shrink-0">
-                                <IconButton OnClick="() => SyncConnectionAsync(c)" Title="Sync now" Disabled="@_syncingId.HasValue">
-                                    <svg class="w-4 h-4 @(_syncingId == c.Id ? "animate-spin" : "")" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                                        <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M4 4v5h.582m15.356 2A8.001 8.001 0 004.582 9m0 0H9m11 11v-5h-.581m0 0a8.003 8.003 0 01-15.357-2m15.357 2H15" />
-                                    </svg>
-                                </IconButton>
-                                <IconButton OnClick="() => DisconnectAsync(c)" Variant="IconButton.IconButtonVariant.Danger" Title="Disconnect">
-                                    <svg class="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                                        <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M13.828 10.172a4 4 0 00-5.656 0l-4 4a4 4 0 105.656 5.656l1.102-1.101m-.758-4.899a4 4 0 005.656 0l4-4a4 4 0 00-5.656-5.656l-1.1 1.1" />
-                                    </svg>
-                                </IconButton>
-                            </div>
-                        </div>
-                    }
-                </div>
-            </Card>
-        }
 
         @if (_importResult != null)
         {
@@ -523,69 +481,6 @@
 
 <ErrorAlert Message="@_errorMessage" />
 
-@if (_showConnectModal)
-{
-    <div class="fixed inset-0 z-50 overflow-y-auto" role="dialog" aria-modal="true">
-        <div class="fixed inset-0 bg-gray-500/75 dark:bg-slate-900/75 transition-opacity" @onclick="CloseConnectModal"></div>
-        <div class="flex min-h-full items-center justify-center p-4">
-            <div class="relative w-full max-w-lg overflow-visible text-left bg-white dark:bg-slate-800 shadow-xl rounded-lg">
-                <div class="px-6 py-5 border-b border-gray-100 dark:border-slate-700">
-                    <h3 class="text-lg font-semibold text-gray-900 dark:text-slate-100">Connect your bank</h3>
-                    <p class="mt-1 text-sm text-gray-500 dark:text-slate-400">Securely link an account to pull transactions automatically.</p>
-                </div>
-                <div class="px-6 py-4 space-y-4">
-                    @if (_connectError is not null)
-                    {
-                        <div class="text-sm text-red-600 dark:text-red-400 bg-red-50 dark:bg-red-900/20 rounded-lg px-3 py-2">@_connectError</div>
-                    }
-                    <div>
-                        <label class="block text-sm font-medium text-gray-700 dark:text-slate-300 mb-1.5">Country</label>
-                        <Select TValue="string" Value="_country" ValueChanged="OnCountryChanged" Searchable="false"
-                                Options="@(new List<SelectOption<string>> {
-                                    new("us", "United States"),
-                                    new("ca", "Canada"),
-                                    new("gb", "United Kingdom"),
-                                    new("ie", "Ireland"),
-                                    new("de", "Germany"),
-                                    new("fr", "France"),
-                                    new("es", "Spain"),
-                                    new("nl", "Netherlands"),
-                                    new("it", "Italy")
-                                })" />
-                    </div>
-                    <div>
-                        <label class="block text-sm font-medium text-gray-700 dark:text-slate-300 mb-1.5">Bank</label>
-                        @if (_loadingInstitutions)
-                        {
-                            <div class="flex justify-center py-6"><LoadingSpinner /></div>
-                        }
-                        else if (!_institutions.Any())
-                        {
-                            <p class="text-sm text-gray-500 dark:text-slate-400">No live connections available for this country yet. Add a bank-data provider (Plaid for US/CA/UK/EU, TrueLayer for UK/EU) in configuration — or use CSV import, which works for any bank.</p>
-                        }
-                        else
-                        {
-                            <Select TValue="string" @bind-Value="_selectedInstitutionId" Placeholder="Search for your bank…"
-                                    Options="@(_institutions.Select(i => new SelectOption<string>(i.Id, i.Name)).ToList())" />
-                        }
-                    </div>
-                    <p class="text-xs text-gray-400 dark:text-slate-500">You'll be redirected to your bank to approve read-only access. Consent typically lasts ~90 days.</p>
-                </div>
-                <div class="px-6 py-4 bg-gray-50 dark:bg-slate-700/50 flex justify-end gap-3">
-                    <button type="button" @onclick="CloseConnectModal" class="btn-secondary">Cancel</button>
-                    <button type="button" @onclick="StartConnectAsync" disabled="@(string.IsNullOrEmpty(_selectedInstitutionId) || _connecting)"
-                            class="inline-flex items-center gap-2 px-5 py-2.5 text-sm font-medium text-white bg-primary-600 hover:bg-primary-700 rounded-xl transition-colors disabled:opacity-50 disabled:cursor-not-allowed">
-                        @if (_connecting)
-                        {
-                            <div class="w-4 h-4 border-2 border-white/30 border-t-white rounded-full animate-spin"></div>
-                        }
-                        Continue to bank
-                    </button>
-                </div>
-            </div>
-        </div>
-    </div>
-}
 
 @code {
     private PaginatedResponse<BankTransactionDto>? _response;
@@ -614,15 +509,7 @@
 
     // Expense modal
     // Bank connection (open banking)
-    private bool _showConnectModal;
-    private bool _loadingInstitutions;
-    private bool _connecting;
     private string? _connectError;
-    private string _country = "gb";
-    private string? _selectedInstitutionId;
-    private List<BankInstitutionDto> _institutions = new();
-    private List<BankConnectionDto> _connections = new();
-    private Guid? _syncingId;
 
     private bool _showExpenseModal;
     private bool _isSavingExpense;
@@ -714,21 +601,7 @@
 
     protected override async Task OnInitializedAsync()
     {
-        // Returning from a bank auth redirect? TrueLayer appends ?code=…&state=<ref>; GoCardless ?ref=<ref>.
-        var reference = GetQueryValue(Nav.Uri, "ref") ?? GetQueryValue(Nav.Uri, "state");
-        var code = GetQueryValue(Nav.Uri, "code");
-        if (!string.IsNullOrEmpty(reference))
-        {
-            try
-            {
-                await FinalizeConnectionCall.Call(new FinalizeBankConnection { Reference = reference, Code = code });
-            }
-            catch { }
-            Nav.NavigateTo("bank-import", replace: true); // clean the URL
-        }
-
         await LoadTransactions();
-        await LoadConnections();
         await LoadCurrencies();
     }
 
@@ -736,101 +609,6 @@
     {
         try { _currencies = await GetCurrenciesCall.Call(new GetBankTransactionCurrencies()) ?? new(); }
         catch { _currencies = new(); }
-    }
-
-    private static string? GetQueryValue(string uri, string key)
-    {
-        var q = new Uri(uri).Query;
-        if (string.IsNullOrEmpty(q)) return null;
-        foreach (var part in q.TrimStart('?').Split('&', StringSplitOptions.RemoveEmptyEntries))
-        {
-            var kv = part.Split('=', 2);
-            if (kv.Length == 2 && kv[0] == key) return Uri.UnescapeDataString(kv[1]);
-        }
-        return null;
-    }
-
-    private async Task LoadConnections()
-    {
-        try { _connections = await GetConnectionsCall.Call(new GetBankConnections()) ?? new(); }
-        catch { _connections = new(); }
-    }
-
-    private async Task OpenConnectModal()
-    {
-        _showConnectModal = true;
-        _connectError = null;
-        _selectedInstitutionId = null;
-        await LoadInstitutions();
-    }
-
-    private void CloseConnectModal() => _showConnectModal = false;
-
-    private async Task LoadInstitutions()
-    {
-        _loadingInstitutions = true;
-        try { _institutions = await GetInstitutionsCall.Call(new GetBankInstitutions { Country = _country }) ?? new(); }
-        catch { _institutions = new(); }
-        finally { _loadingInstitutions = false; }
-    }
-
-    private async Task OnCountryChanged(string value)
-    {
-        _country = value;
-        _selectedInstitutionId = null;
-        await LoadInstitutions();
-    }
-
-    private async Task StartConnectAsync()
-    {
-        if (string.IsNullOrEmpty(_selectedInstitutionId)) return;
-        _connecting = true;
-        _connectError = null;
-        try
-        {
-            var name = _institutions.FirstOrDefault(i => i.Id == _selectedInstitutionId)?.Name ?? "Bank";
-            var link = await StartConnectionCall.Call(new StartBankConnection { InstitutionId = _selectedInstitutionId, InstitutionName = name, Country = _country });
-            if (!string.IsNullOrEmpty(link?.AuthUrl))
-            {
-                Nav.NavigateTo(link.AuthUrl, forceLoad: true); // redirect to the bank
-            }
-            else
-            {
-                _connectError = "Couldn't start the connection. Check that GoCardless credentials and redirect URI are configured.";
-            }
-        }
-        catch
-        {
-            _connectError = "Something went wrong starting the connection.";
-        }
-        finally
-        {
-            _connecting = false;
-        }
-    }
-
-    private async Task SyncConnectionAsync(BankConnectionDto c)
-    {
-        _syncingId = c.Id;
-        try
-        {
-            await SyncConnectionCall.Call(new SyncBankConnection { Id = c.Id });
-            await LoadConnections();
-            _currentPage = 1;
-            await LoadTransactions();
-        }
-        catch { }
-        finally { _syncingId = null; }
-    }
-
-    private async Task DisconnectAsync(BankConnectionDto c)
-    {
-        try
-        {
-            await DeleteConnectionCall.Call(new DeleteBankConnection { Id = c.Id });
-            await LoadConnections();
-        }
-        catch { }
     }
 
     private static string ConnStatusClass(string status) => status switch

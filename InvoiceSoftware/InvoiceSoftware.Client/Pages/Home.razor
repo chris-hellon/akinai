@@ -1,4 +1,7 @@
 @page "/"
+@using InvoiceSoftware.Shared.Billing
+@using InvoiceSoftware.Shared.Api.Billing
+@inject ICall<GetPlans, List<PlanDefinition>> GetPlansCall
 @layout EmptyLayout
 @attribute [AllowAnonymous]
 
@@ -13,14 +16,14 @@
 <div class="nav">
 <div class="navleft">
 <label class="navburger" for="navtoggle" aria-label="Open menu"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M4 6h16M4 12h16M4 18h16"/></svg></label>
-<a class="brand" href=""><span class="hanko">商</span><span class="wordmark">Akinai<span class="jp">あきない</span></span></a>
+<a class="brand" href=""><span class="hanko">商</span><span class="wordmark">Akin<span class="wm-ai">ai</span><span class="jp">あきない</span></span></a>
 </div>
-<div class="navlinks"><a class="nlink" href="#payments">Payments</a><a class="nlink" href="#reconciliation">Reconciliation</a><a class="nlink" href="#estimates">Estimates</a><a class="nlink" href="#global">Global</a></div>
+<div class="navlinks"><a class="nlink" href="#payments">Payments</a><a class="nlink" href="#reconciliation">Reconciliation</a><a class="nlink" href="#estimates">Estimates</a><a class="nlink" href="#global">Global</a><a class="nlink" href="#pricing">Pricing</a></div>
 <div class="navact"><a class="signin" href="account/login">Sign in</a><a class="btn btn-ink" href="account/register">Get started</a></div>
 </div>
 <label class="navscrim" for="navtoggle" aria-hidden="true"></label>
 <div class="mobilemenu">
-<div class="mm-brand"><span class="hanko">商</span><span class="wordmark">Akinai<span class="jp">あきない</span></span></div>
+<div class="mm-brand"><span class="hanko">商</span><span class="wordmark">Akin<span class="wm-ai">ai</span><span class="jp">あきない</span></span></div>
 <a class="mm-link" href="#payments">Payments</a>
 <a class="mm-link" href="#reconciliation">Reconciliation</a>
 <a class="mm-link" href="#estimates">Estimates</a>
@@ -35,9 +38,9 @@
 <h1 class="h1">Bill in their language.<br><span class="thin">Get paid on</span> <span class="em">their rail.</span></h1>
 <div class="herohair">
 <div>
-<p class="lead">Six languages, every payment rail, VietQR built in — and a bank-statement importer that lines each transaction up against your open invoices. Precise by design.</p>
+<p class="lead">Eight languages, every payment rail, VietQR built in — and a bank-statement importer that lines each transaction up against your open invoices. Precise by design.</p>
 <div class="herocta"><a class="btn btn-ink btn-lg" href="account/register">Start for free<svg fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M13 7l5 5m0 0l-5 5m5-5H6"></path></svg></a></div>
-<div class="spec"><div class="si"><div class="sn">6</div><div class="sl">Languages</div></div><div class="si"><div class="sn">5<span class="u"> rails</span></div><div class="sl">Bank · PayPal · Wise · Revolut · VietQR</div></div><div class="si"><div class="sn">Auto</div><div class="sl">Reconciled</div></div></div>
+<div class="spec"><div class="si"><div class="sn">8</div><div class="sl">Languages</div></div><div class="si"><div class="sn">5<span class="u"> rails</span></div><div class="sl">Bank · PayPal · Wise · Revolut · VietQR</div></div><div class="si"><div class="sn">Auto</div><div class="sl">Reconciled</div></div></div>
 </div>
 <div class="speccell"><span class="fig">INV — 0231 / VND</span>
 <div class="cardwrap">
@@ -136,11 +139,59 @@
 <div id="global" class="sec"><div class="wrap" style="text-align:center">
 <div class="fx jc"><span class="ficon"><svg width="24" height="24" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="1.8" d="M3 5h12M9 3v2m1.048 9.5A18 18 0 016.4 9m6.1 9h7M11 21l5-10 5 10M12.7 5C11.8 10.8 8 15.6 3 18"></path></svg></span></div>
 <div class="seyebrow" style="margin-top:16px;justify-content:center"><span class="kj">世</span>Global by default</div>
-<h2 class="stt" style="font-size:30px">Speaks six languages. Bills in any currency.</h2>
+<h2 class="stt" style="font-size:30px">Speaks eight languages. Bills in any currency.</h2>
 <p class="sdd" style="margin:16px auto 0;max-width:540px">Each client sees their invoice in their language and currency — and you choose the look with four ready PDF templates.</p>
 <div class="fx ac jc gap8" style="flex-wrap:wrap;margin-top:28px"><span class="langchip">EN English</span><span class="langchip">ES Español</span><span class="langchip">FR Français</span><span class="langchip">DE Deutsch</span><span class="langchip">ZH 中文</span><span class="langchip">VI Tiếng Việt</span></div>
 <div class="fx ac jc gap8" style="margin-top:14px;flex-wrap:wrap"><span class="langchip" style="font-family:var(--sans);text-transform:none">£ GBP</span><span class="langchip" style="font-family:var(--sans);text-transform:none">$ USD</span><span class="langchip" style="font-family:var(--sans);text-transform:none">€ EUR</span><span class="langchip" style="font-family:var(--sans);text-transform:none">₫ VND</span><span class="langchip" style="font-family:var(--sans);text-transform:none">¥ JPY</span></div>
 <div class="fx gap12" style="margin-top:30px;flex-wrap:wrap"><div class="tmpl"><div class="tmplbar" style="background:var(--ink)"></div><div class="tmplbody"><div class="tmplname">Minimal</div><div class="tmpltag">Clean · mono</div></div></div><div class="tmpl"><div class="tmplbar" style="background:var(--shu)"></div><div class="tmplbody"><div class="tmplname">Professional</div><div class="tmpltag">Default</div></div></div><div class="tmpl"><div class="tmplbar" style="background:var(--ai)"></div><div class="tmplbody"><div class="tmplname">Modern</div><div class="tmpltag">Bold accent</div></div></div><div class="tmpl"><div class="tmplbar" style="background:oklch(.42 .03 60)"></div><div class="tmplbody"><div class="tmplname">Classic</div><div class="tmpltag">Traditional</div></div></div></div>
+</div></div>
+
+<!-- Pricing — reads the same catalogue the billing page and the entitlement
+     checks use, so what is advertised here cannot drift from what is sold. -->
+<div id="pricing" class="sec"><div class="wrap" style="text-align:center">
+<div class="seyebrow" style="justify-content:center"><span class="kj">価</span>Pricing</div>
+<h2 class="stt" style="font-size:30px">Start free. Upgrade when it pays for itself.</h2>
+<p class="sdd" style="margin:16px auto 0;max-width:520px">No card to start. @(_free?.InvoicesPerMonth?.ToString() ?? "5") invoices a month free, forever — cross-border features when you need them.</p>
+
+<div class="fx gap12 jc" style="margin-top:34px;flex-wrap:wrap;align-items:stretch;text-align:left">
+@foreach (var plan in _plans)
+{
+    var isPro = plan.IsPaid;
+    <div class="pcard @(isPro ? "pcard-hl" : "")">
+        @if (isPro)
+        {
+            <div class="pbadge">Most popular</div>
+        }
+        <div class="pname">@plan.Name</div>
+        <div class="pprice">
+            @if (isPro)
+            {
+                <span class="pamt">£@plan.MonthlyPrice.ToString("0.##")</span><span class="pper">/month</span>
+            }
+            else
+            {
+                <span class="pamt">Free</span>
+            }
+        </div>
+        @if (isPro)
+        {
+            <div class="pnote">or £@plan.AnnualPrice.ToString("0.##") a year — @plan.AnnualMonthsFree.ToString("0.#") months free</div>
+        }
+        else
+        {
+            <div class="pnote">No card required</div>
+        }
+        <ul class="plist">
+            @foreach (var line in plan.Highlights)
+            {
+                <li>@line</li>
+            }
+        </ul>
+        <a class="btn @(isPro ? "btn-ink" : "btn-ghost") btn-lg" style="width:100%;justify-content:center;margin-top:auto"
+           href="account/register">@(isPro ? "Start with Pro" : "Start free")</a>
+    </div>
+}
+</div>
 </div></div>
 
 <!-- Security -->
@@ -159,11 +210,17 @@
 </div></div></div>
 
 <!-- Footer -->
-<div class="ft"><div class="brand"><span class="hanko" style="width:30px;height:30px;font-size:17px;border-radius:6px">商</span><span class="wordmark" style="font-size:17px">Akinai<span class="jp">あきない</span></span></div><span class="ts">© @DateTime.Now.Year Akinai. All rights reserved.</span></div>
+<div class="ft"><div class="brand"><span class="hanko" style="width:30px;height:30px;font-size:17px;border-radius:6px">商</span><span class="wordmark" style="font-size:17px">Akin<span class="wm-ai">ai</span><span class="jp">あきない</span></span></div><span class="ts">© @DateTime.Now.Year Akinai. All rights reserved.</span></div>
 
 </div>
 
 @code {
+    // The live catalogue, so the advertised price is whatever billing is
+    // actually charging. Falls back to the compiled defaults if the call fails,
+    // because a marketing page with no prices is worse than slightly stale ones.
+    private IReadOnlyList<PlanDefinition> _plans = Plans.All;
+    private PlanDefinition? _free => _plans.FirstOrDefault(p => !p.IsPaid);
+
     [CascadingParameter] private Task<AuthenticationState>? AuthState { get; set; }
 
     protected override async Task OnInitializedAsync()
@@ -173,7 +230,13 @@
         {
             var state = await AuthState;
             if (state.User.Identity?.IsAuthenticated == true)
+            {
                 NavigationManager.NavigateTo("dashboard", replace: true);
+                return;
+            }
         }
+
+        var plans = await GetPlansCall.Call(new GetPlans());
+        if (plans is { Count: > 0 }) _plans = plans;
     }
 }

@@ -41,4 +41,12 @@ public record PublicInvoiceDto(
     // Currency-specific bank details
     CurrencyPaymentSettingsDto? CurrencyPaymentSettings,
     // Template styling
-    InvoiceTemplateDto? Template = null);
+    InvoiceTemplateDto? Template = null,
+    /// <summary>
+    /// The language this invoice is written in, as a <c>SupportedLanguage</c>
+    /// name. Freeform text in the DTO above has already been translated into
+    /// it server-side; the renderer uses this only to pick the matching fixed
+    /// labels and date format. Defaults to English so an older cached response
+    /// still renders.
+    /// </summary>
+    string Language = "English");

@@ -1,4 +1,9 @@
 @page "/invoice/view/{Token:guid}"
+@attribute [AllowAnonymous]
+@* Overrides the folder-wide [Authorize] in Pages/_Imports.razor. This page is
+   for the client, who has no account — it is authorised by the unguessable
+   token in the URL, exactly as the API route behind it already is (see
+   ApiPublicPaths). Without this the emailed invoice link bounced to login. *@
 @layout EmptyLayout
 
 @inject ICall<GetPublicInvoice, PublicInvoiceDto?> GetPublicInvoiceCall
@@ -36,6 +41,7 @@
                     InvoiceNumber="@_invoice.InvoiceNumber"
                     Status="@_invoice.Status"
                     Currency="@_invoice.Currency"
+                    Language="@_invoice.Language"
                     IssueDate="@_invoice.IssueDate"
                     DueDate="@_invoice.DueDate"
                     PaidDate="@_invoice.PaidDate"
@@ -76,7 +82,7 @@
             <!-- Powered by footer -->
             <div class="mt-6 text-center">
                 <p class="text-xs text-gray-400 dark:text-slate-500">
-                    Powered by <span class="font-semibold font-display">Akinai</span> <span class="text-primary-500">商</span>
+                    Powered by <span class="font-semibold font-display">Akin<span class="wm-ai">ai</span></span> <span class="text-primary-500">商</span>
                 </p>
             </div>
         }
@@ -105,7 +111,7 @@
     {
         try
         {
-            _invoice = await GetPublicInvoiceCall.Call(new GetPublicInvoice { Token = Token });
+            _invoice = await GetPublicInvoiceCall.Call(new GetPublicInvoice { Token = Token, RecordView = true });
         }
         catch (Exception ex)
         {

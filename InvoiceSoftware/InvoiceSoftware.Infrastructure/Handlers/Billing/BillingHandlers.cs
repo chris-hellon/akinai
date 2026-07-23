@@ -52,14 +52,15 @@ public class GetBillingHistoryHandler(
 
 public class StartCheckoutHandler(
     ICurrentUserService currentUserService,
-    ISubscriptionService subscriptions) : IHandle<StartCheckout, CheckoutSessionDto>
+    ISubscriptionService subscriptions,
+    IPlanCatalog catalog) : IHandle<StartCheckout, CheckoutSessionDto>
 {
     public async Task<HttpResult<CheckoutSessionDto>> Handle(StartCheckout request, CancellationToken cancellationToken)
     {
         var userId = currentUserService.UserId;
         if (string.IsNullOrEmpty(userId)) return HttpResult<CheckoutSessionDto>.Unauthorized();
 
-        if (!Plans.For(request.Plan).IsPaid)
+        if (!(await catalog.ForAsync(request.Plan, cancellationToken)).IsPaid)
             return HttpResult<CheckoutSessionDto>.BadRequest(null!);
 
         var session = await subscriptions.StartCheckoutAsync(userId, request.Plan, request.Cycle, cancellationToken);
@@ -70,7 +71,8 @@ public class StartCheckoutHandler(
 public class GetCheckoutHandler(
     IDbContextFactory<ApplicationDbContext> dbFactory,
     ICurrentUserService currentUserService,
-    Services.Billing.IBillingProvider provider) : IHandle<GetCheckout, CheckoutSessionDto>
+    Services.Billing.IBillingProvider provider,
+    IPlanCatalog catalog) : IHandle<GetCheckout, CheckoutSessionDto>
 {
     public async Task<HttpResult<CheckoutSessionDto>> Handle(GetCheckout request, CancellationToken cancellationToken)
     {
@@ -89,7 +91,7 @@ public class GetCheckoutHandler(
 
         var plan = Enum.Parse<BillingPlan>(session.Plan);
         var cycle = Enum.Parse<BillingCycle>(session.Cycle);
-        var definition = Plans.For(plan);
+        var definition = await catalog.ForAsync(plan, cancellationToken);
 
         return HttpResult<CheckoutSessionDto>.Ok(new CheckoutSessionDto(
             session.Id, plan, definition.Name, cycle, session.Amount, session.Currency,

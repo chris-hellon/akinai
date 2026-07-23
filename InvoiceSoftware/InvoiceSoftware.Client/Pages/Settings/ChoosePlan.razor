@@ -9,7 +9,7 @@
 @inject ICall<StartCheckout, CheckoutSessionDto> StartCheckoutCall
 @inject ICall<SelectFreePlan, SubscriptionDto> SelectFreeCall
 @inject NavigationManager Nav
-@inject InvoiceSoftware.Client.Services.EntitlementState Entitlements
+@inject EntitlementState Entitlements
 
 @*
     Shown once, after signing up. Choosing Free is a real choice that records
@@ -20,7 +20,7 @@
 
 <div class="max-w-4xl mx-auto space-y-8">
     <div class="text-center">
-        <h1 class="text-3xl font-bold text-gray-900 dark:text-slate-100 tracking-tight">Welcome to Akinai</h1>
+        <h1 class="text-3xl font-bold text-gray-900 dark:text-slate-100 tracking-tight">Welcome to Akin<span class="wm-ai">ai</span></h1>
         <p class="mt-2 text-gray-500 dark:text-slate-400">
             Pick a plan to get started. You can change it whenever you like — nothing is locked in.
         </p>

@@ -12,7 +12,7 @@
                 SearchPlaceholder="Search by name, company, or email..."
                 SearchValue="@_searchTerm"
                 SearchValueChanged="OnSearchChanged"
-                Breadcrumbs="@(new List<PageHeader.BreadcrumbItem> { new("Clients") })">
+                Breadcrumbs="@(new List<PageHeader.BreadcrumbItem> { new("Management", "/management"), new("Clients") })">
     <Filters>
         <Select TValue="bool" Value="_showInactive" ValueChanged="OnShowInactiveChanged" Searchable="false" Class="w-full sm:w-44"
                 Options="@(new List<SelectOption<bool>> { new(false, "Active clients"), new(true, "All clients") })" />

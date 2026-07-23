@@ -39,6 +39,9 @@ public class CreateInvoiceHandler(
         }
         var invoiceNumber = $"INV-{nextNumber:D5}";
 
+        if (!InvoiceLanguageRequest.TryResolve(request.Language, entitlements, out var language))
+            return HttpResult<Guid>.Forbidden();
+
         var invoice = Invoice.Create(
             invoiceNumber,
             request.ClientId,
@@ -46,7 +49,8 @@ public class CreateInvoiceHandler(
             request.DueDate,
             request.TaxRate,
             request.Notes,
-            currency);
+            currency,
+            language);
 
         // Set template if provided
         if (request.TemplateId.HasValue)

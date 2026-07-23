@@ -8,7 +8,7 @@
 <div class="space-y-6">
     <PageHeader Title="Business Profile"
                 Description="Configure your company details for invoices."
-                Breadcrumbs="@(new List<PageHeader.BreadcrumbItem> { new("Settings"), new("Business Profile") })" />
+                Breadcrumbs="@(new List<PageHeader.BreadcrumbItem> { new("Settings", "/settings"), new("Business Profile") })" />
 
     @if (_isLoading)
     {

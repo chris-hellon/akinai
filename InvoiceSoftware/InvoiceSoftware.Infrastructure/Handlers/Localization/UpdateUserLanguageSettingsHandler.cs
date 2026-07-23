@@ -22,22 +22,18 @@ public class UpdateUserLanguageSettingsHandler(
         if (string.IsNullOrEmpty(userId))
             return HttpResult.Unauthorized();
 
-        if (!Enum.TryParse<SupportedLanguage>(request.DefaultLanguage, out var defaultLang))
-            return HttpResult.NotFound();
-
         if (!Enum.TryParse<SupportedLanguage>(request.InvoiceLanguage, out var invoiceLang))
             return HttpResult.NotFound();
 
         if (!Enum.TryParse<SupportedLanguage>(request.EstimateLanguage, out var estimateLang))
             return HttpResult.NotFound();
 
-        // Other languages are a paid feature. Checked across all three settings,
-        // because any one of them is enough to put a non-English invoice in
-        // front of a client.
+        // Other languages are a paid feature. Checked across both settings,
+        // because either one is enough to put a non-English document in front
+        // of a client.
         var entitlements = await entitlementService.GetAsync(userId, cancellationToken);
         if (!entitlements.AllLanguages
-            && (defaultLang != SupportedLanguage.English
-                || invoiceLang != SupportedLanguage.English
+            && (invoiceLang != SupportedLanguage.English
                 || estimateLang != SupportedLanguage.English))
         {
             return HttpResult.Forbidden();
@@ -53,7 +49,6 @@ public class UpdateUserLanguageSettingsHandler(
             db.UserLanguagePreferences.Add(settings);
         }
 
-        settings.UpdateDefaultLanguage(defaultLang);
         settings.UpdateInvoiceLanguage(invoiceLang);
         settings.UpdateEstimateLanguage(estimateLang);
 

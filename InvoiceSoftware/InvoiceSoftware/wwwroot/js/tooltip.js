@@ -42,6 +42,19 @@
         document.body.appendChild(tip);
     }
 
+    // Collapsed sidebar: the icon is all that's left, so the label becomes the
+    // tooltip. Derived from the .nav-text the CSS just hid rather than from a
+    // data-tooltip on every link — twenty hand-written attributes would drift
+    // from the labels the moment one was renamed, and this cannot.
+    // Only while collapsed: repeating a label that is already on screen is noise.
+    function navLabel(el) {
+        var link = el.closest && el.closest('.nav-link');
+        if (!link || !link.closest('.sidebar-collapsed')) return null;
+        var label = link.querySelector('.nav-text');
+        var text = label && label.textContent && label.textContent.trim();
+        return text || null;
+    }
+
     // Upgrade a native title -> data-tooltip (once) so the browser's slow default
     // tooltip never appears, and keep the accessible name via aria-label.
     function resolveText(el) {
@@ -57,7 +70,10 @@
     }
 
     function position(el) {
-        var placement = el.getAttribute('data-tooltip-placement') || 'top';
+        // A sidebar tooltip above the icon would sit over the item above it;
+        // to the right is the only side with room when collapsed.
+        var placement = el.getAttribute('data-tooltip-placement')
+            || (el.closest && el.closest('.sidebar-collapsed') ? 'right' : 'top');
         var r = el.getBoundingClientRect();
         var tw = tip.offsetWidth, th = tip.offsetHeight;
         var vw = window.innerWidth, vh = window.innerHeight;
@@ -103,9 +119,9 @@
     }
 
     document.addEventListener('mouseover', function (e) {
-        var el = e.target.closest && e.target.closest('[data-tooltip],[title]');
+        var el = e.target.closest && e.target.closest('[data-tooltip],[title],.nav-link');
         if (!el) return;
-        var text = resolveText(el);
+        var text = resolveText(el) || navLabel(el);
         if (text && el !== current) show(el, text);
     });
 
@@ -117,9 +133,9 @@
     });
 
     document.addEventListener('focusin', function (e) {
-        var el = e.target.closest && e.target.closest('[data-tooltip],[title]');
+        var el = e.target.closest && e.target.closest('[data-tooltip],[title],.nav-link');
         if (!el) return;
-        var text = resolveText(el);
+        var text = resolveText(el) || navLabel(el);
         if (text) show(el, text);
     });
 

@@ -18,7 +18,8 @@ public class SubscriptionService(
     INotificationService notifications,
     IHubContext<NotificationHub> hub,
     IUserEventBus bus,
-    ILogger<SubscriptionService> logger) : ISubscriptionService
+    ILogger<SubscriptionService> logger,
+    IPlanCatalog catalog) : ISubscriptionService
 {
     /// <summary>How long a checkout stays open before it has to be started again.</summary>
     private static readonly TimeSpan CheckoutValidFor = TimeSpan.FromMinutes(30);
@@ -28,7 +29,7 @@ public class SubscriptionService(
         await using var db = await dbFactory.CreateDbContextAsync(cancellationToken);
         var user = await db.Users.AsNoTracking().FirstOrDefaultAsync(u => u.Id == userId, cancellationToken)
             ?? throw new InvalidOperationException($"No such user '{userId}'.");
-        return ToDto(user);
+        return await ToDto(user, cancellationToken);
     }
 
     public async Task<IReadOnlyList<SubscriptionEventDto>> GetHistoryAsync(
@@ -47,7 +48,7 @@ public class SubscriptionService(
     public async Task<CheckoutSessionDto> StartCheckoutAsync(
         string userId, BillingPlan plan, BillingCycle cycle, CancellationToken cancellationToken = default)
     {
-        var definition = Plans.For(plan);
+        var definition = await catalog.ForAsync(plan, cancellationToken);
         if (!definition.IsPaid)
             throw new InvalidOperationException("The free plan does not go through checkout.");
 
@@ -126,13 +127,13 @@ public class SubscriptionService(
 
         var renewal = user.CurrentPeriodEndUtc?.ToString("d MMMM yyyy");
         await AnnounceAsync(userId,
-            fromPlan == plan ? $"{Plans.For(plan).Name} renewed" : $"You're on Akinai {Plans.For(plan).Name}",
+            fromPlan == plan ? $"{(await catalog.ForAsync(plan, cancellationToken)).Name} renewed" : $"You're on Akinai {(await catalog.ForAsync(plan, cancellationToken)).Name}",
             fromPlan == plan
                 ? $"Your subscription runs until {renewal}."
-                : $"Every currency, all six languages, bank import and recurring billing are unlocked. Renews {renewal}.",
+                : $"Every currency, all eight languages, bank import and recurring billing are unlocked. Renews {renewal}.",
             cancellationToken);
 
-        return new CheckoutResultDto(true, null, ToDto(user));
+        return new CheckoutResultDto(true, null, await ToDto(user, cancellationToken));
     }
 
     public async Task<SubscriptionDto> SelectFreeAsync(string userId, CancellationToken cancellationToken = default)
@@ -146,7 +147,7 @@ public class SubscriptionService(
         user.PlanSelectedAtUtc ??= DateTime.UtcNow;
         await db.SaveChangesAsync(cancellationToken);
 
-        return ToDto(user);
+        return await ToDto(user, cancellationToken);
     }
 
     public async Task<SubscriptionDto> CancelAsync(string userId, CancellationToken cancellationToken = default)
@@ -156,7 +157,7 @@ public class SubscriptionService(
             ?? throw new InvalidOperationException($"No such user '{userId}'.");
 
         if (user.SubscriptionStatus is not (SubscriptionStatus.Active or SubscriptionStatus.Cancelling))
-            return ToDto(user);
+            return await ToDto(user, cancellationToken);
 
         user.SubscriptionStatus = SubscriptionStatus.Cancelling;
 
@@ -169,10 +170,10 @@ public class SubscriptionService(
 
         await AnnounceAsync(userId,
             "Subscription cancelled",
-            $"You keep {Plans.For(user.Plan).Name} until {user.CurrentPeriodEndUtc:d MMMM yyyy}, then move to Free. Nothing you've created is removed.",
+            $"You keep {(await catalog.ForAsync(user.Plan, cancellationToken)).Name} until {user.CurrentPeriodEndUtc:d MMMM yyyy}, then move to Free. Nothing you've created is removed.",
             cancellationToken);
 
-        return ToDto(user);
+        return await ToDto(user, cancellationToken);
     }
 
     public async Task<SubscriptionDto> ResumeAsync(string userId, CancellationToken cancellationToken = default)
@@ -185,7 +186,7 @@ public class SubscriptionService(
         // lapsed the account has to check out again.
         if (user.SubscriptionStatus != SubscriptionStatus.Cancelling
             || user.CurrentPeriodEndUtc is null || user.CurrentPeriodEndUtc <= DateTime.UtcNow)
-            return ToDto(user);
+            return await ToDto(user, cancellationToken);
 
         user.SubscriptionStatus = SubscriptionStatus.Active;
 
@@ -196,10 +197,10 @@ public class SubscriptionService(
 
         await AnnounceAsync(userId,
             "Subscription resumed",
-            $"Your {Plans.For(user.Plan).Name} plan will renew on {user.CurrentPeriodEndUtc:d MMMM yyyy}.",
+            $"Your {(await catalog.ForAsync(user.Plan, cancellationToken)).Name} plan will renew on {user.CurrentPeriodEndUtc:d MMMM yyyy}.",
             cancellationToken);
 
-        return ToDto(user);
+        return await ToDto(user, cancellationToken);
     }
 
     public async Task<SubscriptionDto> AdminSetPlanAsync(
@@ -222,7 +223,7 @@ public class SubscriptionService(
         }
         else
         {
-            var effectiveCycle = cycle ?? Shared.Billing.BillingCycle.Monthly;
+            var effectiveCycle = cycle ?? BillingCycle.Monthly;
             user.Plan = plan;
             user.SubscriptionStatus = SubscriptionStatus.Active;
             user.BillingCycle = effectiveCycle;
@@ -247,13 +248,13 @@ public class SubscriptionService(
         // Worded for the customer, not the admin: they did not do this, so say
         // what changed rather than who changed it.
         await AnnounceAsync(userId,
-            $"Your plan changed to {Plans.For(plan).Name}",
+            $"Your plan changed to {(await catalog.ForAsync(plan, cancellationToken)).Name}",
             plan == BillingPlan.Free
                 ? "Your account is now on the Free plan. Everything you've created stays available."
-                : $"Your account is now on {Plans.For(plan).Name} until {user.CurrentPeriodEndUtc:d MMMM yyyy}.",
+                : $"Your account is now on {(await catalog.ForAsync(plan, cancellationToken)).Name} until {user.CurrentPeriodEndUtc:d MMMM yyyy}.",
             cancellationToken);
 
-        return ToDto(user);
+        return await ToDto(user, cancellationToken);
     }
 
 
@@ -300,15 +301,15 @@ public class SubscriptionService(
     }
 
     private static DateTime AddPeriod(DateTime from, BillingCycle cycle)
-        => cycle == Shared.Billing.BillingCycle.Annual ? from.AddYears(1) : from.AddMonths(1);
+        => cycle == BillingCycle.Annual ? from.AddYears(1) : from.AddMonths(1);
 
-    private SubscriptionDto ToDto(ApplicationUser user)
+    private async Task<SubscriptionDto> ToDto(ApplicationUser user, CancellationToken cancellationToken)
     {
         // Reported against the effective plan, so a lapsed account is not shown
         // as though it still has what it has stopped paying for.
         var effective = EntitlementService.ResolveEffectivePlan(
             user.Plan, user.SubscriptionStatus, user.CurrentPeriodEndUtc, DateTime.UtcNow);
-        var definition = Plans.For(effective);
+        var definition = await catalog.ForAsync(effective, cancellationToken);
 
         return new SubscriptionDto(
             effective,

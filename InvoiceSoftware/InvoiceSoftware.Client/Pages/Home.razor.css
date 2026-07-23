@@ -306,3 +306,27 @@ a{color:var(--shu);text-decoration:none}a:hover{color:var(--shu2)}
     .nav .hanko{width:34px;height:34px;font-size:19px}
     .nav .navact .btn{padding:11px 13px;letter-spacing:.09em}
 }
+
+/* Akin·ai — the wordmark's last two letters carry the brand accent. */
+/* Matches --color-wordmark-ai in input.css. Repeated here because Blazor CSS
+   isolation scopes this file to the landing page, where the wordmark's base
+   colour is teal and a teal accent would be invisible. */
+.wm-ai{color:var(--color-wordmark-ai,#33969f)}
+
+/* Pricing cards. Deliberately the landing page's own idiom — hairline borders,
+   paper fill, serif numerals — rather than the app's PlanCards component, which
+   is styled for the signed-in shell and looks foreign here. */
+.pcard{display:flex;flex-direction:column;flex:1 1 280px;max-width:340px;padding:28px 26px;
+  border:1px solid var(--line);border-radius:14px;background:var(--paper);position:relative}
+.pcard-hl{border-color:var(--shu);box-shadow:0 1px 3px rgba(16,24,40,.06)}
+.pbadge{position:absolute;top:-11px;left:26px;padding:3px 10px;border-radius:999px;
+  background:var(--shu);color:#fff;font-size:11px;letter-spacing:.06em;text-transform:uppercase}
+.pname{font-family:var(--serif);font-size:19px;font-weight:600}
+.pprice{margin-top:10px;display:flex;align-items:baseline;gap:4px}
+.pamt{font-family:var(--serif);font-size:38px;font-weight:700;line-height:1}
+.pper{color:var(--ink2);font-size:14px}
+.pnote{margin-top:6px;color:var(--ink2);font-size:13px}
+.plist{margin:20px 0 26px;padding:0;list-style:none;display:flex;flex-direction:column;gap:10px}
+.plist li{position:relative;padding-left:22px;font-size:14px;line-height:1.5;color:var(--ink2)}
+.plist li::before{content:"";position:absolute;left:0;top:7px;width:11px;height:6px;
+  border-left:1.6px solid var(--shu);border-bottom:1.6px solid var(--shu);transform:rotate(-45deg)}

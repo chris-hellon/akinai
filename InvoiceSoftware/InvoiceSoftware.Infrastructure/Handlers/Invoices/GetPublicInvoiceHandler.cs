@@ -13,7 +13,9 @@ namespace InvoiceSoftware.Infrastructure.Handlers.Invoices;
 /// Handler for public invoice access - no authentication required.
 /// </summary>
 public class GetPublicInvoiceHandler(IDbContextFactory<ApplicationDbContext> dbFactory,
-    Services.IExchangeRateService exchangeRates)
+    Services.IExchangeRateService exchangeRates,
+    Shared.Services.IInvoiceTranslator translator,
+    Shared.Services.ICurrentUserService currentUserService)
     : IHandle<GetPublicInvoice, PublicInvoiceDto?>
 {
     public async Task<HttpResult<PublicInvoiceDto?>> Handle(GetPublicInvoice request, CancellationToken cancellationToken)
@@ -27,6 +29,17 @@ public class GetPublicInvoiceHandler(IDbContextFactory<ApplicationDbContext> dbF
 
         if (invoice == null)
             return HttpResult<PublicInvoiceDto?>.NotFound();
+
+        // --- View tracking ------------------------------------------------
+        // Only when the caller asked (the public web page does, the PDF renderer
+        // does not) and only when it is not the owner looking at their own link.
+        // Both of those reach this handler identically, and counting either
+        // would turn "your client opened this" into a number that means nothing.
+        if (request.RecordView && !string.Equals(currentUserService.UserId, invoice.CreatedBy, StringComparison.Ordinal))
+        {
+            invoice.RecordView(DateTime.UtcNow);
+            await db.SaveChangesAsync(cancellationToken);
+        }
 
         // Get time entries for this invoice
         var timeEntries = await db.TimeEntries
@@ -113,6 +126,40 @@ public class GetPublicInvoiceHandler(IDbContextFactory<ApplicationDbContext> dbF
             p.LineTotal.Amount,
             p.UnitPrice.Currency,
             p.Order)).ToList();
+
+        // --- Translation --------------------------------------------------
+        // Done here, on the server, rather than in the browser: this is the
+        // response the client actually receives, so the invoice arrives already
+        // in their language whether they open the page, print it, or the PDF
+        // handler renders the same DTO.
+        //
+        // Only the freeform text the user wrote goes through the translator.
+        // The document's fixed headings are picked from InvoiceLabels by the
+        // renderer using the Language field below — no API call, no cost.
+        var language = await translator.ResolveForInvoiceAsync(
+            invoice.CreatedBy, invoice.ClientId, ToShared(invoice.Language), cancellationToken);
+
+        var notes = invoice.Notes;
+
+        if (language != Shared.Enums.SupportedLanguage.English)
+        {
+            // Every user-authored field the document actually displays. Note
+            // these are not simply "Description": the services table renders the
+            // job, project and section names, and the expenses table renders the
+            // merchant — translating Description alone left the visible text in
+            // English. Expense categories are a closed enum and come from
+            // InvoiceLabels instead.
+            var texts = InvoiceTranslationFields.Collect(lineItems, expenseLineItems, productLineItemDtos, notes);
+
+            // One call for the whole invoice, deduplicated by content inside the
+            // translator. Anything that could not be translated comes back as
+            // the original, so this cannot fail the render.
+            var translated = await translator.TranslateAsync(
+                invoice.CreatedBy, language, texts, cancellationToken);
+
+            InvoiceTranslationFields.Apply(
+                translated, lineItems, expenseLineItems, productLineItemDtos, ref notes);
+        }
 
         // Build business address string
         string? businessAddress = null;
@@ -210,12 +257,12 @@ public class GetPublicInvoiceHandler(IDbContextFactory<ApplicationDbContext> dbF
             invoice.TaxRate,
             taxAmount,
             total,
-            invoice.Notes,
+            notes,
             lineItems,
             expenseLineItems,
             productLineItemDtos,
             // Business info
-            businessProfile?.TradingName ?? businessProfile?.CompanyName,
+            string.IsNullOrWhiteSpace(businessProfile?.TradingName) ? businessProfile?.CompanyName : businessProfile.TradingName,
             businessAddress,
             businessProfile?.Email?.Value,
             businessProfile?.Phone?.Value,
@@ -230,9 +277,14 @@ public class GetPublicInvoiceHandler(IDbContextFactory<ApplicationDbContext> dbF
             businessProfile?.DefaultCurrency,
             await Services.VndPaymentRate.GetAsync(exchangeRates, businessProfile?.DefaultCurrency, cancellationToken),
             currencyPaymentDto,
-            templateDto);
+            templateDto,
+            language.ToString());
 
         return HttpResult<PublicInvoiceDto?>.Ok(result);
     }
 
+
+    /// <summary>Domain enum to shared enum; both declare the same members in the same order.</summary>
+    private static Shared.Enums.SupportedLanguage? ToShared(Domain.Enums.SupportedLanguage? language)
+        => language is null ? null : (Shared.Enums.SupportedLanguage)(int)language.Value;
 }

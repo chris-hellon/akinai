@@ -25,6 +25,7 @@ public class ExchangeRateService(
             ["CAD"] = 1.37m,
             ["SGD"] = 1.35m,
             ["CNY"] = 7.2m,
+            ["KRW"] = 1370m,
             ["THB"] = 36m,
             ["INR"] = 83m,
             ["NZD"] = 1.64m,

@@ -26,12 +26,25 @@
       <IncludeAssets>runtime; build; native; contentfiles; analyzers; buildtransitive</IncludeAssets>
     </PackageReference>
     <PackageReference Include="Microsoft.AspNetCore.Identity.EntityFrameworkCore" Version="10.0.0-rc.1.25451.107" />
+    <PackageReference Include="PuppeteerSharp" Version="25.3.4" />
     <PackageReference Include="QuestPDF" Version="2024.12.2" />
     <PackageReference Include="System.Text.Encoding.CodePages" Version="10.0.10" />
   </ItemGroup>
 
   <ItemGroup>
     <Folder Include="Services\Modal\" />
+  </ItemGroup>
+
+  <!-- PDF fonts are fetched, not committed (see ../fetch-fonts.sh). The script
+       skips files it already has, so this is a no-op after the first build.
+       ContinueOnError: a developer with no network still gets a working build,
+       just an English-only PDF. -->
+  <Target Name="FetchPdfFonts" BeforeTargets="BeforeBuild">
+    <Exec Command="bash &quot;$(MSBuildThisFileDirectory)../fetch-fonts.sh&quot; &quot;$(MSBuildThisFileDirectory)Fonts&quot;" ContinueOnError="true" Condition="'$(OS)' != 'Windows_NT'" />
+  </Target>
+
+  <ItemGroup>
+    <None Include="Fonts\*.ttf" CopyToOutputDirectory="PreserveNewest" />
   </ItemGroup>
 
 </Project>

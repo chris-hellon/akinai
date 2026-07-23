@@ -88,12 +88,12 @@ public class Program
         // Notifications state so it resolves for interactive-server rendering too
         // Running on the server: the circuit is in-process, so it subscribes to
         // the event bus directly instead of connecting to the hub.
-        builder.Services.AddScoped<InvoiceSoftware.Client.Services.IRealtimeUserChannel,
-            InvoiceSoftware.Services.InProcessUserChannel>();
-        builder.Services.AddScoped<InvoiceSoftware.Client.Services.NotificationState>();
-        builder.Services.AddScoped<InvoiceSoftware.Client.Services.ReportingCurrencyState>();
-        builder.Services.AddScoped<InvoiceSoftware.Client.Services.TimeTrackingState>();
-        builder.Services.AddScoped<InvoiceSoftware.Client.Services.EntitlementState>();
+        builder.Services.AddScoped<IRealtimeUserChannel,
+            InProcessUserChannel>();
+        builder.Services.AddScoped<NotificationState>();
+        builder.Services.AddScoped<ReportingCurrencyState>();
+        builder.Services.AddScoped<TimeTrackingState>();
+        builder.Services.AddScoped<EntitlementState>();
 
         // Interactive charts (ApexCharts) — registered on the server too for prerender/interactive-server
         builder.Services.AddApexCharts();
@@ -116,6 +116,13 @@ public class Program
             {
                 db.Database.Migrate();
             }
+
+            // Give every compiled tier a row to edit. Insert-only, so an
+            // administrator's price change survives the next deploy.
+            Infrastructure.Services.Billing.PlanSettingsSeeder.SeedAsync(
+                db,
+                scope.ServiceProvider.GetRequiredService<ILoggerFactory>().CreateLogger("PlanSettingsSeeder"))
+                .GetAwaiter().GetResult();
 
             AdminSeeder.SeedAsync(
                 scope.ServiceProvider,
@@ -203,7 +210,7 @@ public class Program
         app.MapRequests();
 
         // Real-time notifications hub
-        app.MapHub<InvoiceSoftware.Infrastructure.Hubs.NotificationHub>("/hubs/notifications");
+        app.MapHub<Infrastructure.Hubs.NotificationHub>("/hubs/notifications");
 
         app.MapRazorComponents<App>()
             .AddInteractiveServerRenderMode()

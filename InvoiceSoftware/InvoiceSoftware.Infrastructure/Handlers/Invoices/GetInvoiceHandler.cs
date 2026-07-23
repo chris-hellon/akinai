@@ -12,7 +12,10 @@ using Expense = InvoiceSoftware.Domain.Entities.Expense;
 
 namespace InvoiceSoftware.Infrastructure.Handlers.Invoices;
 
-public class GetInvoiceHandler(IDbContextFactory<ApplicationDbContext> dbFactory, ICurrentUserService currentUserService) : IHandle<GetInvoice, InvoiceDetailDto?>
+public class GetInvoiceHandler(
+    IDbContextFactory<ApplicationDbContext> dbFactory,
+    ICurrentUserService currentUserService,
+    IInvoiceTranslator translator) : IHandle<GetInvoice, InvoiceDetailDto?>
 {
     public async Task<HttpResult<InvoiceDetailDto?>> Handle(GetInvoice request, CancellationToken cancellationToken)
     {
@@ -138,6 +141,24 @@ public class GetInvoiceHandler(IDbContextFactory<ApplicationDbContext> dbFactory
                 t.CustomCss);
         }
 
+        // The language this invoice goes out in. Always resolved, so the
+        // read-only view can label itself the way the client will see it.
+        var language = await translator.ResolveForInvoiceAsync(userId, invoice.ClientId, ToShared(invoice.Language), cancellationToken);
+        var notes = invoice.Notes;
+
+        // Freeform text is only translated when the caller asked. The edit form
+        // loads through this same handler and must receive the original text.
+        if (request.Translated && language != Shared.Enums.SupportedLanguage.English)
+        {
+            var texts = InvoiceTranslationFields.Collect(
+                lineItems, expenseLineItems, productLineItemDtos, notes);
+
+            var translated = await translator.TranslateAsync(userId, language, texts, cancellationToken);
+
+            InvoiceTranslationFields.Apply(
+                translated, lineItems, expenseLineItems, productLineItemDtos, ref notes);
+        }
+
         var result = new InvoiceDetailDto(
             invoice.Id,
             invoice.InvoiceNumber,
@@ -155,13 +176,18 @@ public class GetInvoiceHandler(IDbContextFactory<ApplicationDbContext> dbFactory
             invoice.TaxRate,
             taxAmount,
             total,
-            invoice.Notes,
+            notes,
             lineItems,
             expenseLineItems,
             productLineItemDtos,
             invoice.PublicAccessToken,
             invoice.TemplateId,
-            templateDto);
+            templateDto,
+            language.ToString(),
+            invoice.Language?.ToString(),
+            invoice.FirstViewedAtUtc,
+            invoice.LastViewedAtUtc,
+            invoice.ViewCount);
 
         return HttpResult<InvoiceDetailDto?>.Ok(result);
     }
@@ -178,4 +204,8 @@ public class GetInvoiceHandler(IDbContextFactory<ApplicationDbContext> dbFactory
         return (subtotal, taxAmount, total);
     }
 
+
+    /// <summary>Domain enum to shared enum; both declare the same members in the same order.</summary>
+    private static Shared.Enums.SupportedLanguage? ToShared(Domain.Enums.SupportedLanguage? language)
+        => language is null ? null : (Shared.Enums.SupportedLanguage)(int)language.Value;
 }

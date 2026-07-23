@@ -7,7 +7,9 @@ using Microsoft.EntityFrameworkCore;
 namespace InvoiceSoftware.Infrastructure.Services;
 
 /// <inheritdoc />
-public class EntitlementService(IDbContextFactory<ApplicationDbContext> dbFactory) : IEntitlementService
+public class EntitlementService(
+    IDbContextFactory<ApplicationDbContext> dbFactory,
+    IPlanCatalog catalog) : IEntitlementService
 {
     public async Task<EntitlementsDto> GetAsync(string userId, CancellationToken cancellationToken = default)
     {
@@ -28,13 +30,13 @@ public class EntitlementService(IDbContextFactory<ApplicationDbContext> dbFactor
 
         // An account we cannot identify gets the free tier, never a paid one.
         if (user is null)
-            return Build(Plans.Free, BillingPlan.Free, SubscriptionStatus.None, null, null, false, 0,
+            return Build(await catalog.ForAsync(BillingPlan.Free, cancellationToken), BillingPlan.Free, SubscriptionStatus.None, null, null, false, 0,
                 [], ["English"]);
 
         var effectivePlan = ResolveEffectivePlan(
             user.Plan, user.SubscriptionStatus, user.CurrentPeriodEndUtc, DateTime.UtcNow);
 
-        var definition = Plans.For(effectivePlan);
+        var definition = await catalog.ForAsync(effectivePlan, cancellationToken);
 
         // Counted even on unlimited plans: the billing page reports usage as
         // well as enforcing it, and skipping the query there made an account
@@ -53,6 +55,16 @@ public class EntitlementService(IDbContextFactory<ApplicationDbContext> dbFactor
 
         var allowedLanguages = definition.AllLanguages ? null : new List<string> { "English" };
 
+        // Month-to-date AI spend, only when the plan actually has an allowance.
+        var aiSpent = 0m;
+        if (definition.AiSpendLimitUsd is > 0)
+        {
+            aiSpent = await db.AiUsages
+                .AsNoTracking()
+                .Where(u => u.UserId == userId && u.OccurredAtUtc >= startOfMonth)
+                .SumAsync(u => (decimal?)u.CostUsd, cancellationToken) ?? 0m;
+        }
+
         return Build(
             definition,
             effectivePlan,
@@ -62,7 +74,9 @@ public class EntitlementService(IDbContextFactory<ApplicationDbContext> dbFactor
             user.PlanSelectedAtUtc is not null,
             invoicesThisMonth,
             allowedCurrencies,
-            allowedLanguages);
+            allowedLanguages,
+            definition.AiSpendLimitUsd,
+            aiSpent);
     }
 
     /// <summary>
@@ -99,7 +113,9 @@ public class EntitlementService(IDbContextFactory<ApplicationDbContext> dbFactor
         bool planSelected,
         int invoicesUsed,
         IReadOnlyList<string>? allowedCurrencies = null,
-        IReadOnlyList<string>? allowedLanguages = null)
+        IReadOnlyList<string>? allowedLanguages = null,
+        decimal? aiSpendLimitUsd = null,
+        decimal aiSpentUsd = 0m)
         => new(
             plan,
             definition.Name,
@@ -117,5 +133,7 @@ public class EntitlementService(IDbContextFactory<ApplicationDbContext> dbFactor
             definition.CustomTemplates,
             definition.RemoveBranding,
             allowedCurrencies,
-            allowedLanguages);
+            allowedLanguages,
+            aiSpendLimitUsd,
+            aiSpentUsd);
 }

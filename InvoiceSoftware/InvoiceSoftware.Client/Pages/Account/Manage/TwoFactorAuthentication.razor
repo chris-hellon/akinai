@@ -10,10 +10,10 @@
 <PageTitle>Two-Factor Authentication - Akinai</PageTitle>
 
 <div class="space-y-6">
-    <div>
-        <h2 class="text-lg font-semibold text-gray-900 dark:text-slate-100">Two-Factor Authentication</h2>
-        <p class="mt-1 text-sm text-gray-500 dark:text-slate-400">Add an extra layer of security to your account.</p>
-    </div>
+    <PageHeader Title="Two-Factor Authentication"
+                Description="Add an extra layer of security to your account."
+                Breadcrumbs="@(new List<PageHeader.BreadcrumbItem> { new("Settings", "/settings"), new("Account", "/account/manage"), new("Two-Factor Authentication") })" />
+
     <div class="bg-white dark:bg-[#1b1612] rounded-2xl border border-gray-200 dark:border-[#2f2924] p-6 space-y-6">
 
     @if (!string.IsNullOrEmpty(_statusMessage))

@@ -18,6 +18,43 @@ public class Invoice : AggregateRoot, IAuditableEntity
     public Guid? PublicAccessToken { get; private set; }
     public Guid? TemplateId { get; private set; }
 
+    /// <summary>
+    /// The language this invoice is written in.
+    ///
+    /// Null means "not decided here" — fall back to the client's override, then
+    /// the account default. Once set, it pins: changing your account default
+    /// later must not silently rewrite an invoice a client has already been
+    /// sent, any more than it should change the amount.
+    /// </summary>
+    public SupportedLanguage? Language { get; private set; }
+
+    /// <summary>
+    /// When the client first opened the invoice link, and when they last did.
+    ///
+    /// Denormalised onto the invoice rather than kept as a view log: the only
+    /// questions anyone asks are "have they seen it?" and "when?", and both the
+    /// list and the detail page would otherwise need a join for a badge.
+    /// A per-view history can be added later without changing these.
+    /// </summary>
+    public DateTime? FirstViewedAtUtc { get; private set; }
+    public DateTime? LastViewedAtUtc { get; private set; }
+    public int ViewCount { get; private set; }
+
+    /// <summary>
+    /// Records that the client opened the invoice.
+    ///
+    /// Callers must decide whether a request counts — the owner previewing
+    /// their own link, and the PDF renderer loading the same page, both reach
+    /// the invoice the same way and neither is the client reading it. A view
+    /// counter that counts your own PDF generation is worse than none.
+    /// </summary>
+    public void RecordView(DateTime nowUtc)
+    {
+        FirstViewedAtUtc ??= nowUtc;
+        LastViewedAtUtc = nowUtc;
+        ViewCount++;
+    }
+
     // Totals snapshotted at save time (in the invoice's own currency) so historical
     // amounts don't move when a client's rate or the FX rate later changes.
     public decimal Subtotal { get; private set; }
@@ -53,7 +90,8 @@ public class Invoice : AggregateRoot, IAuditableEntity
         DateOnly dueDate,
         decimal taxRate = 0,
         string? notes = null,
-        string currency = "USD")
+        string currency = "USD",
+        SupportedLanguage? language = null)
     {
         return new Invoice
         {
@@ -64,6 +102,7 @@ public class Invoice : AggregateRoot, IAuditableEntity
             TaxRate = taxRate,
             Notes = notes,
             Currency = currency,
+            Language = language,
             PublicAccessToken = Guid.NewGuid()
         };
     }
@@ -73,7 +112,8 @@ public class Invoice : AggregateRoot, IAuditableEntity
         DateOnly dueDate,
         decimal taxRate,
         string? notes,
-        Guid? templateId = null)
+        Guid? templateId = null,
+        SupportedLanguage? language = null)
     {
         if (Status != InvoiceStatus.Draft)
             throw new DomainException("Cannot modify a non-draft invoice");
@@ -83,6 +123,7 @@ public class Invoice : AggregateRoot, IAuditableEntity
         TaxRate = taxRate;
         Notes = notes;
         TemplateId = templateId;
+        Language = language;
     }
 
     public void SetTemplate(Guid? templateId)

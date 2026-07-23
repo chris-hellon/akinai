@@ -51,7 +51,7 @@ public class GetInvoiceEmailTemplateHandler(
                 .FirstOrDefaultAsync(b => b.UserId == userId, cancellationToken);
             if (profile != null)
             {
-                companyName = profile.TradingName ?? profile.CompanyName ?? companyName;
+                companyName = (string.IsNullOrWhiteSpace(profile.TradingName) ? profile.CompanyName : profile.TradingName) ?? companyName;
                 emailBodyTemplate = profile.InvoiceEmailBody;
             }
         }

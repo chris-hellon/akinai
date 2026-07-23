@@ -5,6 +5,8 @@
 @inject ICall<GetUnbilledExpenses, List<ExpenseSummaryDto>> GetUnbilledExpensesCall
 @inject ICall<GetProducts, PaginatedResponse<ProductDto>> GetProductsCall
 @inject ICall<UpdateInvoice> UpdateInvoiceCall
+@inject ICall<GetSupportedLanguages, List<LanguageDto>> GetLanguagesCall
+@inject EntitlementState Entitlements
 @inject NavigationManager NavigationManager
 
 <PageTitle>Edit Invoice - Akinai</PageTitle>
@@ -94,6 +96,15 @@
                         <label class="block text-sm font-medium text-gray-700 mb-2">Tax Rate (%)</label>
                         <input type="number" step="0.01" @bind="_taxRate"
                                class="form-control" />
+                    </div>
+                </div>
+
+                @* Its own row, matching the create form — language is a decision
+                   about how the document goes out, not another date field. *@
+                <div class="grid grid-cols-1 gap-5 sm:grid-cols-2">
+                    <div>
+                        <label class="block text-sm font-medium text-gray-700 mb-2">Language</label>
+                        <Select TValue="string" @bind-Value="_selectedLanguage" Options="@LanguageChoices()" />
                     </div>
                 </div>
 
@@ -334,6 +345,22 @@
     private DateOnly _issueDate;
     private DateOnly _dueDate;
     private decimal _taxRate;
+
+    /// <summary>Empty means "inherit from the client or account default".</summary>
+    private string _selectedLanguage = "";
+    private List<LanguageDto> _languages = new();
+
+    private List<SelectOption<string>> LanguageChoices()
+    {
+        var allowed = Entitlements.Current?.AllowedLanguages;
+        var selectable = allowed is { Count: > 0 }
+            ? _languages.Where(l => allowed.Contains(l.Code) || l.Code == _selectedLanguage)
+            : _languages;
+
+        return new List<SelectOption<string>> { new("", "Default for this client") }
+            .Concat(selectable.Select(l => new SelectOption<string>(l.Code, $"{l.Name} ({l.NativeName})")))
+            .ToList();
+    }
     private string? _notes;
     private string _currency = "USD";
     private bool _isLoading = true;
@@ -371,12 +398,16 @@
     {
         _breadcrumbs =
         [
+            new PageHeader.BreadcrumbItem("Time & Billing", "/time-billing"),
             new PageHeader.BreadcrumbItem("Invoices", "/invoices"),
             new PageHeader.BreadcrumbItem("Edit Invoice")
         ];
 
         try
         {
+            _languages = await GetLanguagesCall.Call(new GetSupportedLanguages()) ?? new();
+            // Untranslated on purpose: this form saves what it shows, so it must
+            // load the user's original text, never a machine translation of it.
             _invoice = await GetInvoiceCall.Call(new GetInvoice { Id = Id });
             if (_invoice != null)
             {
@@ -386,6 +417,9 @@
                 _taxRate = _invoice.TaxRate;
                 _notes = _invoice.Notes;
                 _currency = _invoice.Currency;
+                // The invoice's own stored choice, not the resolved language —
+                // blank must stay blank so "inherit" survives a save.
+                _selectedLanguage = _invoice.InvoiceLanguage ?? "";
 
                 _lineItems = _invoice.LineItems.Select(li => new EditableLineItem
                 {
@@ -556,6 +590,7 @@
                 DueDate = _dueDate,
                 TaxRate = _taxRate,
                 Notes = _notes,
+                Language = string.IsNullOrEmpty(_selectedLanguage) ? null : _selectedLanguage,
                 AddedTimeEntryIds = _selectedEntryIds.Count > 0 ? _selectedEntryIds.ToList() : null,
                 RemovedTimeEntryIds = _removedLineItemIds.Count > 0 ? _removedLineItemIds : null,
                 AddedExpenseIds = _selectedExpenseIds.Count > 0 ? _selectedExpenseIds.ToList() : null,

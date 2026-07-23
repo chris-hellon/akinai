@@ -40,7 +40,6 @@ public sealed class ApplicationDbContext : IdentityDbContext<ApplicationUser>
 
     // New entities - Bank Import
     public DbSet<BankTransaction> BankTransactions => Set<BankTransaction>();
-    public DbSet<BankConnection> BankConnections => Set<BankConnection>();
 
     // New entities - Templates & Localization
     public DbSet<InvoiceTemplate> InvoiceTemplates => Set<InvoiceTemplate>();
@@ -53,6 +52,11 @@ public sealed class ApplicationDbContext : IdentityDbContext<ApplicationUser>
     // Billing
     public DbSet<SubscriptionEvent> SubscriptionEvents => Set<SubscriptionEvent>();
     public DbSet<CheckoutSession> CheckoutSessions => Set<CheckoutSession>();
+    public DbSet<PlanSettings> PlanSettings => Set<PlanSettings>();
+
+    // AI + translation usage, for the monthly spend cap
+    public DbSet<AiUsage> AiUsages => Set<AiUsage>();
+    public DbSet<TranslationCacheEntry> TranslationCache => Set<TranslationCacheEntry>();
 
     public ApplicationDbContext(DbContextOptions<ApplicationDbContext> options)
         : base(options)

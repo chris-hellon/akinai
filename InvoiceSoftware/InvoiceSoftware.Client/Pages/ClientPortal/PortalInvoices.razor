@@ -1,4 +1,5 @@
 @page "/portal/{Token:guid}/invoices"
+@attribute [AllowAnonymous]
 @layout PortalLayout
 
 @inject ICall<GetClientPortalSummary, ClientPortalSummaryDto?> GetSummaryCall

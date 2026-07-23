@@ -1,4 +1,7 @@
 @page "/estimate/{Token:guid}"
+@attribute [AllowAnonymous]
+@* See PublicInvoiceView: overrides the folder-wide [Authorize] so the client,
+   who has no account, can open the estimate link they were emailed. *@
 @layout EmptyLayout
 
 @inject ICall<GetPublicEstimate, PublicEstimateDto?> GetPublicEstimateCall
@@ -144,7 +147,7 @@
             <!-- Powered by footer -->
             <div class="mt-6 text-center">
                 <p class="text-xs text-gray-400 dark:text-slate-500">
-                    Powered by <span class="font-semibold font-display">Akinai</span> <span class="text-primary-500">商</span>
+                    Powered by <span class="font-semibold font-display">Akin<span class="wm-ai">ai</span></span> <span class="text-primary-500">商</span>
                 </p>
             </div>
         }

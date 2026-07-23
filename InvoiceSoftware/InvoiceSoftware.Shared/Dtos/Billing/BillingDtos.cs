@@ -35,12 +35,19 @@ public record EntitlementsDto(
     /// </summary>
     IReadOnlyList<string>? AllowedCurrencies,
     /// <summary>Languages this account may use, or null when unrestricted.</summary>
-    IReadOnlyList<string>? AllowedLanguages)
+    IReadOnlyList<string>? AllowedLanguages,
+    /// <summary>Monthly AI/translation allowance in USD; null when the plan has none.</summary>
+    decimal? AiSpendLimitUsd = null,
+    /// <summary>Month-to-date AI spend in USD.</summary>
+    decimal AiSpentUsd = 0m)
 {
     public bool IsPaid => Plan != BillingPlan.Free;
 
     /// <summary>Null when unlimited.</summary>
     public int? InvoicesRemaining => InvoicesPerMonth is int cap ? Math.Max(0, cap - InvoicesUsedThisMonth) : null;
+
+    /// <summary>True when the plan includes AI features and budget remains.</summary>
+    public bool CanUseAi => AiSpendLimitUsd is decimal limit && limit > 0 && AiSpentUsd < limit;
 
     public bool CanCreateInvoice => InvoicesPerMonth is not int cap || InvoicesUsedThisMonth < cap;
 }

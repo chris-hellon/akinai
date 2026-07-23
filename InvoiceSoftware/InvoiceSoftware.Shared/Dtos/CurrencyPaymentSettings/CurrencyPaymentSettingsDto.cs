@@ -9,4 +9,11 @@ public record CurrencyPaymentSettingsDto(
     string? BankSortCode,
     string? BankIban,
     string? BankSwift,
-    string? VietQrBankCode);
+    string? VietQrBankCode,
+    // Correspondent bank — needed by senders whose bank has no direct
+    // relationship with the beneficiary bank, which is most cross-border wires.
+    string? IntermediaryBankName = null,
+    string? IntermediaryBankSwift = null,
+    string? IntermediaryAccountNumber = null,
+    string? BankAddress = null,
+    string? PaymentPurposeCode = null);

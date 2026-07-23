@@ -12,6 +12,7 @@ namespace InvoiceSoftware.Infrastructure.Handlers.Invoices;
 public class UpdateInvoiceHandler(
     IDbContextFactory<ApplicationDbContext> dbFactory,
     ICurrentUserService currentUserService,
+    IEntitlementService entitlementService,
     IInvoiceTotalService totalService) : IHandle<UpdateInvoice>
 {
     public async Task<HttpResult> Handle(UpdateInvoice request, CancellationToken cancellationToken)
@@ -23,7 +24,16 @@ public class UpdateInvoiceHandler(
         var invoice = await db.Invoices.FirstOrDefaultAsync(i => i.Id == request.Id && i.Client.UserId == userId, cancellationToken);
         if (invoice is null) return HttpResult.NotFound();
 
-        invoice.UpdateDetails(request.IssueDate, request.DueDate, request.TaxRate, request.Notes);
+        var entitlements = await entitlementService.GetAsync(userId, cancellationToken);
+        if (!InvoiceLanguageRequest.TryResolve(request.Language, entitlements, out var language))
+            return HttpResult.Forbidden();
+
+        // TemplateId is passed back explicitly. UpdateDetails takes it as an
+        // optional parameter, so omitting it silently set the column to null and
+        // every edit stripped the invoice's template.
+        invoice.UpdateDetails(
+            request.IssueDate, request.DueDate, request.TaxRate, request.Notes,
+            invoice.TemplateId, language);
 
         // Remove time entries
         if (request.RemovedTimeEntryIds?.Count > 0)

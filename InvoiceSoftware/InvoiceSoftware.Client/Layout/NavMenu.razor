@@ -4,7 +4,7 @@
     <!-- Logo Section -->
     <div class="logo-section flex items-center gap-3 h-16 px-6 border-b border-[#e5e1d7] dark:border-[#2f2924]">
         <span class="app-hanko shrink-0">商</span>
-        <span class="logo-text app-wordmark">Akinai<span class="jp">あきない</span></span>
+        <span class="logo-text app-wordmark">Akin<span class="wm-ai">ai</span><span class="jp">あきない</span></span>
     </div>
 
     <!-- Navigation Links -->
@@ -19,9 +19,37 @@
             <span class="nav-text">Dashboard</span>
         </NavLink>
 
+        <!-- Section: Admin — only rendered for admins. This is presentation
+             only; /api/admin endpoints enforce the role server-side. -->
+        <AuthorizeView Roles="Admin">
+            <Authorized>
+                <div class="nav-section-title pt-6 pb-2">
+                    <a href="admin" class="px-4 text-[11px] font-semibold text-slate-500 uppercase tracking-wider hover:text-primary-600 transition-colors">Admin</a>
+                </div>
+
+                <NavLink href="admin/users"
+                         class="nav-link group relative flex items-center gap-3 px-4 py-2.5 text-sm font-medium rounded-xl transition-colors duration-150"
+                         ActiveClass="active">
+                    <svg class="w-5 h-5 opacity-70 group-[.active]:opacity-100 shrink-0" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                        <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M12 4.354a4 4 0 110 5.292M15 21H3v-1a6 6 0 0112 0v1zm0 0h6v-1a6 6 0 00-9-5.197M13 7a4 4 0 11-8 0 4 4 0 018 0z" />
+                    </svg>
+                    <span class="nav-text">Users</span>
+                </NavLink>
+
+                <NavLink href="admin/plans"
+                         class="nav-link group relative flex items-center gap-3 px-4 py-2.5 text-sm font-medium rounded-xl transition-colors duration-150"
+                         ActiveClass="active">
+                    <svg class="w-5 h-5 opacity-70 group-[.active]:opacity-100 shrink-0" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                        <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M3 10h18M7 15h1m4 0h1m-7 4h12a3 3 0 003-3V8a3 3 0 00-3-3H6a3 3 0 00-3 3v8a3 3 0 003 3z" />
+                    </svg>
+                    <span class="nav-text">Plans</span>
+                </NavLink>
+            </Authorized>
+        </AuthorizeView>
+
         <!-- Section: Management -->
         <div class="nav-section-title pt-6 pb-2">
-            <p class="px-4 text-[11px] font-semibold text-slate-500 uppercase tracking-wider">Management</p>
+            <a href="management" class="px-4 text-[11px] font-semibold text-slate-500 uppercase tracking-wider hover:text-primary-600 transition-colors">Management</a>
         </div>
 
         <NavLink href="clients"
@@ -51,9 +79,18 @@
             <span class="nav-text">Jobs</span>
         </NavLink>
 
+        <NavLink href="products"
+                 class="nav-link group relative flex items-center gap-3 px-4 py-2.5 text-sm font-medium rounded-xl transition-colors duration-150"
+                 ActiveClass="active">
+            <svg class="w-5 h-5 opacity-70 group-[.active]:opacity-100 shrink-0" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M20 7l-8-4-8 4m16 0l-8 4m8-4v10l-8 4m0-10L4 7m8 4v10M4 7v10l8 4" />
+            </svg>
+            <span class="nav-text">Products</span>
+        </NavLink>
+
         <!-- Section: Time & Billing -->
         <div class="nav-section-title pt-6 pb-2">
-            <p class="px-4 text-[11px] font-semibold text-slate-500 uppercase tracking-wider">Time & Billing</p>
+            <a href="time-billing" class="px-4 text-[11px] font-semibold text-slate-500 uppercase tracking-wider hover:text-primary-600 transition-colors">Time & Billing</a>
         </div>
 
         <NavLink href="timesheet"
@@ -128,7 +165,7 @@
 
         <!-- Section: Finance -->
         <div class="nav-section-title pt-6 pb-2">
-            <p class="px-4 text-[11px] font-semibold text-slate-500 uppercase tracking-wider">Finance</p>
+            <a href="finance" class="px-4 text-[11px] font-semibold text-slate-500 uppercase tracking-wider hover:text-primary-600 transition-colors">Finance</a>
         </div>
 
         <NavLink href="reports"
@@ -158,42 +195,11 @@
             <span class="nav-text">Bank Import</span>
         </NavLink>
 
-        <!-- Section: Admin — only rendered for admins. This is presentation
-             only; /api/admin endpoints enforce the role server-side. -->
-        <AuthorizeView Roles="Admin">
-            <Authorized>
-                <div class="nav-section-title pt-6 pb-2">
-                    <p class="px-4 text-[11px] font-semibold text-slate-500 uppercase tracking-wider">Admin</p>
-                </div>
 
-                <NavLink href="admin/users"
-                         class="nav-link group relative flex items-center gap-3 px-4 py-2.5 text-sm font-medium rounded-xl transition-colors duration-150"
-                         ActiveClass="active">
-                    <svg class="w-5 h-5 opacity-70 group-[.active]:opacity-100 shrink-0" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                        <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M12 4.354a4 4 0 110 5.292M15 21H3v-1a6 6 0 0112 0v1zm0 0h6v-1a6 6 0 00-9-5.197M13 7a4 4 0 11-8 0 4 4 0 018 0z" />
-                    </svg>
-                    <span class="nav-text">Users</span>
-                </NavLink>
-            </Authorized>
-        </AuthorizeView>
-
-        <!-- Section: Catalog -->
-        <div class="nav-section-title pt-6 pb-2">
-            <p class="px-4 text-[11px] font-semibold text-slate-500 uppercase tracking-wider">Catalog</p>
-        </div>
-
-        <NavLink href="products"
-                 class="nav-link group relative flex items-center gap-3 px-4 py-2.5 text-sm font-medium rounded-xl transition-colors duration-150"
-                 ActiveClass="active">
-            <svg class="w-5 h-5 opacity-70 group-[.active]:opacity-100 shrink-0" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M20 7l-8-4-8 4m16 0l-8 4m8-4v10l-8 4m0-10L4 7m8 4v10M4 7v10l8 4" />
-            </svg>
-            <span class="nav-text">Products</span>
-        </NavLink>
 
         <!-- Section: Settings -->
         <div class="nav-section-title pt-6 pb-2">
-            <p class="px-4 text-[11px] font-semibold text-slate-500 uppercase tracking-wider">Settings</p>
+            <a href="settings" class="px-4 text-[11px] font-semibold text-slate-500 uppercase tracking-wider hover:text-primary-600 transition-colors">Settings</a>
         </div>
 
         <NavLink href="settings/business"
@@ -214,31 +220,13 @@
             <span class="nav-text">Billing</span>
         </NavLink>
 
-        <NavLink href="settings/invoices"
+        <NavLink href="settings/invoicing"
                  class="nav-link group relative flex items-center gap-3 px-4 py-2.5 text-sm font-medium rounded-xl transition-colors duration-150"
                  ActiveClass="active">
             <svg class="w-5 h-5 opacity-70 group-[.active]:opacity-100 shrink-0" fill="none" stroke="currentColor" viewBox="0 0 24 24">
                 <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M9 12h6m-6 4h6m2 5H7a2 2 0 01-2-2V5a2 2 0 012-2h5.586a1 1 0 01.707.293l5.414 5.414a1 1 0 01.293.707V19a2 2 0 01-2 2z" />
             </svg>
-            <span class="nav-text">Invoice Settings</span>
-        </NavLink>
-
-        <NavLink href="settings/templates"
-                 class="nav-link group relative flex items-center gap-3 px-4 py-2.5 text-sm font-medium rounded-xl transition-colors duration-150"
-                 ActiveClass="active">
-            <svg class="w-5 h-5 opacity-70 group-[.active]:opacity-100 shrink-0" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M4 5a1 1 0 011-1h14a1 1 0 011 1v2a1 1 0 01-1 1H5a1 1 0 01-1-1V5zM4 13a1 1 0 011-1h6a1 1 0 011 1v6a1 1 0 01-1 1H5a1 1 0 01-1-1v-6zM16 13a1 1 0 011-1h2a1 1 0 011 1v6a1 1 0 01-1 1h-2a1 1 0 01-1-1v-6z" />
-            </svg>
-            <span class="nav-text">Templates</span>
-        </NavLink>
-
-        <NavLink href="settings/languages"
-                 class="nav-link group relative flex items-center gap-3 px-4 py-2.5 text-sm font-medium rounded-xl transition-colors duration-150"
-                 ActiveClass="active">
-            <svg class="w-5 h-5 opacity-70 group-[.active]:opacity-100 shrink-0" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M3 5h12M9 3v2m1.048 9.5A18.022 18.022 0 016.412 9m6.088 9h7M11 21l5-10 5 10M12.751 5C11.783 10.77 8.07 15.61 3 18.129" />
-            </svg>
-            <span class="nav-text">Languages</span>
+            <span class="nav-text">Invoicing</span>
         </NavLink>
 
         <!-- Account Dropdown -->

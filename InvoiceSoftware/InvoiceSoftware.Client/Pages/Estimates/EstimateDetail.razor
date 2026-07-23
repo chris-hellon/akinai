@@ -90,7 +90,7 @@
                         ExpiryDate="@_estimate.ExpiryDate"
                         AcceptedDate="@_estimate.AcceptedDate"
                         RejectedDate="@_estimate.RejectedDate"
-                        BusinessName="@(_businessProfile?.TradingName ?? _businessProfile?.CompanyName)"
+                        BusinessName="@(string.IsNullOrWhiteSpace(_businessProfile?.TradingName) ? _businessProfile?.CompanyName : _businessProfile.TradingName)"
                         BusinessAddress="@GetBusinessAddress()"
                         BusinessEmail="@_businessProfile?.Email"
                         BusinessPhone="@_businessProfile?.Phone"
@@ -234,6 +234,7 @@
     {
         _breadcrumbs =
         [
+            new PageHeader.BreadcrumbItem("Time & Billing", "/time-billing"),
             new PageHeader.BreadcrumbItem("Estimates", "/estimates"),
             new PageHeader.BreadcrumbItem("Details")
         ];
@@ -254,6 +255,7 @@
             {
                 _breadcrumbs =
                 [
+                    new PageHeader.BreadcrumbItem("Time & Billing", "/time-billing"),
                     new PageHeader.BreadcrumbItem("Estimates", "/estimates"),
                     new PageHeader.BreadcrumbItem(_estimate.EstimateNumber)
                 ];

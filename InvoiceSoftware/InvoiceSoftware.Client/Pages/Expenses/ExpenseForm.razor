@@ -9,7 +9,7 @@
 @inject ICall<DeleteExpense> DeleteExpenseCall
 @inject ICall<GetBusinessProfile, BusinessProfileDto?> GetBusinessProfileCall
 
-@inject InvoiceSoftware.Client.Services.EntitlementState Entitlements
+@inject EntitlementState Entitlements
 
 <PageTitle>@(Id.HasValue ? "Edit Expense" : "New Expense") - Akinai</PageTitle>
 
@@ -243,6 +243,7 @@
         await Entitlements.EnsureLoadedAsync();
         _breadcrumbs =
         [
+            new PageHeader.BreadcrumbItem("Time & Billing", "/time-billing"),
             new PageHeader.BreadcrumbItem("Expenses", "/expenses"),
             new PageHeader.BreadcrumbItem(Id.HasValue ? "Edit Expense" : "New Expense")
         ];

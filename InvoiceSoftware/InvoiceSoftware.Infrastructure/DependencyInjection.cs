@@ -53,6 +53,11 @@ public static class DependencyInjection
 
         services.AddScoped<IDateTimeService, DateTimeService>();
         services.AddScoped<ICurrentUserService, CurrentUserService>();
+        // PDFs are printed from the app's own pages by headless Chromium, so
+        // the document a client opens and the one they receive are the same
+        // markup. Singleton: one browser process, reused across requests.
+        services.AddSingleton<Services.Pdf.IHtmlPdfRenderer, Services.Pdf.HtmlPdfRenderer>();
+        // Still registered: estimates have not moved to HTML rendering yet.
         services.AddScoped<PdfGeneratorService>();
         services.AddScoped<EmailTemplateService>();
         services.AddScoped<INotificationService, NotificationService>();
@@ -69,29 +74,21 @@ public static class DependencyInjection
         // provider is in use.
         services.AddScoped<Services.Billing.IBillingProvider, Services.Billing.SimulatedBillingProvider>();
         services.AddScoped<ISubscriptionService, Services.Billing.SubscriptionService>();
+        // Plan catalogue reads from the database, cached, with the compiled
+        // Plans class as its seed and its fallback.
+        services.AddMemoryCache();
+        services.AddScoped<IPlanCatalog, Services.Billing.PlanCatalog>();
         services.AddScoped<IEntitlementService, EntitlementService>();
+
+        // AI + translation. The Azure Translator key is Akinai's, not the
+        // user's; per-account spend is bounded by IAiBudgetService.
+        services.Configure<Services.Translation.TranslationOptions>(
+            configuration.GetSection(Services.Translation.TranslationOptions.SectionName));
+        services.AddHttpClient<ITranslationService, Services.Translation.AzureTranslatorService>();
+        services.AddScoped<IAiBudgetService, AiBudgetService>();
+        services.AddScoped<IInvoiceTranslator, Services.Translation.InvoiceTranslator>();
         services.AddHostedService<InvoiceTotalBackfillService>();
 
-        // Open-banking data feeds. All providers are registered and routed by country via
-        // IBankProviderRegistry — Plaid (US/CA/UK/EU), TrueLayer + GoCardless (UK/EU).
-        // Unconfigured providers are simply skipped. CSV import covers everywhere else.
-        services.Configure<Banking.GoCardlessOptions>(configuration.GetSection(Banking.GoCardlessOptions.SectionName));
-        services.Configure<Banking.TrueLayerOptions>(configuration.GetSection(Banking.TrueLayerOptions.SectionName));
-        services.Configure<Banking.PlaidOptions>(configuration.GetSection(Banking.PlaidOptions.SectionName));
-
-        services.AddHttpClient<Banking.IBankDataProvider, Banking.GoCardlessBankDataProvider>((sp, client) =>
-        {
-            var opts = sp.GetRequiredService<Microsoft.Extensions.Options.IOptions<Banking.GoCardlessOptions>>().Value;
-            client.BaseAddress = new Uri(string.IsNullOrWhiteSpace(opts.BaseUrl)
-                ? "https://bankaccountdata.gocardless.com"
-                : opts.BaseUrl);
-        });
-        // TrueLayer and Plaid use multiple absolute hosts (auth/api, sandbox/live), so no BaseAddress.
-        services.AddHttpClient<Banking.IBankDataProvider, Banking.TrueLayerBankDataProvider>();
-        services.AddHttpClient<Banking.IBankDataProvider, Banking.PlaidBankDataProvider>();
-
-        services.AddScoped<Banking.IBankProviderRegistry, Banking.BankProviderRegistry>();
-        services.AddScoped<Banking.BankSyncService>();
 
         services.AddHostedService<RecurringExpenseGeneratorService>();
 

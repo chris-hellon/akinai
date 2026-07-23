@@ -6,6 +6,8 @@
 @inject ICall<GetProducts, PaginatedResponse<ProductDto>> GetProductsCall
 @inject ICall<CreateInvoice, Guid> CreateInvoiceCall
 @inject ICall<GetInvoiceTemplates, List<InvoiceTemplateDto>> GetInvoiceTemplatesCall
+@inject ICall<GetSupportedLanguages, List<LanguageDto>> GetLanguagesCall
+@inject EntitlementState Entitlements
 
 <PageTitle>New Invoice - Akinai</PageTitle>
 
@@ -15,7 +17,7 @@
                 Description="Generate an invoice from unbilled time entries"
                 ShowBackButton="true"
                 BackUrl="invoices"
-                Breadcrumbs="@(new List<PageHeader.BreadcrumbItem> { new("Invoices", "/invoices"), new("New Invoice") })" />
+                Breadcrumbs="@(new List<PageHeader.BreadcrumbItem> { new("Time & Billing", "/time-billing"), new("Invoices", "/invoices"), new("New Invoice") })" />
 
     <!-- Progress Steps -->
     <div class="bg-white dark:bg-slate-800 rounded-lg border border-gray-100 dark:border-slate-700 p-4">
@@ -149,7 +151,7 @@
                         </div>
                     </div>
                     <div class="p-6 space-y-5">
-                        <div class="grid grid-cols-1 gap-5 sm:grid-cols-4">
+                        <div class="grid grid-cols-1 gap-5 sm:grid-cols-3">
                             <div>
                                 <label class="block text-sm font-medium text-gray-700 dark:text-slate-300 mb-2">Issue Date</label>
                                 <DatePicker TValue="DateOnly" @bind-Value="_issueDate" Clearable="false" />
@@ -163,10 +165,34 @@
                                 <input type="number" step="0.01" @bind="_taxRate"
                                        class="form-control" />
                             </div>
+                        </div>
+
+                        @* Template and language together: both answer "how does this
+                           document go out?", and the language note needs room to sit
+                           under its own field rather than stretching the date row. *@
+                        <div class="grid grid-cols-1 gap-5 sm:grid-cols-2">
                             <div>
                                 <label class="block text-sm font-medium text-gray-700 dark:text-slate-300 mb-2">Template</label>
                                 <Select TValue="string" @bind-Value="_selectedTemplateId"
                                         Options="@(new List<SelectOption<string>> { new("", "Default") }.Concat(_templates?.Select(t => new SelectOption<string>(t.Id.ToString(), $"{t.Name}{(t.IsDefault ? " (Default)" : "")}")) ?? Enumerable.Empty<SelectOption<string>>()).ToList())" />
+                            </div>
+                            <div>
+                                <label class="block text-sm font-medium text-gray-700 dark:text-slate-300 mb-2">Language</label>
+                                <Select TValue="string" @bind-Value="_selectedLanguage" Options="@LanguageChoices()" />
+                                @if (_languageRestricted)
+                                {
+                                    <p class="mt-1.5 text-xs text-gray-500 dark:text-slate-400">
+                                        English only on Free.
+                                        <a href="settings/billing" class="text-primary-600 dark:text-primary-400 hover:underline">Upgrade</a>
+                                        to invoice in your client's language.
+                                    </p>
+                                }
+                                else
+                                {
+                                    <p class="mt-1.5 text-xs text-gray-500 dark:text-slate-400">
+                                        Fixed once set — changing your default later won't alter this invoice.
+                                    </p>
+                                }
                             </div>
                         </div>
 
@@ -272,8 +298,34 @@
     private List<ProductSelector.ProductLineItemModel> _productLineItems = [];
     private string _selectedClientId = "";
     private string _selectedTemplateId = "";
-    private DateOnly _issueDate = DateOnly.FromDateTime(DateTime.Today);
-    private DateOnly _dueDate = DateOnly.FromDateTime(DateTime.Today.AddDays(30));
+
+    /// <summary>Empty means "inherit from the client or account default".</summary>
+    private string _selectedLanguage = "";
+    private List<LanguageDto> _languages = new();
+
+    // Read at render rather than captured at load, so a plan upgrade pushed over
+    // SignalR unlocks the picker without a page refresh.
+    private bool _languageRestricted => Entitlements.Current?.AllowedLanguages is { Count: > 0 };
+
+    private List<SelectOption<string>> LanguageChoices()
+    {
+        var allowed = Entitlements.Current?.AllowedLanguages;
+        var selectable = allowed is { Count: > 0 }
+            ? _languages.Where(l => allowed.Contains(l.Code) || l.Code == _selectedLanguage)
+            : _languages;
+
+        return new List<SelectOption<string>> { new("", "Default for this client") }
+            .Concat(selectable.Select(l => new SelectOption<string>(l.Code, $"{l.Name} ({l.NativeName})")))
+            .ToList();
+    }
+    // First of the current month, not today. An invoice raised on the 20th
+    // almost always covers the month's work, so dating it from the 1st is the
+    // answer that needs changing least often.
+    private DateOnly _issueDate = new(DateTime.Today.Year, DateTime.Today.Month, 1);
+    // Measured from the issue date, not from today. With the issue date now
+    // defaulting to the 1st, "today + 30" would have quietly produced a 50-day
+    // term on an invoice raised late in the month.
+    private DateOnly _dueDate = new DateOnly(DateTime.Today.Year, DateTime.Today.Month, 1).AddDays(30);
     private decimal _taxRate;
     private string? _notes;
     private bool _isLoading = true;
@@ -317,12 +369,14 @@
             var clientsTask = GetClientsCall.Call(new GetClients { PageSize = 1000 });
             var productsTask = GetProductsCall.Call(new GetProducts { ActiveOnly = true, PageSize = 1000 });
             var templatesTask = GetInvoiceTemplatesCall.Call(new GetInvoiceTemplates { IncludeSystem = true });
+            var languagesTask = GetLanguagesCall.Call(new GetSupportedLanguages());
 
-            await Task.WhenAll(clientsTask, productsTask, templatesTask);
+            await Task.WhenAll(clientsTask, productsTask, templatesTask, languagesTask);
 
             _clients = (await clientsTask)?.Items ?? [];
             _availableProducts = (await productsTask)?.Items?.ToList() ?? [];
             _templates = await templatesTask ?? [];
+            _languages = await languagesTask ?? [];
 
             // Pre-select default template if available
             var defaultTemplate = _templates?.FirstOrDefault(t => t.IsDefault);
@@ -446,7 +500,8 @@
                 DueDate = _dueDate,
                 TaxRate = _taxRate,
                 Notes = _notes,
-                TemplateId = string.IsNullOrEmpty(_selectedTemplateId) ? null : Guid.Parse(_selectedTemplateId)
+                TemplateId = string.IsNullOrEmpty(_selectedTemplateId) ? null : Guid.Parse(_selectedTemplateId),
+                Language = string.IsNullOrEmpty(_selectedLanguage) ? null : _selectedLanguage
             });
             NavigationManager.NavigateTo("invoices");
         }

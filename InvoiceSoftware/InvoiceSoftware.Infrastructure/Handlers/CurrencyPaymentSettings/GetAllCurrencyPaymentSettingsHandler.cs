@@ -31,7 +31,12 @@ public class GetAllCurrencyPaymentSettingsHandler(IDbContextFactory<ApplicationD
                 c.BankSortCode,
                 c.BankIban,
                 c.BankSwift,
-                c.VietQrBankCode))
+                c.VietQrBankCode,
+                c.IntermediaryBankName,
+                c.IntermediaryBankSwift,
+                c.IntermediaryAccountNumber,
+                c.BankAddress,
+                c.PaymentPurposeCode))
             .ToListAsync(cancellationToken);
 
         return HttpResult<List<CurrencyPaymentSettingsDto>>.Ok(settings);

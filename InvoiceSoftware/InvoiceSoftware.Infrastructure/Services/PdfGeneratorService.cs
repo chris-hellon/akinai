@@ -1,4 +1,6 @@
+using System.Globalization;
 using InvoiceSoftware.Domain.Entities;
+using InvoiceSoftware.Shared.Localization;
 using QuestPDF.Fluent;
 using QuestPDF.Helpers;
 using QuestPDF.Infrastructure;
@@ -22,15 +24,84 @@ public class PdfGeneratorService
     private const string DarkText = "#111827";
     private const string MediumText = "#374151";
     private const string LightText = "#6b7280";
+    /// <summary>
+    /// Fonts registered with QuestPDF once per process.
+    ///
+    /// Without this the PDF embeds only QuestPDF's built-in Lato, which has no
+    /// CJK glyphs. Chinese then depended on whatever font the *viewer* happened
+    /// to have — it looked fine on a Mac and rendered as boxes on a Linux server
+    /// or a client machine without CJK installed. Registering here embeds the
+    /// glyphs at generation time, so the file renders the same everywhere.
+    ///
+    /// The files are fetched by fetch-fonts.sh rather than committed. If they
+    /// are missing we carry on with Lato: an English-only PDF beats no PDF.
+    /// </summary>
+    private static readonly bool FontsRegistered = RegisterFonts();
+
+    private static bool RegisterFonts()
+    {
+        var dir = Path.Combine(AppContext.BaseDirectory, "Fonts");
+        if (!Directory.Exists(dir)) return false;
+
+        var any = false;
+        foreach (var file in Directory.GetFiles(dir, "*.ttf"))
+        {
+            try
+            {
+                using var stream = File.OpenRead(file);
+                QuestPDF.Drawing.FontManager.RegisterFont(stream);
+                any = true;
+            }
+            catch
+            {
+                // A corrupt or partially-downloaded font must not stop the
+                // others registering, nor take down invoice generation.
+            }
+        }
+        return any;
+    }
+
+    /// <summary>
+    /// Document font, with fallbacks for scripts the primary lacks.
+    ///
+    /// Noto Sans first: Latin, Vietnamese and Cyrillic. Noto Sans SC picks up
+    /// Simplified Chinese and Hangul. Lato is the last resort when the font
+    /// files were never fetched — English still renders.
+    ///
+    /// Not the web app's Zen Kaku Gothic New, despite the mismatch that
+    /// introduces. Zen Kaku has no Vietnamese Extended block but claims enough
+    /// coverage that per-glyph fallback never fires, so "Số tiền" printed as
+    /// "Sô´tiêǹ". Its Japanese coverage buys nothing here either — Japanese is
+    /// not an invoice language, only branding on the web.
+    /// </summary>
+    private static TextStyle BaseTextStyle(TextStyle style)
+        => FontsRegistered
+            ? style.FontFamily("Noto Sans", "Noto Sans SC", "Lato")
+            : style.FontFamily("Lato");
+
     private const string VeryLightText = "#9ca3af";
     private const string BorderColor = "#e5e7eb";
     private const string BackgroundLight = "#f9fafb";
 
-    public Task<byte[]> GenerateInvoicePdfAsync(Invoice invoice, List<TimeEntry> timeEntries, List<Expense> expenses, List<InvoiceLineItem>? productLineItems = null, BusinessProfile? businessProfile = null, CurrencyPaymentSettings? currencySettings = null, InvoiceTemplate? template = null, decimal? vndToHomeCurrencyRate = null)
+    public Task<byte[]> GenerateInvoicePdfAsync(Invoice invoice, List<TimeEntry> timeEntries, List<Expense> expenses, List<InvoiceLineItem>? productLineItems = null, BusinessProfile? businessProfile = null, CurrencyPaymentSettings? currencySettings = null, InvoiceTemplate? template = null, decimal? vndToHomeCurrencyRate = null,
+        string language = "English",
+        IReadOnlyDictionary<string, string>? translations = null)
     {
         try
         {
             QuestPDF.Settings.License = LicenseType.Community;
+
+            // The document's fixed wording and its date/number formatting. Passed
+            // down rather than held in a field so the Compose methods stay pure
+            // and safe to call from anywhere.
+            var L = InvoiceLabels.For(language);
+            var culture = L.Culture;
+
+            // Freeform text the caller already translated, keyed by the original.
+            // Anything absent falls through untouched, so a translation outage
+            // yields an English invoice rather than a failed one.
+            string Tr(string? s) => s is not null && translations is not null
+                && translations.TryGetValue(s, out var v) && !string.IsNullOrWhiteSpace(v) ? v : s ?? "";
 
             // Use template colors and settings if available, otherwise use defaults
             var primaryColor = template?.PrimaryColor ?? IndigoColor;
@@ -62,7 +133,7 @@ public class PdfGeneratorService
             // Build line items from time entries (rounded to quarter hours for billing)
             var lineItems = timeEntries.Select(e =>
             {
-                var jobName = e.Job.Name;
+                var jobName = Tr(e.Job.Name);
                 var projectName = e.Job.Project?.Name;
                 var sectionName = e.Job.Section?.Name;
                 var hourlyRate = e.Job.GetEffectiveHourlyRate();
@@ -82,48 +153,48 @@ public class PdfGeneratorService
                 {
                     page.Size(PageSizes.A4);
                     page.Margin(0);
-                    page.DefaultTextStyle(x => x.FontSize(10).FontFamily("Lato").FontColor(DarkText));
+                    page.DefaultTextStyle(x => BaseTextStyle(x.FontSize(10)).FontColor(DarkText));
 
                     page.Content().Column(mainColumn =>
                     {
                         // Status Banner
-                        ComposeStatusBanner(mainColumn, invoice, isOverdue);
+                        ComposeStatusBanner(mainColumn, invoice, isOverdue, L, culture);
 
                         // Main content with padding
                         mainColumn.Item().Padding(40).Column(contentColumn =>
                         {
                             // Header - layout-aware
-                            ComposeHeader(contentColumn, invoice, businessProfile, isOverdue, showLogo, primaryColor, headerLayout, total, currencySymbol);
+                            ComposeHeader(contentColumn, invoice, businessProfile, isOverdue, showLogo, primaryColor, headerLayout, total, currencySymbol, L, culture);
 
                             // Bill To & Amount Due - layout-aware
-                            ComposeBillToSection(contentColumn, invoice, total, currencySymbol, primaryColor, headerLayout);
+                            ComposeBillToSection(contentColumn, invoice, total, currencySymbol, primaryColor, headerLayout, L, culture);
 
                             // Services Table (Time Entries) - layout-aware
                             if (lineItems.Any())
                             {
-                                ComposeServicesTable(contentColumn, lineItems, currencySymbol, accentColor, itemsLayout, showItemDescriptions);
+                                ComposeServicesTable(contentColumn, lineItems, currencySymbol, accentColor, itemsLayout, showItemDescriptions, L, culture);
                             }
 
                             // Expenses Table - layout-aware
                             if (expenses.Any())
                             {
-                                ComposeExpensesTable(contentColumn, expenses, currencySymbol, itemsLayout, showItemDescriptions);
+                                ComposeExpensesTable(contentColumn, expenses, currencySymbol, itemsLayout, showItemDescriptions, L, culture, language);
                             }
 
                             // Products Table - layout-aware
                             if (productLineItems?.Any() == true)
                             {
-                                ComposeProductsTable(contentColumn, productLineItems, currencySymbol, itemsLayout, showItemDescriptions);
+                                ComposeProductsTable(contentColumn, productLineItems, currencySymbol, itemsLayout, showItemDescriptions, L, culture, Tr);
                             }
 
                             // Totals - layout-aware
-                            ComposeTotals(contentColumn, invoice, subtotal, taxAmount, total, currencySymbol, primaryColor, footerLayout);
+                            ComposeTotals(contentColumn, invoice, subtotal, taxAmount, total, currencySymbol, primaryColor, footerLayout, L, culture);
 
                             // Notes
-                            ComposeNotes(contentColumn, invoice, businessProfile);
+                            ComposeNotes(contentColumn, invoice, businessProfile, L, Tr);
 
                             // Payment Options
-                            ComposePaymentOptions(contentColumn, invoice, businessProfile, currencySettings, total, showPaymentQR, showBankDetails, businessProfile?.DefaultCurrency, vndToHomeCurrencyRate);
+                            ComposePaymentOptions(contentColumn, invoice, businessProfile, currencySettings, total, showPaymentQR, showBankDetails, businessProfile?.DefaultCurrency, vndToHomeCurrencyRate, L);
                             // Rate comes from the live service via the caller — the old
                             // hand-entered setting is gone. Null simply means no converted
                             // amount is offered.
@@ -149,18 +220,12 @@ public class PdfGeneratorService
     private record PdfLineItem(string JobName, string? ProjectName, string? SectionName, decimal Quantity, decimal UnitPrice, decimal LineTotal, DateOnly? Date);
 
 
-    private static string GetCurrencySymbol(string currencyCode) => currencyCode switch
-    {
-        "USD" => "$",
-        "GBP" => "£",
-        "EUR" => "€",
-        "AUD" => "A$",
-        "CAD" => "C$",
-        "VND" => "₫",
-        _ => currencyCode
-    };
+    // Delegates rather than keeping a second table: this copy had already
+    // drifted, missing the ruble, so a Russian invoice printed "RUB 1,200".
+    private static string GetCurrencySymbol(string currencyCode)
+        => Shared.Enums.CurrencyExtensions.GetSymbol(currencyCode);
 
-    private static void ComposeStatusBanner(ColumnDescriptor column, Invoice invoice, bool isOverdue)
+    private static void ComposeStatusBanner(ColumnDescriptor column, Invoice invoice, bool isOverdue, InvoiceLabelSet L, CultureInfo culture)
     {
         if (invoice.Status == Domain.Enums.InvoiceStatus.Paid)
         {
@@ -174,10 +239,10 @@ public class PdfGeneratorService
                 {
                     col.Item().Row(r =>
                     {
-                        r.AutoItem().Text("Paid").FontSize(12).Bold().FontColor(EmeraldColor);
+                        r.AutoItem().Text(L.StatusPaid).FontSize(12).Bold().FontColor(EmeraldColor);
                         if (invoice.PaidDate.HasValue)
                         {
-                            r.AutoItem().PaddingLeft(8).Text(invoice.PaidDate.Value.ToString("MMMM d, yyyy")).FontSize(11).FontColor(EmeraldColor);
+                            r.AutoItem().PaddingLeft(8).Text(invoice.PaidDate.Value.ToString("d MMMM yyyy", culture)).FontSize(11).FontColor(EmeraldColor);
                         }
                     });
                 });
@@ -196,7 +261,7 @@ public class PdfGeneratorService
                 {
                     col.Item().Row(r =>
                     {
-                        r.AutoItem().Text("Payment Overdue").FontSize(12).Bold().FontColor(RedColor);
+                        r.AutoItem().Text(L.StatusOverdue).FontSize(12).Bold().FontColor(RedColor);
                         r.AutoItem().PaddingLeft(8).Text($"{daysPastDue} days past due").FontSize(11).FontColor(RedColor);
                     });
                 });
@@ -214,7 +279,7 @@ public class PdfGeneratorService
                 {
                     col.Item().Row(r =>
                     {
-                        r.AutoItem().Text("Payment Due").FontSize(12).Bold().FontColor(BlueColor);
+                        r.AutoItem().Text(L.StatusPaymentDue).FontSize(12).Bold().FontColor(BlueColor);
                         r.AutoItem().PaddingLeft(8).Text($"by {invoice.DueDate:MMMM d, yyyy}").FontSize(11).FontColor(BlueColor);
                     });
                 });
@@ -232,15 +297,15 @@ public class PdfGeneratorService
                 {
                     col.Item().Row(r =>
                     {
-                        r.AutoItem().Text("Draft").FontSize(12).Bold().FontColor(AmberColor);
-                        r.AutoItem().PaddingLeft(8).Text("Not yet sent").FontSize(11).FontColor(AmberColor);
+                        r.AutoItem().Text(L.StatusDraft).FontSize(12).Bold().FontColor(AmberColor);
+                        r.AutoItem().PaddingLeft(8).Text(L.DraftNotSent).FontSize(11).FontColor(AmberColor);
                     });
                 });
             });
         }
     }
 
-    private static void ComposeHeader(ColumnDescriptor column, Invoice invoice, BusinessProfile? businessProfile, bool isOverdue, bool showLogo, string primaryColor, string headerLayout, decimal total, string currencySymbol)
+    private static void ComposeHeader(ColumnDescriptor column, Invoice invoice, BusinessProfile? businessProfile, bool isOverdue, bool showLogo, string primaryColor, string headerLayout, decimal total, string currencySymbol, InvoiceLabelSet L, CultureInfo culture)
     {
         if (headerLayout == "centered")
         {
@@ -292,15 +357,15 @@ public class PdfGeneratorService
             column.Item().PaddingTop(20).AlignCenter().Column(infoCol =>
             {
                 infoCol.Item().AlignCenter().Text(invoice.InvoiceNumber).FontSize(28).Bold().FontColor(DarkText);
-                infoCol.Item().AlignCenter().Text("INVOICE").FontSize(11).FontColor(LightText);
+                infoCol.Item().AlignCenter().Text(L.Invoice).FontSize(11).FontColor(LightText);
 
                 infoCol.Item().PaddingTop(12).AlignCenter().Row(dateRow =>
                 {
-                    dateRow.AutoItem().Text("Issued: ").FontSize(10).FontColor(LightText);
-                    dateRow.AutoItem().Text(invoice.IssueDate.ToString("MMM d, yyyy")).FontSize(10).Bold().FontColor(DarkText);
+                    dateRow.AutoItem().Text($"{L.Issued}:  ").FontSize(10).FontColor(LightText);
+                    dateRow.AutoItem().Text(invoice.IssueDate.ToString("d MMM yyyy", culture)).FontSize(10).Bold().FontColor(DarkText);
                     dateRow.AutoItem().PaddingHorizontal(12).Text("|").FontSize(10).FontColor(LightText);
-                    dateRow.AutoItem().Text("Due: ").FontSize(10).FontColor(LightText);
-                    dateRow.AutoItem().Text(invoice.DueDate.ToString("MMM d, yyyy")).FontSize(10).Bold().FontColor(isOverdue ? RedColor : DarkText);
+                    dateRow.AutoItem().Text($"{L.Due}:  ").FontSize(10).FontColor(LightText);
+                    dateRow.AutoItem().Text(invoice.DueDate.ToString("d MMM yyyy", culture)).FontSize(10).Bold().FontColor(isOverdue ? RedColor : DarkText);
                 });
             });
 
@@ -407,21 +472,21 @@ public class PdfGeneratorService
                 row.ConstantItem(180).AlignRight().Column(rightCol =>
                 {
                     rightCol.Item().AlignRight().Text(invoice.InvoiceNumber).FontSize(28).Bold().FontColor(DarkText);
-                    rightCol.Item().AlignRight().Text("INVOICE").FontSize(11).FontColor(LightText);
+                    rightCol.Item().AlignRight().Text(L.Invoice).FontSize(11).FontColor(LightText);
 
                     rightCol.Item().PaddingTop(16);
                     rightCol.Item().Row(dateRow =>
                     {
                         dateRow.RelativeItem().AlignRight().Column(dc =>
                         {
-                            dc.Item().AlignRight().Text("Issued:").FontSize(10).FontColor(LightText);
-                            dc.Item().AlignRight().Text(invoice.IssueDate.ToString("MMM d, yyyy")).FontSize(10).Bold().FontColor(DarkText);
+                            dc.Item().AlignRight().Text($"{L.Issued}:  ").FontSize(10).FontColor(LightText);
+                            dc.Item().AlignRight().Text(invoice.IssueDate.ToString("d MMM yyyy", culture)).FontSize(10).Bold().FontColor(DarkText);
                         });
                         dateRow.ConstantItem(16);
                         dateRow.RelativeItem().AlignRight().Column(dc =>
                         {
-                            dc.Item().AlignRight().Text("Due:").FontSize(10).FontColor(LightText);
-                            dc.Item().AlignRight().Text(invoice.DueDate.ToString("MMM d, yyyy")).FontSize(10).Bold().FontColor(isOverdue ? RedColor : DarkText);
+                            dc.Item().AlignRight().Text($"{L.Due}:  ").FontSize(10).FontColor(LightText);
+                            dc.Item().AlignRight().Text(invoice.DueDate.ToString("d MMM yyyy", culture)).FontSize(10).Bold().FontColor(isOverdue ? RedColor : DarkText);
                         });
                     });
                 });
@@ -431,7 +496,7 @@ public class PdfGeneratorService
         }
     }
 
-    private void ComposeBillToSection(ColumnDescriptor column, Invoice invoice, decimal total, string currencySymbol, string primaryColor, string headerLayout)
+    private void ComposeBillToSection(ColumnDescriptor column, Invoice invoice, decimal total, string currencySymbol, string primaryColor, string headerLayout, InvoiceLabelSet L, CultureInfo culture)
     {
         column.Item().BorderTop(1).BorderColor(BorderColor).PaddingTop(20);
 
@@ -443,7 +508,7 @@ public class PdfGeneratorService
                 // Bill To
                 row.RelativeItem().Column(billToCol =>
                 {
-                    billToCol.Item().Text("BILL TO").FontSize(9).Bold().FontColor(VeryLightText).LetterSpacing(0.5f);
+                    billToCol.Item().Text(L.BillTo).FontSize(9).Bold().FontColor(VeryLightText).LetterSpacing(0.5f);
                     billToCol.Item().PaddingTop(6);
                     billToCol.Item().Text(invoice.Client.Name).FontSize(14).Bold().FontColor(DarkText);
 
@@ -464,13 +529,13 @@ public class PdfGeneratorService
                 // Amount Due
                 row.ConstantItem(180).AlignRight().Column(amountCol =>
                 {
-                    amountCol.Item().AlignRight().Text("AMOUNT DUE").FontSize(9).Bold().FontColor(VeryLightText).LetterSpacing(0.5f);
+                    amountCol.Item().AlignRight().Text(L.AmountDue).FontSize(9).Bold().FontColor(VeryLightText).LetterSpacing(0.5f);
                     amountCol.Item().PaddingTop(6);
                     var totalColor = invoice.Status == Domain.Enums.InvoiceStatus.Paid ? EmeraldColor : primaryColor;
                     amountCol.Item().AlignRight().Text($"{currencySymbol}{total:N2}").FontSize(32).Bold().FontColor(totalColor);
                     if (invoice.Status == Domain.Enums.InvoiceStatus.Paid)
                     {
-                        amountCol.Item().AlignRight().Text("Paid in full").FontSize(10).FontColor(EmeraldColor);
+                        amountCol.Item().AlignRight().Text(L.PaidInFull).FontSize(10).FontColor(EmeraldColor);
                     }
                 });
             });
@@ -480,7 +545,7 @@ public class PdfGeneratorService
             // Minimal layout - just Bill To, amount is already shown in header
             column.Item().Column(billToCol =>
             {
-                billToCol.Item().Text("BILL TO").FontSize(9).Bold().FontColor(VeryLightText).LetterSpacing(0.5f);
+                billToCol.Item().Text(L.BillTo).FontSize(9).Bold().FontColor(VeryLightText).LetterSpacing(0.5f);
                 billToCol.Item().PaddingTop(6);
                 billToCol.Item().Text(invoice.Client.Name).FontSize(14).Bold().FontColor(DarkText);
 
@@ -511,7 +576,7 @@ public class PdfGeneratorService
                 // Bill To
                 row.RelativeItem().Column(billToCol =>
                 {
-                    billToCol.Item().Text("BILL TO").FontSize(9).Bold().FontColor(VeryLightText).LetterSpacing(0.5f);
+                    billToCol.Item().Text(L.BillTo).FontSize(9).Bold().FontColor(VeryLightText).LetterSpacing(0.5f);
                     billToCol.Item().PaddingTop(6);
                     billToCol.Item().Text(invoice.Client.Name).FontSize(14).Bold().FontColor(DarkText);
 
@@ -532,13 +597,13 @@ public class PdfGeneratorService
                 // Amount Due
                 row.ConstantItem(180).AlignRight().Column(amountCol =>
                 {
-                    amountCol.Item().AlignRight().Text("AMOUNT DUE").FontSize(9).Bold().FontColor(VeryLightText).LetterSpacing(0.5f);
+                    amountCol.Item().AlignRight().Text(L.AmountDue).FontSize(9).Bold().FontColor(VeryLightText).LetterSpacing(0.5f);
                     amountCol.Item().PaddingTop(6);
                     var totalColor = invoice.Status == Domain.Enums.InvoiceStatus.Paid ? EmeraldColor : primaryColor;
                     amountCol.Item().AlignRight().Text($"{currencySymbol}{total:N2}").FontSize(32).Bold().FontColor(totalColor);
                     if (invoice.Status == Domain.Enums.InvoiceStatus.Paid)
                     {
-                        amountCol.Item().AlignRight().Text("Paid in full").FontSize(10).FontColor(EmeraldColor);
+                        amountCol.Item().AlignRight().Text(L.PaidInFull).FontSize(10).FontColor(EmeraldColor);
                     }
                 });
             });
@@ -547,7 +612,7 @@ public class PdfGeneratorService
         column.Item().PaddingTop(24);
     }
 
-    private void ComposeServicesTable(ColumnDescriptor column, List<PdfLineItem> lineItems, string currencySymbol, string accentColor, string itemsLayout, bool showItemDescriptions)
+    private void ComposeServicesTable(ColumnDescriptor column, List<PdfLineItem> lineItems, string currencySymbol, string accentColor, string itemsLayout, bool showItemDescriptions, InvoiceLabelSet L, CultureInfo culture)
     {
         // Compute a light version of the accent color for the section header background
         var accentLight = GetLightVariant(accentColor);
@@ -556,7 +621,7 @@ public class PdfGeneratorService
         column.Item().Background(accentLight).Padding(8).Row(row =>
         {
             row.AutoItem().AlignMiddle().PaddingRight(8).Text("◉").FontSize(12).FontColor(accentColor);
-            row.AutoItem().AlignMiddle().Text("SERVICES").FontSize(9).Bold().FontColor(accentColor).LetterSpacing(0.5f);
+            row.AutoItem().AlignMiddle().Text(L.Services).FontSize(9).Bold().FontColor(accentColor).LetterSpacing(0.5f);
         });
 
         // Table
@@ -577,24 +642,24 @@ public class PdfGeneratorService
                 if (headerBorder)
                 {
                     header.Cell().Background(BackgroundLight).Border(1).BorderColor(BorderColor).Padding(12)
-                        .Text("Description").FontSize(9).Bold().FontColor(LightText).LetterSpacing(0.3f);
+                        .Text(L.Description).FontSize(9).Bold().FontColor(LightText);
                     header.Cell().Background(BackgroundLight).Border(1).BorderColor(BorderColor).Padding(12)
-                        .AlignCenter().Text("Hours").FontSize(9).Bold().FontColor(LightText).LetterSpacing(0.3f);
+                        .AlignCenter().Text(L.Hours).FontSize(9).Bold().FontColor(LightText);
                     header.Cell().Background(BackgroundLight).Border(1).BorderColor(BorderColor).Padding(12)
-                        .AlignRight().Text("Rate").FontSize(9).Bold().FontColor(LightText).LetterSpacing(0.3f);
+                        .AlignRight().Text(L.Rate).FontSize(9).Bold().FontColor(LightText);
                     header.Cell().Background(BackgroundLight).Border(1).BorderColor(BorderColor).Padding(12)
-                        .AlignRight().Text("Amount").FontSize(9).Bold().FontColor(LightText).LetterSpacing(0.3f);
+                        .AlignRight().Text(L.Amount).FontSize(9).Bold().FontColor(LightText);
                 }
                 else
                 {
                     header.Cell().Background(BackgroundLight).BorderBottom(1).BorderColor(BorderColor).Padding(12)
-                        .Text("Description").FontSize(9).Bold().FontColor(LightText).LetterSpacing(0.3f);
+                        .Text(L.Description).FontSize(9).Bold().FontColor(LightText);
                     header.Cell().Background(BackgroundLight).BorderBottom(1).BorderColor(BorderColor).Padding(12)
-                        .AlignCenter().Text("Hours").FontSize(9).Bold().FontColor(LightText).LetterSpacing(0.3f);
+                        .AlignCenter().Text(L.Hours).FontSize(9).Bold().FontColor(LightText);
                     header.Cell().Background(BackgroundLight).BorderBottom(1).BorderColor(BorderColor).Padding(12)
-                        .AlignRight().Text("Rate").FontSize(9).Bold().FontColor(LightText).LetterSpacing(0.3f);
+                        .AlignRight().Text(L.Rate).FontSize(9).Bold().FontColor(LightText);
                     header.Cell().Background(BackgroundLight).BorderBottom(1).BorderColor(BorderColor).Padding(12)
-                        .AlignRight().Text("Amount").FontSize(9).Bold().FontColor(LightText).LetterSpacing(0.3f);
+                        .AlignRight().Text(L.Amount).FontSize(9).Bold().FontColor(LightText);
                 }
             });
 
@@ -624,7 +689,7 @@ public class PdfGeneratorService
                                 }
                                 if (item.Date.HasValue)
                                 {
-                                    detailRow.AutoItem().Text(item.Date.Value.ToString("MMM d, yyyy")).FontSize(9).FontColor(LightText);
+                                    detailRow.AutoItem().Text(item.Date.Value.ToString("d MMM yyyy", culture)).FontSize(9).FontColor(LightText);
                                 }
                                 if (!string.IsNullOrEmpty(item.SectionName))
                                 {
@@ -697,13 +762,13 @@ public class PdfGeneratorService
         column.Item().PaddingTop(16);
     }
 
-    private void ComposeExpensesTable(ColumnDescriptor column, List<Expense> expenses, string currencySymbol, string itemsLayout, bool showItemDescriptions)
+    private void ComposeExpensesTable(ColumnDescriptor column, List<Expense> expenses, string currencySymbol, string itemsLayout, bool showItemDescriptions, InvoiceLabelSet L, CultureInfo culture, string language)
     {
         // Section header with vertically centered icon and text
         column.Item().Background(AmberLight).Padding(8).Row(row =>
         {
             row.AutoItem().AlignMiddle().PaddingRight(8).Text("▣").FontSize(12).FontColor(AmberColor);
-            row.AutoItem().AlignMiddle().Text("EXPENSES").FontSize(9).Bold().FontColor(AmberColor).LetterSpacing(0.5f);
+            row.AutoItem().AlignMiddle().Text(L.Expenses).FontSize(9).Bold().FontColor(AmberColor).LetterSpacing(0.5f);
         });
 
         // Table
@@ -724,24 +789,24 @@ public class PdfGeneratorService
                 if (headerBorder)
                 {
                     header.Cell().Background(BackgroundLight).Border(1).BorderColor(BorderColor).Padding(12)
-                        .Text("Description").FontSize(9).Bold().FontColor(LightText).LetterSpacing(0.3f);
+                        .Text(L.Description).FontSize(9).Bold().FontColor(LightText);
                     header.Cell().Background(BackgroundLight).Border(1).BorderColor(BorderColor).Padding(12)
-                        .Text("Category").FontSize(9).Bold().FontColor(LightText).LetterSpacing(0.3f);
+                        .Text(L.Category).FontSize(9).Bold().FontColor(LightText);
                     header.Cell().Background(BackgroundLight).Border(1).BorderColor(BorderColor).Padding(12)
-                        .AlignRight().Text("Date").FontSize(9).Bold().FontColor(LightText).LetterSpacing(0.3f);
+                        .AlignRight().Text(L.Date).FontSize(9).Bold().FontColor(LightText);
                     header.Cell().Background(BackgroundLight).Border(1).BorderColor(BorderColor).Padding(12)
-                        .AlignRight().Text("Amount").FontSize(9).Bold().FontColor(LightText).LetterSpacing(0.3f);
+                        .AlignRight().Text(L.Amount).FontSize(9).Bold().FontColor(LightText);
                 }
                 else
                 {
                     header.Cell().Background(BackgroundLight).BorderBottom(1).BorderColor(BorderColor).Padding(12)
-                        .Text("Description").FontSize(9).Bold().FontColor(LightText).LetterSpacing(0.3f);
+                        .Text(L.Description).FontSize(9).Bold().FontColor(LightText);
                     header.Cell().Background(BackgroundLight).BorderBottom(1).BorderColor(BorderColor).Padding(12)
-                        .Text("Category").FontSize(9).Bold().FontColor(LightText).LetterSpacing(0.3f);
+                        .Text(L.Category).FontSize(9).Bold().FontColor(LightText);
                     header.Cell().Background(BackgroundLight).BorderBottom(1).BorderColor(BorderColor).Padding(12)
-                        .AlignRight().Text("Date").FontSize(9).Bold().FontColor(LightText).LetterSpacing(0.3f);
+                        .AlignRight().Text(L.Date).FontSize(9).Bold().FontColor(LightText);
                     header.Cell().Background(BackgroundLight).BorderBottom(1).BorderColor(BorderColor).Padding(12)
-                        .AlignRight().Text("Amount").FontSize(9).Bold().FontColor(LightText).LetterSpacing(0.3f);
+                        .AlignRight().Text(L.Amount).FontSize(9).Bold().FontColor(LightText);
                 }
             });
 
@@ -794,27 +859,27 @@ public class PdfGeneratorService
                 if (isBordered)
                 {
                     if (isStriped)
-                        table.Cell().Background(BackgroundLight).Border(1).BorderColor(BorderColor).Padding(12).Text(expense.Category.ToString()).FontSize(10).FontColor(MediumText);
+                        table.Cell().Background(BackgroundLight).Border(1).BorderColor(BorderColor).Padding(12).Text(InvoiceLabels.ExpenseCategory(language, expense.Category.ToString())).FontSize(10).FontColor(MediumText);
                     else
-                        table.Cell().Border(1).BorderColor(BorderColor).Padding(12).Text(expense.Category.ToString()).FontSize(10).FontColor(MediumText);
+                        table.Cell().Border(1).BorderColor(BorderColor).Padding(12).Text(InvoiceLabels.ExpenseCategory(language, expense.Category.ToString())).FontSize(10).FontColor(MediumText);
                 }
                 else if (isStriped)
-                    table.Cell().Background(BackgroundLight).BorderBottom(1).BorderColor(BorderColor).Padding(12).Text(expense.Category.ToString()).FontSize(10).FontColor(MediumText);
+                    table.Cell().Background(BackgroundLight).BorderBottom(1).BorderColor(BorderColor).Padding(12).Text(InvoiceLabels.ExpenseCategory(language, expense.Category.ToString())).FontSize(10).FontColor(MediumText);
                 else
-                    table.Cell().BorderBottom(1).BorderColor(BorderColor).Padding(12).Text(expense.Category.ToString()).FontSize(10).FontColor(MediumText);
+                    table.Cell().BorderBottom(1).BorderColor(BorderColor).Padding(12).Text(InvoiceLabels.ExpenseCategory(language, expense.Category.ToString())).FontSize(10).FontColor(MediumText);
 
                 // Date cell
                 if (isBordered)
                 {
                     if (isStriped)
-                        table.Cell().Background(BackgroundLight).Border(1).BorderColor(BorderColor).Padding(12).AlignRight().Text(expense.ExpenseDate.ToString("MMM d, yyyy")).FontSize(10).FontColor(MediumText);
+                        table.Cell().Background(BackgroundLight).Border(1).BorderColor(BorderColor).Padding(12).AlignRight().Text(expense.ExpenseDate.ToString("d MMM yyyy", culture)).FontSize(10).FontColor(MediumText);
                     else
-                        table.Cell().Border(1).BorderColor(BorderColor).Padding(12).AlignRight().Text(expense.ExpenseDate.ToString("MMM d, yyyy")).FontSize(10).FontColor(MediumText);
+                        table.Cell().Border(1).BorderColor(BorderColor).Padding(12).AlignRight().Text(expense.ExpenseDate.ToString("d MMM yyyy", culture)).FontSize(10).FontColor(MediumText);
                 }
                 else if (isStriped)
-                    table.Cell().Background(BackgroundLight).BorderBottom(1).BorderColor(BorderColor).Padding(12).AlignRight().Text(expense.ExpenseDate.ToString("MMM d, yyyy")).FontSize(10).FontColor(MediumText);
+                    table.Cell().Background(BackgroundLight).BorderBottom(1).BorderColor(BorderColor).Padding(12).AlignRight().Text(expense.ExpenseDate.ToString("d MMM yyyy", culture)).FontSize(10).FontColor(MediumText);
                 else
-                    table.Cell().BorderBottom(1).BorderColor(BorderColor).Padding(12).AlignRight().Text(expense.ExpenseDate.ToString("MMM d, yyyy")).FontSize(10).FontColor(MediumText);
+                    table.Cell().BorderBottom(1).BorderColor(BorderColor).Padding(12).AlignRight().Text(expense.ExpenseDate.ToString("d MMM yyyy", culture)).FontSize(10).FontColor(MediumText);
 
                 // Amount cell
                 if (isBordered)
@@ -836,13 +901,13 @@ public class PdfGeneratorService
         column.Item().PaddingTop(16);
     }
 
-    private void ComposeProductsTable(ColumnDescriptor column, List<InvoiceLineItem> productLineItems, string currencySymbol, string itemsLayout, bool showItemDescriptions)
+    private void ComposeProductsTable(ColumnDescriptor column, List<InvoiceLineItem> productLineItems, string currencySymbol, string itemsLayout, bool showItemDescriptions, InvoiceLabelSet L, CultureInfo culture, Func<string?, string> Tr)
     {
         // Section header with vertically centered icon and text (blue theme)
         column.Item().Background(BlueLight).Padding(8).Row(row =>
         {
             row.AutoItem().AlignMiddle().PaddingRight(8).Text("▢").FontSize(12).FontColor(BlueColor);
-            row.AutoItem().AlignMiddle().Text("PRODUCTS").FontSize(9).Bold().FontColor(BlueColor).LetterSpacing(0.5f);
+            row.AutoItem().AlignMiddle().Text(L.Products).FontSize(9).Bold().FontColor(BlueColor).LetterSpacing(0.5f);
         });
 
         // Table
@@ -863,24 +928,24 @@ public class PdfGeneratorService
                 if (headerBorder)
                 {
                     header.Cell().Background(BackgroundLight).Border(1).BorderColor(BorderColor).Padding(12)
-                        .Text("Description").FontSize(9).Bold().FontColor(LightText).LetterSpacing(0.3f);
+                        .Text(L.Description).FontSize(9).Bold().FontColor(LightText);
                     header.Cell().Background(BackgroundLight).Border(1).BorderColor(BorderColor).Padding(12)
-                        .AlignCenter().Text("Qty").FontSize(9).Bold().FontColor(LightText).LetterSpacing(0.3f);
+                        .AlignCenter().Text(L.Qty).FontSize(9).Bold().FontColor(LightText);
                     header.Cell().Background(BackgroundLight).Border(1).BorderColor(BorderColor).Padding(12)
-                        .AlignRight().Text("Rate").FontSize(9).Bold().FontColor(LightText).LetterSpacing(0.3f);
+                        .AlignRight().Text(L.Rate).FontSize(9).Bold().FontColor(LightText);
                     header.Cell().Background(BackgroundLight).Border(1).BorderColor(BorderColor).Padding(12)
-                        .AlignRight().Text("Amount").FontSize(9).Bold().FontColor(LightText).LetterSpacing(0.3f);
+                        .AlignRight().Text(L.Amount).FontSize(9).Bold().FontColor(LightText);
                 }
                 else
                 {
                     header.Cell().Background(BackgroundLight).BorderBottom(1).BorderColor(BorderColor).Padding(12)
-                        .Text("Description").FontSize(9).Bold().FontColor(LightText).LetterSpacing(0.3f);
+                        .Text(L.Description).FontSize(9).Bold().FontColor(LightText);
                     header.Cell().Background(BackgroundLight).BorderBottom(1).BorderColor(BorderColor).Padding(12)
-                        .AlignCenter().Text("Qty").FontSize(9).Bold().FontColor(LightText).LetterSpacing(0.3f);
+                        .AlignCenter().Text(L.Qty).FontSize(9).Bold().FontColor(LightText);
                     header.Cell().Background(BackgroundLight).BorderBottom(1).BorderColor(BorderColor).Padding(12)
-                        .AlignRight().Text("Rate").FontSize(9).Bold().FontColor(LightText).LetterSpacing(0.3f);
+                        .AlignRight().Text(L.Rate).FontSize(9).Bold().FontColor(LightText);
                     header.Cell().Background(BackgroundLight).BorderBottom(1).BorderColor(BorderColor).Padding(12)
-                        .AlignRight().Text("Amount").FontSize(9).Bold().FontColor(LightText).LetterSpacing(0.3f);
+                        .AlignRight().Text(L.Amount).FontSize(9).Bold().FontColor(LightText);
                 }
             });
 
@@ -897,7 +962,7 @@ public class PdfGeneratorService
                 {
                     container.Column(descCol =>
                     {
-                        descCol.Item().Text(item.Description).FontSize(10).FontColor(DarkText);
+                        descCol.Item().Text(Tr(item.Description)).FontSize(10).FontColor(DarkText);
                         if (showItemDescriptions && item.Product != null)
                         {
                             descCol.Item().PaddingTop(2).Text($"Product: {item.Product.Name}").FontSize(9).FontColor(LightText);
@@ -967,7 +1032,7 @@ public class PdfGeneratorService
         column.Item().PaddingTop(16);
     }
 
-    private void ComposeTotals(ColumnDescriptor column, Invoice invoice, decimal subtotal, decimal taxAmount, decimal total, string currencySymbol, string primaryColor, string footerLayout)
+    private void ComposeTotals(ColumnDescriptor column, Invoice invoice, decimal subtotal, decimal taxAmount, decimal total, string currencySymbol, string primaryColor, string footerLayout, InvoiceLabelSet L, CultureInfo culture)
     {
         // Totals section with light gray background matching the web view
         column.Item().Background(BackgroundLight).BorderTop(1).BorderColor(BorderColor).Padding(20).AlignRight().Width(240).Column(totalsCol =>
@@ -977,7 +1042,7 @@ public class PdfGeneratorService
                 // Detailed footer: always show subtotal, tax, and total
                 totalsCol.Item().Row(row =>
                 {
-                    row.RelativeItem().Text("Subtotal").FontSize(10).FontColor(LightText);
+                    row.RelativeItem().Text(L.Subtotal).FontSize(10).FontColor(LightText);
                     row.ConstantItem(100).AlignRight().Text($"{currencySymbol}{subtotal:N2}").FontSize(10).FontColor(DarkText);
                 });
 
@@ -993,7 +1058,7 @@ public class PdfGeneratorService
                 {
                     totalsCol.Item().PaddingTop(8).Row(row =>
                     {
-                        row.RelativeItem().Text("Tax").FontSize(10).FontColor(LightText);
+                        row.RelativeItem().Text(L.Tax).FontSize(10).FontColor(LightText);
                         row.ConstantItem(100).AlignRight().Text($"{currencySymbol}0.00").FontSize(10).FontColor(DarkText);
                     });
                 }
@@ -1001,7 +1066,7 @@ public class PdfGeneratorService
                 totalsCol.Item().PaddingTop(12).BorderTop(1).BorderColor(BorderColor).PaddingTop(12);
                 totalsCol.Item().Row(row =>
                 {
-                    row.RelativeItem().Text("Total").FontSize(12).Bold().FontColor(DarkText);
+                    row.RelativeItem().Text(L.Total).FontSize(12).Bold().FontColor(DarkText);
                     var totalColor = invoice.Status == Domain.Enums.InvoiceStatus.Paid ? EmeraldColor : primaryColor;
                     row.ConstantItem(120).AlignRight().Text($"{currencySymbol}{total:N2}").FontSize(20).Bold().FontColor(totalColor);
                 });
@@ -1013,7 +1078,7 @@ public class PdfGeneratorService
                 {
                     totalsCol.Item().Row(row =>
                     {
-                        row.RelativeItem().Text("Subtotal").FontSize(10).FontColor(LightText);
+                        row.RelativeItem().Text(L.Subtotal).FontSize(10).FontColor(LightText);
                         row.ConstantItem(100).AlignRight().Text($"{currencySymbol}{subtotal:N2}").FontSize(10).FontColor(DarkText);
                     });
 
@@ -1028,7 +1093,7 @@ public class PdfGeneratorService
 
                 totalsCol.Item().Row(row =>
                 {
-                    row.RelativeItem().Text("Total").FontSize(12).Bold().FontColor(DarkText);
+                    row.RelativeItem().Text(L.Total).FontSize(12).Bold().FontColor(DarkText);
                     var totalColor = invoice.Status == Domain.Enums.InvoiceStatus.Paid ? EmeraldColor : primaryColor;
                     row.ConstantItem(120).AlignRight().Text($"{currencySymbol}{total:N2}").FontSize(20).Bold().FontColor(totalColor);
                 });
@@ -1036,9 +1101,9 @@ public class PdfGeneratorService
         });
     }
 
-    private void ComposeNotes(ColumnDescriptor column, Invoice invoice, BusinessProfile? businessProfile)
+    private void ComposeNotes(ColumnDescriptor column, Invoice invoice, BusinessProfile? businessProfile, InvoiceLabelSet L, Func<string?, string> Tr)
     {
-        var notes = invoice.Notes ?? businessProfile?.InvoiceNotes;
+        var notes = Tr(invoice.Notes) is { Length: > 0 } n ? n : businessProfile?.InvoiceNotes;
         if (string.IsNullOrEmpty(notes)) return;
 
         column.Item().Background(BackgroundLight).Padding(16).Row(row =>
@@ -1046,7 +1111,7 @@ public class PdfGeneratorService
             row.AutoItem().AlignTop().PaddingRight(10).Text("📝").FontSize(14);
             row.RelativeItem().Column(notesCol =>
             {
-                notesCol.Item().Text("Notes").FontSize(9).Bold().FontColor(LightText).LetterSpacing(0.3f);
+                notesCol.Item().Text(L.Notes).FontSize(9).Bold().FontColor(LightText);
                 notesCol.Item().PaddingTop(4).Text(notes).FontSize(10).FontColor(MediumText);
             });
         });
@@ -1054,7 +1119,7 @@ public class PdfGeneratorService
         column.Item().PaddingTop(16);
     }
 
-    private void ComposePaymentOptions(ColumnDescriptor column, Invoice invoice, BusinessProfile? businessProfile, CurrencyPaymentSettings? currencySettings, decimal total, bool showPaymentQR, bool showBankDetails, string? defaultCurrency, decimal? vndToDefaultCurrencyRate)
+    private void ComposePaymentOptions(ColumnDescriptor column, Invoice invoice, BusinessProfile? businessProfile, CurrencyPaymentSettings? currencySettings, decimal total, bool showPaymentQR, bool showBankDetails, string? defaultCurrency, decimal? vndToDefaultCurrencyRate, InvoiceLabelSet L)
     {
         if (invoice.Status == Domain.Enums.InvoiceStatus.Paid || invoice.Status == Domain.Enums.InvoiceStatus.Void)
             return;
@@ -1085,7 +1150,7 @@ public class PdfGeneratorService
         // Keep payment options together - move to new page if can't fit
         column.Item().ShowEntire().Background(BlueLight).Padding(16).Column(paymentCol =>
         {
-            paymentCol.Item().Text("PAYMENT OPTIONS").FontSize(9).Bold().FontColor(LightText).LetterSpacing(0.5f);
+            paymentCol.Item().Text(L.PaymentOptions).FontSize(9).Bold().FontColor(LightText).LetterSpacing(0.5f);
             paymentCol.Item().PaddingTop(12);
 
             var showedOnlinePayments = false;
@@ -1098,7 +1163,7 @@ public class PdfGeneratorService
                 {
                     if (!string.IsNullOrEmpty(businessProfile?.PayPalMeUsername))
                     {
-                        var amount = paymentAmount.ToString("F2", System.Globalization.CultureInfo.InvariantCulture);
+                        var amount = paymentAmount.ToString("F2", CultureInfo.InvariantCulture);
                         var payPalLink = $"https://paypal.me/{businessProfile.PayPalMeUsername}/{amount}";
                         row.AutoItem().PaddingRight(16).Column(ppCol =>
                         {
@@ -1109,7 +1174,7 @@ public class PdfGeneratorService
                     }
                     if (!string.IsNullOrEmpty(businessProfile?.WiseEmail))
                     {
-                        var amount = paymentAmount.ToString("F2", System.Globalization.CultureInfo.InvariantCulture);
+                        var amount = paymentAmount.ToString("F2", CultureInfo.InvariantCulture);
                         var email = Uri.EscapeDataString(businessProfile.WiseEmail);
                         var wiseLink = $"https://wise.com/pay/me?email={email}&amount={amount}&currency={paymentCurrency}";
                         row.AutoItem().PaddingRight(16).Column(wiseCol =>
@@ -1141,13 +1206,13 @@ public class PdfGeneratorService
                 if (qrImage != null)
                 {
                     if (showedOnlinePayments) paymentCol.Item().PaddingTop(16);
-                    paymentCol.Item().Text("Vietnamese Bank Transfer (VietQR)").FontSize(9).Bold().FontColor(DarkText);
+                    paymentCol.Item().Text($"{L.BankTransfer} (VietQR)").FontSize(9).Bold().FontColor(DarkText);
                     paymentCol.Item().PaddingTop(8).Row(row =>
                     {
                         row.ConstantItem(100).Image(qrImage);
                         row.RelativeItem().PaddingLeft(12).Column(infoCol =>
                         {
-                            infoCol.Item().Text("Scan with your banking app").FontSize(9).FontColor(DarkText);
+                            infoCol.Item().Text(L.ScanWithBankingApp).FontSize(9).FontColor(DarkText);
                             infoCol.Item().PaddingTop(4).Text($"Amount: {(long)total:N0} VND").FontSize(9).FontColor(MediumText);
                             if (!string.IsNullOrEmpty(currencySettings.BankName))
                                 infoCol.Item().Text($"Bank: {currencySettings.BankName}").FontSize(9).FontColor(MediumText);
@@ -1164,7 +1229,7 @@ public class PdfGeneratorService
             else if (hasBankDetails && invoice.Currency != "VND")
             {
                 if (showedOnlinePayments) paymentCol.Item().PaddingTop(12).BorderTop(1).BorderColor(BorderColor).PaddingTop(12);
-                paymentCol.Item().Text("Bank Transfer").FontSize(9).Bold().FontColor(DarkText);
+                paymentCol.Item().Text(L.BankTransfer).FontSize(9).Bold().FontColor(DarkText);
                 paymentCol.Item().PaddingTop(6).Row(row =>
                 {
                     row.RelativeItem().Column(bankCol =>
@@ -1184,6 +1249,19 @@ public class PdfGeneratorService
                             bankCol2.Item().Text($"IBAN: {currencySettings.BankIban}").FontSize(9).FontColor(MediumText);
                         if (!string.IsNullOrEmpty(currencySettings?.BankSwift))
                             bankCol2.Item().Text($"SWIFT/BIC: {currencySettings.BankSwift}").FontSize(9).FontColor(MediumText);
+
+                        // Correspondent routing, printed only when supplied. A wire
+                        // from Asia is commonly returned without it.
+                        if (!string.IsNullOrEmpty(currencySettings?.BankAddress))
+                            bankCol2.Item().Text($"Bank address: {currencySettings.BankAddress}").FontSize(9).FontColor(MediumText);
+                        if (!string.IsNullOrEmpty(currencySettings?.IntermediaryBankName))
+                            bankCol2.Item().Text($"Correspondent bank: {currencySettings.IntermediaryBankName}").FontSize(9).FontColor(MediumText);
+                        if (!string.IsNullOrEmpty(currencySettings?.IntermediaryBankSwift))
+                            bankCol2.Item().Text($"Correspondent SWIFT/BIC: {currencySettings.IntermediaryBankSwift}").FontSize(9).FontColor(MediumText);
+                        if (!string.IsNullOrEmpty(currencySettings?.IntermediaryAccountNumber))
+                            bankCol2.Item().Text($"Account at correspondent: {currencySettings.IntermediaryAccountNumber}").FontSize(9).FontColor(MediumText);
+                        if (!string.IsNullOrEmpty(currencySettings?.PaymentPurposeCode))
+                            bankCol2.Item().Text($"Payment purpose: {currencySettings.PaymentPurposeCode}").FontSize(9).FontColor(MediumText);
                     });
                 });
                 paymentCol.Item().PaddingTop(4).Text($"Reference: Invoice {invoice.InvoiceNumber}").FontSize(9).FontColor(DarkText);
@@ -1285,7 +1363,7 @@ public class PdfGeneratorService
                 {
                     page.Size(PageSizes.A4);
                     page.Margin(0);
-                    page.DefaultTextStyle(x => x.FontSize(10).FontFamily("Lato").FontColor(DarkText));
+                    page.DefaultTextStyle(x => BaseTextStyle(x.FontSize(10)).FontColor(DarkText));
 
                     page.Content().Column(mainColumn =>
                     {
@@ -1462,7 +1540,7 @@ public class PdfGeneratorService
 
     private static void ComposeEstimateHeaderV2(ColumnDescriptor column, Estimate estimate, BusinessProfile? businessProfile, bool isExpired, bool isAccepted, string primaryColor, bool showLogo, string headerLayout, string currencySymbol, decimal total)
     {
-        var businessName = businessProfile?.TradingName ?? businessProfile?.CompanyName ?? "Your Company";
+        var businessName = (string.IsNullOrWhiteSpace(businessProfile?.TradingName) ? businessProfile?.CompanyName : businessProfile.TradingName) ?? "Your Company";
         var addressStr = businessProfile?.Address?.ToString();
 
         if (headerLayout == "centered")
@@ -1683,13 +1761,13 @@ public class PdfGeneratorService
             {
                 header.Cell().Background(headerBg);
                 header.Cell().Background(headerBg).BorderBottom(1).BorderColor(BorderColor).PaddingVertical(12)
-                    .Text("DESCRIPTION").FontSize(9).Bold().FontColor(LightText).LetterSpacing(0.3f);
+                    .Text("DESCRIPTION").FontSize(9).Bold().FontColor(LightText);
                 header.Cell().Background(headerBg).BorderBottom(1).BorderColor(BorderColor).PaddingVertical(12)
-                    .AlignCenter().Text("QTY").FontSize(9).Bold().FontColor(LightText).LetterSpacing(0.3f);
+                    .AlignCenter().Text("QTY").FontSize(9).Bold().FontColor(LightText);
                 header.Cell().Background(headerBg).BorderBottom(1).BorderColor(BorderColor).PaddingVertical(12)
-                    .AlignRight().Text("RATE").FontSize(9).Bold().FontColor(LightText).LetterSpacing(0.3f);
+                    .AlignRight().Text("RATE").FontSize(9).Bold().FontColor(LightText);
                 header.Cell().Background(headerBg).BorderBottom(1).BorderColor(BorderColor).PaddingVertical(12)
-                    .AlignRight().Text("AMOUNT").FontSize(9).Bold().FontColor(LightText).LetterSpacing(0.3f);
+                    .AlignRight().Text("AMOUNT").FontSize(9).Bold().FontColor(LightText);
                 header.Cell().Background(headerBg);
             });
 
@@ -1769,7 +1847,7 @@ public class PdfGeneratorService
             row.AutoItem().AlignTop().PaddingRight(12).Text("✎").FontSize(14).FontColor(LightText);
             row.RelativeItem().Column(col =>
             {
-                col.Item().Text("NOTES").FontSize(9).Bold().FontColor(VeryLightText).LetterSpacing(0.3f);
+                col.Item().Text("NOTES").FontSize(9).Bold().FontColor(VeryLightText);
                 col.Item().PaddingTop(6).Text(notes).FontSize(10).FontColor(MediumText);
             });
         });
@@ -1782,7 +1860,7 @@ public class PdfGeneratorService
             row.AutoItem().AlignTop().PaddingRight(12).Text("☐").FontSize(14).FontColor(LightText);
             row.RelativeItem().Column(col =>
             {
-                col.Item().Text("TERMS & CONDITIONS").FontSize(9).Bold().FontColor(VeryLightText).LetterSpacing(0.3f);
+                col.Item().Text("TERMS & CONDITIONS").FontSize(9).Bold().FontColor(VeryLightText);
                 col.Item().PaddingTop(6).Text(terms).FontSize(10).FontColor(MediumText);
             });
         });

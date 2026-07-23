@@ -1,4 +1,12 @@
+@using InvoiceSoftware.Shared.Localization
 @{
+    // The invoice's fixed headings in whatever language it was written in.
+    // Freeform text arrives already translated from the server; these are
+    // looked up locally so they cost nothing and always render.
+    var L = InvoiceLabels.For(Language);
+    // One culture for every date on the document, so a Vietnamese invoice
+    // does not mix Vietnamese headings with US date order.
+    var culture = L.Culture;
     var isOverdue = Status is "Sent" or "Overdue" && DueDate < DateOnly.FromDateTime(DateTime.Today);
     var isPaid = Status == "Paid";
 }
@@ -7,33 +15,33 @@
 @if (isPaid)
 {
     <StatusBanner Variant="StatusBanner.StatusVariant.Success"
-                  Title="Paid"
-                  Subtitle="@PaidDate?.ToString("MMMM d, yyyy")" />
+                  Title="@L.StatusPaid"
+                  Subtitle="@PaidDate?.ToString("d MMMM yyyy", culture)" />
 }
 else if (isOverdue)
 {
     var daysPastDue = DateOnly.FromDateTime(DateTime.Today).DayNumber - DueDate.DayNumber;
     <StatusBanner Variant="StatusBanner.StatusVariant.Danger"
-                  Title="Payment Overdue"
-                  Subtitle="@($"{daysPastDue} days past due")" />
+                  Title="@L.StatusOverdue"
+                  Subtitle="@string.Format(culture, L.DaysPastDue, daysPastDue)" />
 }
 else if (Status == "Sent")
 {
     <StatusBanner Variant="StatusBanner.StatusVariant.Info"
-                  Title="Payment Due"
-                  Subtitle="@($"by {DueDate:MMMM d, yyyy}")" />
+                  Title="@L.StatusPaymentDue"
+                  Subtitle="@string.Format(culture, L.DueByDate, DueDate.ToString("d MMMM yyyy", culture))" />
 }
 else if (Status == "Draft")
 {
     <StatusBanner Variant="StatusBanner.StatusVariant.Warning"
-                  Title="Draft"
-                  Subtitle="Not yet sent" />
+                  Title="@L.StatusDraft"
+                  Subtitle="@L.DraftNotSent" />
 }
 else if (Status == "Void")
 {
     <StatusBanner Variant="StatusBanner.StatusVariant.Muted"
-                  Title="Void"
-                  Subtitle="This invoice has been voided" />
+                  Title="@L.StatusVoid"
+                  Subtitle="@L.VoidSubtitle" />
 }
 
 <!-- Invoice Header -->
@@ -61,15 +69,15 @@ else if (Status == "Void")
             <div class="text-3xl font-bold text-gray-900 dark:text-white">
                 @InvoiceNumber
             </div>
-            <div class="text-sm text-gray-500 dark:text-slate-400 mt-1">INVOICE</div>
+            <div class="text-sm text-gray-500 dark:text-slate-400 mt-1">@L.Invoice</div>
             <div class="flex justify-center gap-6 mt-4 text-sm">
                 <div>
-                    <span class="text-gray-500 dark:text-slate-400">Issued:</span>
-                    <span class="font-medium text-gray-900 dark:text-white ml-1">@IssueDate.ToString("MMM d, yyyy")</span>
+                    <span class="text-gray-500 dark:text-slate-400">@L.Issued:</span>
+                    <span class="font-medium text-gray-900 dark:text-white ml-1">@IssueDate.ToString("d MMM yyyy", culture)</span>
                 </div>
                 <div>
-                    <span class="text-gray-500 dark:text-slate-400">Due:</span>
-                    <span class="font-medium @(isOverdue ? "text-red-600 dark:text-red-400" : "text-gray-900 dark:text-white") ml-1">@DueDate.ToString("MMM d, yyyy")</span>
+                    <span class="text-gray-500 dark:text-slate-400">@L.Due:</span>
+                    <span class="font-medium @(isOverdue ? "text-red-600 dark:text-red-400" : "text-gray-900 dark:text-white") ml-1">@DueDate.ToString("d MMM yyyy", culture)</span>
                 </div>
             </div>
         </div>
@@ -88,7 +96,7 @@ else if (Status == "Void")
                         @InvoiceNumber
                     </div>
                     <div class="text-xs text-gray-500 dark:text-slate-400">
-                        @IssueDate.ToString("MMM d, yyyy") — Due @DueDate.ToString("MMM d, yyyy")
+                        @IssueDate.ToString("d MMM yyyy", culture) — Due @DueDate.ToString("d MMM yyyy", culture)
                     </div>
                 </div>
             </div>
@@ -147,15 +155,15 @@ else if (Status == "Void")
                 <div class="text-3xl font-bold text-gray-900 dark:text-white">
                     @InvoiceNumber
                 </div>
-                <div class="text-sm text-gray-500 dark:text-slate-400 mt-1">INVOICE</div>
+                <div class="text-sm text-gray-500 dark:text-slate-400 mt-1">@L.Invoice</div>
                 <div class="flex flex-wrap items-center gap-4 mt-4 text-sm">
                     <div>
-                        <span class="text-gray-500 dark:text-slate-400">Issued:</span>
-                        <span class="font-medium text-gray-900 dark:text-white ml-1">@IssueDate.ToString("MMM d, yyyy")</span>
+                        <span class="text-gray-500 dark:text-slate-400">@L.Issued:</span>
+                        <span class="font-medium text-gray-900 dark:text-white ml-1">@IssueDate.ToString("d MMM yyyy", culture)</span>
                     </div>
                     <div>
-                        <span class="text-gray-500 dark:text-slate-400">Due:</span>
-                        <span class="font-medium @(isOverdue ? "text-red-600 dark:text-red-400" : "text-gray-900 dark:text-white") ml-1">@DueDate.ToString("MMM d, yyyy")</span>
+                        <span class="text-gray-500 dark:text-slate-400">@L.Due:</span>
+                        <span class="font-medium @(isOverdue ? "text-red-600 dark:text-red-400" : "text-gray-900 dark:text-white") ml-1">@DueDate.ToString("d MMM yyyy", culture)</span>
                     </div>
                 </div>
             </div>
@@ -167,7 +175,7 @@ else if (Status == "Void")
         <div class="grid grid-cols-1 md:grid-cols-2 gap-6 @(HeaderLayout == "centered" ? "text-center md:text-left" : "")">
             <!-- Bill To -->
             <div>
-                <div class="text-xs font-semibold uppercase tracking-wider text-gray-400 dark:text-slate-500 mb-2">Bill To</div>
+                <div class="text-xs font-semibold uppercase tracking-wider text-gray-400 dark:text-slate-500 mb-2">@L.BillTo</div>
                 <div class="text-base font-semibold text-gray-900 dark:text-white">@ClientName</div>
                 @if (!string.IsNullOrEmpty(ClientCompanyName))
                 {
@@ -187,13 +195,13 @@ else if (Status == "Void")
             @if (HeaderLayout != "minimal")
             {
                 <div class="@(HeaderLayout == "centered" ? "text-center md:text-right" : "text-right")">
-                    <div class="text-xs font-semibold uppercase tracking-wider text-gray-400 dark:text-slate-500 mb-2">Amount Due</div>
+                    <div class="text-xs font-semibold uppercase tracking-wider text-gray-400 dark:text-slate-500 mb-2">@L.AmountDue</div>
                     <div class="text-4xl font-bold @(isPaid ? "text-emerald-600" : "")" style="@(isPaid ? "" : $"color: {PrimaryColor};")">
                         @CurrencyExtensions.GetSymbol(Currency)@Total.ToString("N2")
                     </div>
                     @if (isPaid)
                     {
-                        <div class="text-sm text-emerald-600">Paid in full</div>
+                        <div class="text-sm text-emerald-600">@L.PaidInFull</div>
                     }
                 </div>
             }
@@ -209,17 +217,17 @@ else if (Status == "Void")
             <svg class="w-4 h-4" style="color: @AccentColor;" fill="none" stroke="currentColor" viewBox="0 0 24 24">
                 <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M12 8v4l3 3m6-3a9 9 0 11-18 0 9 9 0 0118 0z" />
             </svg>
-            <span class="text-xs font-semibold uppercase tracking-wider" style="color: @AccentColor;">Services</span>
+            <span class="text-xs font-semibold uppercase tracking-wider" style="color: @AccentColor;">@L.Services</span>
         </div>
     </div>
     <div class="overflow-x-auto">
         <table class="w-full">
             <thead>
                 <tr class="bg-gray-50/50 dark:bg-slate-800/30 @(ItemsLayout == "bordered" ? "border border-gray-200 dark:border-slate-600" : "")">
-                    <th class="px-8 py-4 text-left text-xs font-semibold uppercase tracking-wider text-gray-500 dark:text-slate-400 @(ItemsLayout == "bordered" ? "border border-gray-200 dark:border-slate-600" : "")">Description</th>
-                    <th class="px-6 py-4 text-center text-xs font-semibold uppercase tracking-wider text-gray-500 dark:text-slate-400 @(ItemsLayout == "bordered" ? "border border-gray-200 dark:border-slate-600" : "")">Hours</th>
-                    <th class="px-6 py-4 text-right text-xs font-semibold uppercase tracking-wider text-gray-500 dark:text-slate-400 @(ItemsLayout == "bordered" ? "border border-gray-200 dark:border-slate-600" : "")">Rate</th>
-                    <th class="px-8 py-4 text-right text-xs font-semibold uppercase tracking-wider text-gray-500 dark:text-slate-400 @(ItemsLayout == "bordered" ? "border border-gray-200 dark:border-slate-600" : "")">Amount</th>
+                    <th class="px-8 py-4 text-left text-xs font-semibold uppercase tracking-wider text-gray-500 dark:text-slate-400 @(ItemsLayout == "bordered" ? "border border-gray-200 dark:border-slate-600" : "")">@L.Description</th>
+                    <th class="px-6 py-4 text-center text-xs font-semibold uppercase tracking-wider text-gray-500 dark:text-slate-400 @(ItemsLayout == "bordered" ? "border border-gray-200 dark:border-slate-600" : "")">@L.Hours</th>
+                    <th class="px-6 py-4 text-right text-xs font-semibold uppercase tracking-wider text-gray-500 dark:text-slate-400 @(ItemsLayout == "bordered" ? "border border-gray-200 dark:border-slate-600" : "")">@L.Rate</th>
+                    <th class="px-8 py-4 text-right text-xs font-semibold uppercase tracking-wider text-gray-500 dark:text-slate-400 @(ItemsLayout == "bordered" ? "border border-gray-200 dark:border-slate-600" : "")">@L.Amount</th>
                 </tr>
             </thead>
             <tbody class="divide-y divide-gray-100 dark:divide-slate-700">
@@ -245,7 +253,7 @@ else if (Status == "Void")
                                     }
                                     @if (item.Date.HasValue)
                                     {
-                                        <span class="text-xs text-gray-500 dark:text-slate-400">@item.Date.Value.ToString("MMM d, yyyy")</span>
+                                        <span class="text-xs text-gray-500 dark:text-slate-400">@item.Date.Value.ToString("d MMM yyyy", culture)</span>
                                     }
                                     @if (!string.IsNullOrEmpty(item.SectionName))
                                     {
@@ -273,17 +281,17 @@ else if (Status == "Void")
             <svg class="w-4 h-4 text-amber-600" fill="none" stroke="currentColor" viewBox="0 0 24 24">
                 <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M9 14l6-6m-5.5.5h.01m4.99 5h.01M19 21V5a2 2 0 00-2-2H7a2 2 0 00-2 2v16l3.5-2 3.5 2 3.5-2 3.5 2z" />
             </svg>
-            <span class="text-xs font-semibold uppercase tracking-wider text-amber-600">Expenses</span>
+            <span class="text-xs font-semibold uppercase tracking-wider text-amber-600">@L.Expenses</span>
         </div>
     </div>
     <div class="overflow-x-auto">
         <table class="w-full">
             <thead>
                 <tr class="bg-gray-50/50 dark:bg-slate-800/30 @(ItemsLayout == "bordered" ? "border border-gray-200 dark:border-slate-600" : "")">
-                    <th class="px-8 py-4 text-left text-xs font-semibold uppercase tracking-wider text-gray-500 dark:text-slate-400 @(ItemsLayout == "bordered" ? "border border-gray-200 dark:border-slate-600" : "")">Description</th>
-                    <th class="px-6 py-4 text-left text-xs font-semibold uppercase tracking-wider text-gray-500 dark:text-slate-400 @(ItemsLayout == "bordered" ? "border border-gray-200 dark:border-slate-600" : "")">Category</th>
-                    <th class="px-6 py-4 text-right text-xs font-semibold uppercase tracking-wider text-gray-500 dark:text-slate-400 @(ItemsLayout == "bordered" ? "border border-gray-200 dark:border-slate-600" : "")">Date</th>
-                    <th class="px-8 py-4 text-right text-xs font-semibold uppercase tracking-wider text-gray-500 dark:text-slate-400 @(ItemsLayout == "bordered" ? "border border-gray-200 dark:border-slate-600" : "")">Amount</th>
+                    <th class="px-8 py-4 text-left text-xs font-semibold uppercase tracking-wider text-gray-500 dark:text-slate-400 @(ItemsLayout == "bordered" ? "border border-gray-200 dark:border-slate-600" : "")">@L.Description</th>
+                    <th class="px-6 py-4 text-left text-xs font-semibold uppercase tracking-wider text-gray-500 dark:text-slate-400 @(ItemsLayout == "bordered" ? "border border-gray-200 dark:border-slate-600" : "")">@L.Category</th>
+                    <th class="px-6 py-4 text-right text-xs font-semibold uppercase tracking-wider text-gray-500 dark:text-slate-400 @(ItemsLayout == "bordered" ? "border border-gray-200 dark:border-slate-600" : "")">@L.Date</th>
+                    <th class="px-8 py-4 text-right text-xs font-semibold uppercase tracking-wider text-gray-500 dark:text-slate-400 @(ItemsLayout == "bordered" ? "border border-gray-200 dark:border-slate-600" : "")">@L.Amount</th>
                 </tr>
             </thead>
             <tbody class="divide-y divide-gray-100 dark:divide-slate-700">
@@ -305,8 +313,8 @@ else if (Status == "Void")
                                 <div class="text-xs text-gray-600 dark:text-slate-400 mt-0.5">@expense.ProjectName</div>
                             }
                         </td>
-                        <td class="px-6 py-5 text-sm text-gray-700 dark:text-slate-300 @(ItemsLayout == "bordered" ? "border border-gray-200 dark:border-slate-600" : "")">@expense.Category</td>
-                        <td class="px-6 py-5 text-sm text-gray-600 dark:text-slate-400 text-right @(ItemsLayout == "bordered" ? "border border-gray-200 dark:border-slate-600" : "")">@expense.ExpenseDate.ToString("MMM d, yyyy")</td>
+                        <td class="px-6 py-5 text-sm text-gray-700 dark:text-slate-300 @(ItemsLayout == "bordered" ? "border border-gray-200 dark:border-slate-600" : "")">@InvoiceLabels.ExpenseCategory(Language, expense.Category)</td>
+                        <td class="px-6 py-5 text-sm text-gray-600 dark:text-slate-400 text-right @(ItemsLayout == "bordered" ? "border border-gray-200 dark:border-slate-600" : "")">@expense.ExpenseDate.ToString("d MMM yyyy", culture)</td>
                         <td class="px-8 py-5 text-sm font-semibold text-gray-900 dark:text-white text-right @(ItemsLayout == "bordered" ? "border border-gray-200 dark:border-slate-600" : "")">@CurrencyExtensions.GetSymbol(Currency)@expense.LineTotal.ToString("N2")</td>
                     </tr>
                     expenseIndex++;
@@ -324,17 +332,17 @@ else if (Status == "Void")
             <svg class="w-4 h-4 text-blue-600" fill="none" stroke="currentColor" viewBox="0 0 24 24">
                 <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M20 7l-8-4-8 4m16 0l-8 4m8-4v10l-8 4m0-10L4 7m8 4v10M4 7v10l8 4" />
             </svg>
-            <span class="text-xs font-semibold uppercase tracking-wider text-blue-600">Products</span>
+            <span class="text-xs font-semibold uppercase tracking-wider text-blue-600">@L.Products</span>
         </div>
     </div>
     <div class="overflow-x-auto">
         <table class="w-full">
             <thead>
                 <tr class="bg-gray-50/50 dark:bg-slate-800/30 @(ItemsLayout == "bordered" ? "border border-gray-200 dark:border-slate-600" : "")">
-                    <th class="px-8 py-4 text-left text-xs font-semibold uppercase tracking-wider text-gray-500 dark:text-slate-400 @(ItemsLayout == "bordered" ? "border border-gray-200 dark:border-slate-600" : "")">Description</th>
-                    <th class="px-6 py-4 text-center text-xs font-semibold uppercase tracking-wider text-gray-500 dark:text-slate-400 @(ItemsLayout == "bordered" ? "border border-gray-200 dark:border-slate-600" : "")">Qty</th>
-                    <th class="px-6 py-4 text-right text-xs font-semibold uppercase tracking-wider text-gray-500 dark:text-slate-400 @(ItemsLayout == "bordered" ? "border border-gray-200 dark:border-slate-600" : "")">Price</th>
-                    <th class="px-8 py-4 text-right text-xs font-semibold uppercase tracking-wider text-gray-500 dark:text-slate-400 @(ItemsLayout == "bordered" ? "border border-gray-200 dark:border-slate-600" : "")">Amount</th>
+                    <th class="px-8 py-4 text-left text-xs font-semibold uppercase tracking-wider text-gray-500 dark:text-slate-400 @(ItemsLayout == "bordered" ? "border border-gray-200 dark:border-slate-600" : "")">@L.Description</th>
+                    <th class="px-6 py-4 text-center text-xs font-semibold uppercase tracking-wider text-gray-500 dark:text-slate-400 @(ItemsLayout == "bordered" ? "border border-gray-200 dark:border-slate-600" : "")">@L.Qty</th>
+                    <th class="px-6 py-4 text-right text-xs font-semibold uppercase tracking-wider text-gray-500 dark:text-slate-400 @(ItemsLayout == "bordered" ? "border border-gray-200 dark:border-slate-600" : "")">@L.Price</th>
+                    <th class="px-8 py-4 text-right text-xs font-semibold uppercase tracking-wider text-gray-500 dark:text-slate-400 @(ItemsLayout == "bordered" ? "border border-gray-200 dark:border-slate-600" : "")">@L.Amount</th>
                 </tr>
             </thead>
             <tbody class="divide-y divide-gray-100 dark:divide-slate-700">
@@ -368,13 +376,14 @@ else if (Status == "Void")
 }
 
 <!-- Totals Section -->
-<div class="p-8 border-t border-gray-100 dark:border-slate-700 bg-gray-50/30 dark:bg-slate-800/20">
+@* Subtotal, tax and total read as one figure — splitting them across a page break invites a misread. *@
+<div class="no-break p-8 border-t border-gray-100 dark:border-slate-700 bg-gray-50/30 dark:bg-slate-800/20">
     <div class="flex justify-end">
         <div class="w-72 space-y-3">
             @if (FooterLayout == "detailed" || TaxRate > 0)
             {
                 <div class="flex justify-between text-sm">
-                    <span class="text-gray-500 dark:text-slate-400">Subtotal</span>
+                    <span class="text-gray-500 dark:text-slate-400">@L.Subtotal</span>
                     <span class="text-gray-900 dark:text-white">@CurrencyExtensions.GetSymbol(Currency)@Subtotal.ToString("N2")</span>
                 </div>
                 @if (TaxRate > 0)
@@ -387,14 +396,14 @@ else if (Status == "Void")
                 else if (FooterLayout == "detailed")
                 {
                     <div class="flex justify-between text-sm">
-                        <span class="text-gray-500 dark:text-slate-400">Tax</span>
+                        <span class="text-gray-500 dark:text-slate-400">@L.Tax</span>
                         <span class="text-gray-900 dark:text-white">@CurrencyExtensions.GetSymbol(Currency)0.00</span>
                     </div>
                 }
                 <div class="pt-3 border-t border-gray-200 dark:border-slate-600"></div>
             }
             <div class="flex justify-between items-center pt-2">
-                <span class="text-base font-semibold text-gray-900 dark:text-white">Total</span>
+                <span class="text-base font-semibold text-gray-900 dark:text-white">@L.Total</span>
                 <span class="text-2xl font-bold @(isPaid ? "text-emerald-600" : "")" style="@(isPaid ? "" : $"color: {PrimaryColor};")">@CurrencyExtensions.GetSymbol(Currency)@Total.ToString("N2")</span>
             </div>
         </div>
@@ -412,7 +421,7 @@ else if (Status == "Void")
                 </svg>
             </div>
             <div>
-                <div class="text-xs font-semibold uppercase tracking-wider text-gray-400 dark:text-slate-500 mb-2">Notes</div>
+                <div class="text-xs font-semibold uppercase tracking-wider text-gray-400 dark:text-slate-500 mb-2">@L.Notes</div>
                 <div class="text-sm text-gray-600 dark:text-slate-400 whitespace-pre-line">@Notes</div>
             </div>
         </div>
@@ -422,8 +431,11 @@ else if (Status == "Void")
 <!-- Payment Options Section -->
 @if (Status != "Paid" && Status != "Void" && HasPaymentOptions())
 {
-    <div class="px-8 py-6 border-t border-gray-100 dark:border-slate-700 bg-gradient-to-r from-blue-50/50 to-primary-50/50 dark:from-blue-900/20 dark:to-primary-900/20">
-        <div class="text-xs font-semibold text-gray-500 dark:text-slate-400 uppercase tracking-wider mb-4">Payment Options</div>
+    @* no-break: how to pay must not be split across a page. A bank heading on
+       one sheet and the account number on the next is the sort of thing that
+       gets an invoice paid late or into the wrong account. *@
+    <div class="no-break px-8 py-6 border-t border-gray-100 dark:border-slate-700 bg-gradient-to-r from-blue-50/50 to-primary-50/50 dark:from-blue-900/20 dark:to-primary-900/20">
+        <div class="text-xs font-semibold text-gray-500 dark:text-slate-400 uppercase tracking-wider mb-4">@L.PaymentOptions</div>
 
         @* PayPal, Wise, and Revolut buttons - shown for VND if conversion rate is set *@
         @if ((Currency != "VND" || VndToDefaultCurrencyRate.HasValue) && (!string.IsNullOrEmpty(PayPalMeUsername) || !string.IsNullOrEmpty(WiseEmail) || !string.IsNullOrEmpty(RevolutUsername)))
@@ -437,7 +449,7 @@ else if (Status == "Void")
                             <path d="M7.016 19.198h-4.2a.562.562 0 0 1-.555-.65L5.093.584A.69.69 0 0 1 5.775 0h7.063c3.126 0 5.063 1.607 5.063 4.285 0 .2-.016.403-.048.602-1.227 6.066-5.068 6.066-7.048 6.066h-1.88c-.42 0-.778.303-.844.714L7.016 19.198zM19.79 6.142c-.398 1.96-1.407 3.462-2.87 4.403-1.394.896-3.09 1.238-5.175 1.238h-.023l-.263 1.66-.355 2.25-.05.313a.562.562 0 0 0 .555.65h3.612a.69.69 0 0 0 .682-.584l.741-4.69.048-.242a.69.69 0 0 1 .682-.584h.44c3.466 0 6.173-1.406 6.963-5.474.262-1.35.158-2.467-.347-3.28a3.558 3.558 0 0 0-.64-.66z"/>
                         </svg>
                         <div class="text-left">
-                            <div class="text-sm font-semibold">Pay with PayPal</div>
+                            <div class="text-sm font-semibold">@L.PayWithPayPal</div>
                             <div class="text-xs opacity-80">@GetPaymentDisplayText()</div>
                         </div>
                         <svg class="w-4 h-4 ml-1" fill="none" stroke="currentColor" viewBox="0 0 24 24">
@@ -453,7 +465,7 @@ else if (Status == "Void")
                             <path d="M6.488 7.469 0 15.05h11.585l1.301-3.576H7.922l3.033-3.507.01-.092L8.993 4.48h8.873l-6.878 18.925h4.706L24 .595H2.543l3.945 6.874Z"/>
                         </svg>
                         <div class="text-left">
-                            <div class="text-sm font-semibold">Pay with Wise</div>
+                            <div class="text-sm font-semibold">@L.PayWithWise</div>
                             <div class="text-xs opacity-70">@GetPaymentDisplayText()</div>
                         </div>
                         <svg class="w-4 h-4 ml-1" fill="none" stroke="currentColor" viewBox="0 0 24 24">
@@ -469,7 +481,7 @@ else if (Status == "Void")
                             <path d="M20.9133 6.9566C20.9133 3.1208 17.7898 0 13.9503 0H2.424v3.8605h10.9782c1.7376 0 3.177 1.3651 3.2087 3.043.016.84-.2994 1.633-.8878 2.2324-.5886.5998-1.375.9303-2.2144.9303H9.2322a.2756.2756 0 0 0-.2755.2752v3.431c0 .0585.018.1142.052.1612L16.2646 24h5.3114l-7.2727-10.094c3.6625-.1838 6.61-3.2612 6.61-6.9494zM6.8943 5.9229H2.424V24h4.4704z"/>
                         </svg>
                         <div class="text-left">
-                            <div class="text-sm font-semibold">Pay with Revolut</div>
+                            <div class="text-sm font-semibold">@L.PayWithRevolut</div>
                             <div class="text-xs opacity-80">@GetPaymentDisplayText()</div>
                         </div>
                         <svg class="w-4 h-4 ml-1" fill="none" stroke="currentColor" viewBox="0 0 24 24">
@@ -490,7 +502,7 @@ else if (Status == "Void")
                         <img src="@GetVietQrUrl()" alt="VietQR Payment Code" class="w-48 h-48 object-contain" />
                     </div>
                     <div class="text-sm text-gray-600 dark:text-slate-400">
-                        <p class="font-medium text-gray-700 dark:text-slate-300 mb-2">Scan with your banking app</p>
+                        <p class="font-medium text-gray-700 dark:text-slate-300 mb-2">@L.ScanWithBankingApp</p>
                         <ul class="space-y-1.5">
                             <li class="flex items-center gap-2">
                                 <svg class="w-4 h-4 text-emerald-500" fill="none" stroke="currentColor" viewBox="0 0 24 24">
@@ -540,7 +552,7 @@ else if (Status == "Void")
         else if (HasBankTransferDetails())
         {
             <div class="@(HasOnlinePaymentButtons() ? "mt-6 pt-6 border-t border-gray-200 dark:border-slate-600" : "")">
-                <div class="text-xs font-semibold text-gray-500 dark:text-slate-400 uppercase tracking-wider mb-3">Bank Transfer</div>
+                <div class="text-xs font-semibold text-gray-500 dark:text-slate-400 uppercase tracking-wider mb-3">@L.BankTransfer</div>
                 <div class="bg-white dark:bg-slate-800 rounded-lg border border-gray-100 dark:border-slate-700 p-4">
                     <div class="grid grid-cols-1 sm:grid-cols-2 gap-3 text-sm">
                         @if (!string.IsNullOrEmpty(CurrencyPaymentSettings?.BankName))
@@ -585,6 +597,44 @@ else if (Status == "Void")
                                 <span class="font-medium text-gray-900 dark:text-white ml-2">@CurrencyPaymentSettings.BankSwift</span>
                             </div>
                         }
+                        @* Only rendered when filled in — an invoice should not carry
+                           empty routing rows. Kept next to the direct details because
+                           the payer's bank asks for them on the same form. *@
+                        @if (!string.IsNullOrEmpty(CurrencyPaymentSettings?.BankAddress))
+                        {
+                            <div class="sm:col-span-2">
+                                <span class="text-gray-500 dark:text-slate-400">Bank address:</span>
+                                <span class="font-medium text-gray-900 dark:text-white ml-2 whitespace-pre-line">@CurrencyPaymentSettings.BankAddress</span>
+                            </div>
+                        }
+                        @if (!string.IsNullOrEmpty(CurrencyPaymentSettings?.IntermediaryBankName))
+                        {
+                            <div>
+                                <span class="text-gray-500 dark:text-slate-400">Correspondent bank:</span>
+                                <span class="font-medium text-gray-900 dark:text-white ml-2">@CurrencyPaymentSettings.IntermediaryBankName</span>
+                            </div>
+                        }
+                        @if (!string.IsNullOrEmpty(CurrencyPaymentSettings?.IntermediaryBankSwift))
+                        {
+                            <div>
+                                <span class="text-gray-500 dark:text-slate-400">Correspondent SWIFT/BIC:</span>
+                                <span class="font-medium text-gray-900 dark:text-white ml-2">@CurrencyPaymentSettings.IntermediaryBankSwift</span>
+                            </div>
+                        }
+                        @if (!string.IsNullOrEmpty(CurrencyPaymentSettings?.IntermediaryAccountNumber))
+                        {
+                            <div>
+                                <span class="text-gray-500 dark:text-slate-400">Account at correspondent:</span>
+                                <span class="font-medium text-gray-900 dark:text-white ml-2">@CurrencyPaymentSettings.IntermediaryAccountNumber</span>
+                            </div>
+                        }
+                        @if (!string.IsNullOrEmpty(CurrencyPaymentSettings?.PaymentPurposeCode))
+                        {
+                            <div>
+                                <span class="text-gray-500 dark:text-slate-400">Payment purpose:</span>
+                                <span class="font-medium text-gray-900 dark:text-white ml-2">@CurrencyPaymentSettings.PaymentPurposeCode</span>
+                            </div>
+                        }
                         <div class="sm:col-span-2 pt-2 border-t border-gray-100 dark:border-slate-700 mt-2">
                             <span class="text-gray-500 dark:text-slate-400">Reference:</span>
                             <span class="font-medium text-gray-900 dark:text-white ml-2">Invoice @InvoiceNumber</span>
@@ -599,7 +649,7 @@ else if (Status == "Void")
 <!-- Footer -->
 <div class="px-8 py-4 border-t border-gray-100 dark:border-slate-700 bg-gray-50 dark:bg-slate-800/50">
     <p class="text-center text-xs text-gray-400 dark:text-slate-500">
-        Thank you for your business. Payment is due by @DueDate.ToString("MMMM d, yyyy").
+        @string.Format(culture, L.ThanksAndDueBy, DueDate.ToString("d MMMM yyyy", culture))
     </p>
 </div>
 
@@ -608,6 +658,13 @@ else if (Status == "Void")
     [Parameter] public string InvoiceNumber { get; set; } = "";
     [Parameter] public string Status { get; set; } = "";
     [Parameter] public string Currency { get; set; } = "GBP";
+
+    /// <summary>
+    /// SupportedLanguage name the invoice is written in. Chooses the fixed
+    /// labels and the culture used to format dates. Unknown values fall back
+    /// to English rather than throwing.
+    /// </summary>
+    [Parameter] public string Language { get; set; } = "English";
     [Parameter] public DateOnly IssueDate { get; set; }
     [Parameter] public DateOnly DueDate { get; set; }
     [Parameter] public DateOnly? PaidDate { get; set; }

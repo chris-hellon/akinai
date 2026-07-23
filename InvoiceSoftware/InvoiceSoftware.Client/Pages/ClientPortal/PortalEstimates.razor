@@ -1,4 +1,5 @@
 @page "/portal/{Token:guid}/estimates"
+@attribute [AllowAnonymous]
 @layout PortalLayout
 
 @inject ICall<GetClientPortalEstimates, PaginatedResponse<ClientPortalEstimateDto>> GetEstimatesCall

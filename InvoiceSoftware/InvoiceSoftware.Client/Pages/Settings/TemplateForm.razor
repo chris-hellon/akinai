@@ -196,8 +196,8 @@
     {
         _breadcrumbs = new List<PageHeader.BreadcrumbItem>
         {
-            new("Settings"),
-            new("Templates", "/settings/templates"),
+            new("Settings", "/settings"),
+            new("Invoicing", "/settings/invoicing?tab=templates"),
             new(Id.HasValue ? "Edit" : "New")
         };
 

@@ -109,10 +109,11 @@
                         InvoiceNumber="@_invoice.InvoiceNumber"
                         Status="@_invoice.Status"
                         Currency="@_invoice.Currency"
+                        Language="@_invoice.Language"
                         IssueDate="@_invoice.IssueDate"
                         DueDate="@_invoice.DueDate"
                         PaidDate="@_invoice.PaidDate"
-                        BusinessName="@(_businessProfile?.TradingName ?? _businessProfile?.CompanyName)"
+                        BusinessName="@(string.IsNullOrWhiteSpace(_businessProfile?.TradingName) ? _businessProfile?.CompanyName : _businessProfile.TradingName)"
                         BusinessAddress="@GetFormattedAddress()"
                         BusinessEmail="@_businessProfile?.Email"
                         BusinessPhone="@_businessProfile?.Phone"
@@ -161,6 +162,36 @@
                         <div class="flex justify-between">
                             <dt class="text-sm text-gray-500 dark:text-slate-400">Issue Date</dt>
                             <dd class="text-sm font-medium text-gray-900 dark:text-slate-100">@_invoice.IssueDate.ToString("MMM dd, yyyy")</dd>
+                        </div>
+                        @* Whether the client has actually opened the link. Deliberately
+                           phrased as "opened", not "read" — a link preview or a mail
+                           scanner can trigger it, so it is evidence of delivery rather
+                           than proof anyone looked. *@
+                        <div class="flex justify-between">
+                            <dt class="text-sm text-gray-500 dark:text-slate-400">Client opened</dt>
+                            <dd class="text-sm font-medium @(_invoice.FirstViewedAtUtc.HasValue ? "text-emerald-600 dark:text-emerald-400" : "text-gray-400 dark:text-slate-500")">
+                                @if (_invoice.FirstViewedAtUtc is DateTime seen)
+                                {
+                                    <span title="@($"First opened {seen.ToLocalTime():d MMM yyyy HH:mm} · {_invoice.ViewCount} view{(_invoice.ViewCount == 1 ? "" : "s")}")">
+                                        @Ago(_invoice.LastViewedAtUtc ?? seen)
+                                        @if (_invoice.ViewCount > 1)
+                                        {
+                                            <span class="text-gray-400 dark:text-slate-500"> · @_invoice.ViewCount×</span>
+                                        }
+                                    </span>
+                                }
+                                else
+                                {
+                                    @* Say so explicitly. The owner's own visits are
+                                       excluded on purpose, and without this the first
+                                       thing anyone does — open their own link to test
+                                       it — looks like the feature is broken. *@
+                                    <span title="Opening the link while signed in doesn't count. Use a private window to test it.">
+                                        Not yet
+                                        <span class="text-gray-400 dark:text-slate-500 font-normal">· your own visits aren't counted</span>
+                                    </span>
+                                }
+                            </dd>
                         </div>
                         <div class="flex justify-between">
                             <dt class="text-sm text-gray-500 dark:text-slate-400">Due Date</dt>
@@ -280,6 +311,18 @@
     private bool _isDeleting;
     private bool _isSending;
     private string? _errorMessage;
+    /// <summary>"2 hours ago" reads better than a timestamp for something you
+    /// glance at; the exact time is in the tooltip.</summary>
+    private static string Ago(DateTime utc)
+    {
+        var span = DateTime.UtcNow - utc;
+        if (span.TotalMinutes < 1) return "just now";
+        if (span.TotalHours < 1) return $"{(int)span.TotalMinutes} min ago";
+        if (span.TotalDays < 1) return $"{(int)span.TotalHours} hr ago";
+        if (span.TotalDays < 30) return $"{(int)span.TotalDays} day{((int)span.TotalDays == 1 ? "" : "s")} ago";
+        return utc.ToLocalTime().ToString("d MMM yyyy");
+    }
+
     private List<PageHeader.BreadcrumbItem> _breadcrumbs = [];
 
     private bool IsOverdue => _invoice != null && _invoice.Status is "Sent" or "Overdue" && _invoice.DueDate < DateOnly.FromDateTime(DateTime.Today);
@@ -288,6 +331,7 @@
     {
         _breadcrumbs =
         [
+            new PageHeader.BreadcrumbItem("Time & Billing", "/time-billing"),
             new PageHeader.BreadcrumbItem("Invoices", "/invoices"),
             new PageHeader.BreadcrumbItem("Details")
         ];
@@ -300,7 +344,9 @@
         _isLoading = true;
         try
         {
-            _invoice = await GetInvoiceCall.Call(new GetInvoice { Id = Id });
+            // Translated: this is the read-only view, so it should show exactly
+            // what the client receives. InvoiceEdit deliberately does not.
+            _invoice = await GetInvoiceCall.Call(new GetInvoice { Id = Id, Translated = true });
             _bankPayments = await GetInvoiceBankTransactionsCall.Call(new GetInvoiceBankTransactions { InvoiceId = Id }) ?? new();
             _businessProfile = await GetBusinessProfileCall.Call(new GetBusinessProfile());
 
@@ -315,6 +361,7 @@
                     new GetCurrencyPaymentSettings { CurrencyCode = _invoice.Currency });
                 _breadcrumbs =
                 [
+                    new PageHeader.BreadcrumbItem("Time & Billing", "/time-billing"),
                     new PageHeader.BreadcrumbItem("Invoices", "/invoices"),
                     new PageHeader.BreadcrumbItem(_invoice.InvoiceNumber)
                 ];

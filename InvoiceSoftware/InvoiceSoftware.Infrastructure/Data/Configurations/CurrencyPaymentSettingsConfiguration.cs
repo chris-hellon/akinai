@@ -37,5 +37,13 @@ public class CurrencyPaymentSettingsConfiguration : IEntityTypeConfiguration<Cur
         builder.Property(c => c.BankIban).HasMaxLength(50);
         builder.Property(c => c.BankSwift).HasMaxLength(20);
         builder.Property(c => c.VietQrBankCode).HasMaxLength(20);
+
+        // Correspondent bank details, for wires that cannot reach the
+        // beneficiary bank directly. Same widths as their direct equivalents.
+        builder.Property(c => c.IntermediaryBankName).HasMaxLength(200);
+        builder.Property(c => c.IntermediaryBankSwift).HasMaxLength(20);
+        builder.Property(c => c.IntermediaryAccountNumber).HasMaxLength(50);
+        builder.Property(c => c.BankAddress).HasMaxLength(400);
+        builder.Property(c => c.PaymentPurposeCode).HasMaxLength(200);
     }
 }

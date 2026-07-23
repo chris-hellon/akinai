@@ -1,5 +1,3 @@
-@using InvoiceSoftware.Shared.Dtos.Estimates
-
 @{
     var isExpired = Status != "Accepted" && Status != "Rejected" && Status != "Converted" && ExpiryDate.HasValue && ExpiryDate.Value < DateOnly.FromDateTime(DateTime.Today);
     var isAccepted = Status == "Accepted";

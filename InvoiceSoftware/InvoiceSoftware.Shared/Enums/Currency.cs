@@ -8,7 +8,9 @@ public enum Currency
     AUD,
     CAD,
     VND,
-    RUB
+    RUB,
+    CNY,
+    KRW
 }
 
 public static class CurrencyExtensions
@@ -24,6 +26,8 @@ public static class CurrencyExtensions
             Currency.CAD => "C$",
             Currency.VND => "\u20ab",
             Currency.RUB => "\u20bd",
+            Currency.CNY => "\u00a5",
+            Currency.KRW => "\u20a9",
             _ => currency.ToString()
         };
 
@@ -36,6 +40,8 @@ public static class CurrencyExtensions
             Currency.CAD => "Canadian Dollar",
             Currency.VND => "Vietnamese Dong",
             Currency.RUB => "Russian Ruble",
+            Currency.CNY => "Chinese Yuan",
+            Currency.KRW => "South Korean Won",
             _ => currency.ToString()
         };
     }
@@ -49,6 +55,8 @@ public static class CurrencyExtensions
         "CAD" => Currency.CAD,
         "VND" => Currency.VND,
         "RUB" => Currency.RUB,
+        "CNY" => Currency.CNY,
+        "KRW" => Currency.KRW,
         _ => Currency.USD
     };
 

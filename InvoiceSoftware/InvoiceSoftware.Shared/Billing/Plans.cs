@@ -23,6 +23,11 @@ public record PlanDefinition(
     bool Estimates,
     bool CustomTemplates,
     bool RemoveBranding,
+    /// <summary>
+    /// Monthly AI/translation allowance in USD, or null when the plan has none.
+    /// A fuse against runaway usage rather than a real cost centre — see AiPricing.
+    /// </summary>
+    decimal? AiSpendLimitUsd,
     IReadOnlyList<string> Highlights)
 {
     public decimal PriceFor(BillingCycle cycle) => cycle == BillingCycle.Annual ? AnnualPrice : MonthlyPrice;
@@ -62,6 +67,7 @@ public static class Plans
         Estimates: false,
         CustomTemplates: false,
         RemoveBranding: false,
+        AiSpendLimitUsd: null,
         Highlights:
         [
             "Unlimited clients and projects",
@@ -75,8 +81,8 @@ public static class Plans
         Plan: BillingPlan.Pro,
         Name: "Pro",
         Tagline: "Bill in their language. Get paid on their rail.",
-        MonthlyPrice: 12m,
-        AnnualPrice: 120m,
+        MonthlyPrice: 9m,
+        AnnualPrice: 90m,
         Currency: "GBP",
         CurrencySymbol: "£",
         InvoicesPerMonth: null,
@@ -87,15 +93,17 @@ public static class Plans
         Estimates: true,
         CustomTemplates: true,
         RemoveBranding: true,
+        AiSpendLimitUsd: 1.00m,
         Highlights:
         [
             "Everything in Free, plus:",
             "Unlimited invoices",
             "Every currency, with reporting currency",
-            "Invoices and estimates in all six languages",
+            "Invoices and estimates in all eight languages",
             "Bank statement import, matched to open invoices",
             "Recurring invoices and expenses",
             "Estimates your clients sign online",
+            "AI-powered invoicing — line items written and translated for you",
             "Your own branding on invoices",
         ]);
 

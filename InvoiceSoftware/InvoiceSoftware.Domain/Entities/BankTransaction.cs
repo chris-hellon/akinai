@@ -1,7 +1,6 @@
 using InvoiceSoftware.Domain.Common;
 using InvoiceSoftware.Domain.Enums;
 using InvoiceSoftware.Domain.Exceptions;
-using InvoiceSoftware.Domain.ValueObjects;
 
 namespace InvoiceSoftware.Domain.Entities;
 

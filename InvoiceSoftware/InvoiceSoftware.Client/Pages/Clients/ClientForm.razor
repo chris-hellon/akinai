@@ -6,7 +6,7 @@
 @inject ICall<UpdateClient> UpdateClientCall
 @inject ICall<DeleteClient> DeleteClientCall
 
-@inject InvoiceSoftware.Client.Services.EntitlementState Entitlements
+@inject EntitlementState Entitlements
 
 <PageTitle>@(Id.HasValue ? "Edit Client" : "New Client") - Akinai</PageTitle>
 
@@ -183,6 +183,7 @@
         await Entitlements.EnsureLoadedAsync();
         _breadcrumbs =
         [
+            new PageHeader.BreadcrumbItem("Management", "/management"),
             new PageHeader.BreadcrumbItem("Clients", "/clients"),
             new PageHeader.BreadcrumbItem(Id.HasValue ? "Edit Client" : "New Client")
         ];

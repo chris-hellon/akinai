@@ -30,6 +30,11 @@ public class InvoiceConfiguration : IEntityTypeConfiguration<Invoice>
         builder.Property(i => i.Notes).HasMaxLength(2000);
         builder.Property(i => i.Currency).HasMaxLength(3).HasDefaultValue("USD");
 
+        // Nullable on purpose: null means "inherit from the client or account",
+        // which is a different statement from "English". Stored as a string so
+        // the column stays readable and reordering the enum cannot corrupt it.
+        builder.Property(i => i.Language).HasConversion<string>().HasMaxLength(20);
+
         builder.Property(i => i.Subtotal).HasPrecision(18, 2);
         builder.Property(i => i.TaxAmount).HasPrecision(18, 2);
         builder.Property(i => i.Total).HasPrecision(18, 2);

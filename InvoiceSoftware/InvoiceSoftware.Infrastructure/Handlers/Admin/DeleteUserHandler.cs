@@ -112,7 +112,6 @@ public class DeleteUserHandler(
             await db.Products.Where(x => x.UserId == uid).ExecuteDeleteAsync(cancellationToken);
             await db.InvoiceTemplates.Where(x => x.UserId == uid).ExecuteDeleteAsync(cancellationToken);
             await db.BusinessProfiles.Where(x => x.UserId == uid).ExecuteDeleteAsync(cancellationToken);
-            await db.BankConnections.Where(x => x.UserId == uid).ExecuteDeleteAsync(cancellationToken);
             await db.CurrencyPaymentSettings.Where(x => x.UserId == uid).ExecuteDeleteAsync(cancellationToken);
             await db.UserLanguagePreferences.Where(x => x.UserId == uid).ExecuteDeleteAsync(cancellationToken);
 

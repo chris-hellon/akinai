@@ -26,9 +26,16 @@
     <base href="/"/>
     <ResourcePreloader/>
     <!-- Fonts: Inter for UI, Sora for headings, IBM Plex Mono for ledger codes -->
-    <link rel="preconnect" href="https://fonts.googleapis.com">
-    <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
-    <link href="https://fonts.googleapis.com/css2?family=Inter:wght@300;400;500;600;700&family=Sora:wght@400;500;600;700;800&family=IBM+Plex+Mono:wght@400;500;600&family=Caveat:wght@500;600&family=Shippori+Mincho:wght@500;600;700;800&family=Zen+Kaku+Gothic+New:wght@400;500;700&display=swap" rel="stylesheet">
+    @* Fonts are only fetched from Google for the interactive app. The print
+       route serves them from wwwroot instead (see the @font-face rules in
+       input.css): two external hosts were the slowest part of rendering a PDF,
+       and a document generator should not depend on a CDN being up. *@
+    @if (!IsPrintRoute)
+    {
+        <link rel="preconnect" href="https://fonts.googleapis.com">
+            <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+            <link href="https://fonts.googleapis.com/css2?family=Inter:wght@300;400;500;600;700&family=Sora:wght@400;500;600;700;800&family=IBM+Plex+Mono:wght@400;500;600&family=Caveat:wght@500;600&family=Shippori+Mincho:wght@500;600;700;800&family=Noto+Sans:wght@400;500;600;700&family=Zen+Kaku+Gothic+New:wght@400;500;700&display=swap" rel="stylesheet">
+    }
     <link rel="stylesheet" href="@Assets["css/shared.css"]"/>
     <link rel="stylesheet" href="@Assets["InvoiceSoftware.styles.css"]"/>
     <ImportMap/>
@@ -40,8 +47,15 @@
 
 <body>
 <Routes @rendermode="PageRenderMode"/>
-<ReconnectModal/>
-<script src="@Assets["_framework/blazor.web.js"]"></script>
+@if (!IsPrintRoute)
+{
+    <ReconnectModal/>
+    @* Skipped for the PDF print route. On an Interactive Auto app this pulls
+       the WebAssembly runtime, and the renderer waits for the network to go
+       quiet before printing — so a page that needs no interactivity at all was
+       paying for megabytes of it. *@
+    <script src="@Assets["_framework/blazor.web.js"]"></script>
+}
 <script src="@Assets["Components/Account/Shared/PasskeySubmit.razor.js"]" type="module"></script>
 <script src="@Assets["js/tooltip.js"]"></script>
 <script src="@Assets["js/formcontrols.js"]"></script>
@@ -113,5 +127,13 @@
 
     private IComponentRenderMode? PageRenderMode =>
         HttpContext.AcceptsInteractiveRouting() ? new InteractiveAutoRenderMode(false) : null;
+
+    /// <summary>
+    /// The headless-Chromium print route. It renders static HTML and is thrown
+    /// away after one screenshot, so every script on it is wasted work — and
+    /// worse, work the renderer blocks on.
+    /// </summary>
+    private bool IsPrintRoute =>
+        HttpContext.Request.Path.StartsWithSegments("/invoice/print");
 
 }

@@ -35,4 +35,11 @@ public class UpdateInvoice : IPut
 
     [BodyParam]
     public List<ProductLineItemRequest>? ProductLineItems { get; init; }
+
+    /// <summary>
+    /// Language for this invoice, as a <c>SupportedLanguage</c> name. Null means
+    /// inherit from the client override, then the account default.
+    /// </summary>
+    [BodyParam]
+    public string? Language { get; init; }
 }

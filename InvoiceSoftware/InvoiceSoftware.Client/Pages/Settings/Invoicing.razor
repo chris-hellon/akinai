@@ -1,0 +1,77 @@
+@page "/settings/invoicing"
+
+@inject NavigationManager NavigationManager
+
+<PageTitle>Invoicing - Akinai</PageTitle>
+
+@*
+    One home for everything that decides how a document goes out.
+
+    These were three separate settings pages, which meant the invoice language
+    lived nowhere near the invoice settings and templates were a third place
+    again. They are all answers to the same question, so they are one page now.
+
+    The tab lives in the query string rather than component state so a link can
+    point at a specific tab — the old routes redirect here that way, and the
+    browser back button behaves.
+*@
+
+<div class="space-y-6">
+    <PageHeader Title="Invoicing"
+                Description="Defaults, appearance and language for the invoices and estimates you send."
+                Breadcrumbs="@(new List<PageHeader.BreadcrumbItem> { new("Settings", "/settings"), new("Invoicing") })">
+        <Actions>
+            @if (_tab == TemplatesTab)
+            {
+                <PrimaryButton Href="settings/templates/new" Text="New Template" />
+            }
+        </Actions>
+    </PageHeader>
+
+    <SegmentedControl Options="Tabs" Value="@_tab" ValueChanged="OnTabChanged" />
+
+    @* Rendered rather than hidden: each section loads its own data, so keeping
+       the inactive ones mounted would fire needless requests on every visit. *@
+    @if (_tab == DefaultsTab)
+    {
+        <InvoiceDefaultsSection />
+    }
+    else if (_tab == TemplatesTab)
+    {
+        <InvoiceTemplatesSection />
+    }
+    else if (_tab == LanguageTab)
+    {
+        <InvoiceLanguageSection />
+    }
+</div>
+
+@code {
+    private const string DefaultsTab = "defaults";
+    private const string TemplatesTab = "templates";
+    private const string LanguageTab = "language";
+
+    private static readonly IReadOnlyList<(string, string)> Tabs =
+    [
+        (DefaultsTab, "Defaults & Payments"),
+        (TemplatesTab, "Templates"),
+        (LanguageTab, "Language"),
+    ];
+
+    [SupplyParameterFromQuery(Name = "tab")]
+    private string? TabFromQuery { get; set; }
+
+    private string _tab = DefaultsTab;
+
+    protected override void OnParametersSet()
+    {
+        // An unrecognised ?tab= falls back rather than rendering nothing.
+        _tab = Tabs.Any(t => t.Item1 == TabFromQuery) ? TabFromQuery! : DefaultsTab;
+    }
+
+    private void OnTabChanged(string tab)
+    {
+        _tab = tab;
+        NavigationManager.NavigateTo($"settings/invoicing?tab={tab}", replace: true);
+    }
+}

@@ -30,11 +30,6 @@ public class UserLanguagePreferenceConfiguration : IEntityTypeConfiguration<User
         builder.HasIndex(ulp => ulp.UserId)
             .IsUnique();
 
-        builder.Property(ulp => ulp.DefaultLanguage)
-            .HasConversion<string>()
-            .HasMaxLength(20)
-            .HasDefaultValue(SupportedLanguage.English);
-
         builder.Property(ulp => ulp.InvoiceLanguage)
             .HasConversion<string>()
             .HasMaxLength(20)

@@ -28,12 +28,10 @@ public class GetUserLanguageSettingsHandler(IDbContextFactory<ApplicationDbConte
             // Return defaults
             return HttpResult<UserLanguageSettingsDto?>.Ok(new UserLanguageSettingsDto(
                 SupportedLanguage.English.ToString(),
-                SupportedLanguage.English.ToString(),
                 SupportedLanguage.English.ToString()));
         }
 
         var dto = new UserLanguageSettingsDto(
-            settings.DefaultLanguage.ToString(),
             settings.InvoiceLanguage.ToString(),
             settings.EstimateLanguage.ToString());
 

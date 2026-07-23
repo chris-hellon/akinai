@@ -131,7 +131,14 @@ html:has(.pg), body:has(.pg) { background: #faf7f0 !important; }
   }
 
   html {
-    font-family: 'Zen Kaku Gothic New', system-ui, -apple-system, sans-serif;
+    /* Noto Sans first, Zen Kaku behind it.
+       Zen Kaku cannot render Vietnamese: "Thuế" came out as "Thuê´", because it
+       lacks the Vietnamese Extended block yet claims enough coverage that the
+       browser's per-glyph fallback never fires. A font that mangles the language
+       of our main market cannot be the body font.
+       It also aligns the web with the PDF, which uses Noto Sans for the same
+       reason — so the two documents finally share a typeface. */
+    font-family: 'Noto Sans', 'Zen Kaku Gothic New', system-ui, -apple-system, sans-serif;
     -webkit-font-smoothing: antialiased;
     -moz-osx-font-smoothing: grayscale;
   }
@@ -1527,4 +1534,94 @@ html:not(.dark) .text-gray-500, html:not(.dark) .text-slate-500 { color: #5e5651
 .segmented-item:focus-visible {
   outline: 2px solid var(--color-primary-400);
   outline-offset: 2px;
+}
+
+
+/* ---------------------------------------------------------------------
+   Akin·ai — the wordmark's last two letters are also what the product now
+   does, so they carry an accent. Applied via a span rather than a ::after
+   trick so it survives copy/paste and screen readers still read one word.
+
+   Its own token, but still brand teal — a lighter step (primary-400) rather
+   than primary-600. The wordmark's base is near-black in the app chrome and
+   already primary-600 on the landing page, so a 600 accent would be invisible
+   there. One lighter tone separates from both: it reads as an accent against
+   the near-black, and as a tonal lift against the teal.
+   --------------------------------------------------------------------- */
+:root { --color-wordmark-ai: var(--color-primary-400, #33969f); }
+html.dark { --color-wordmark-ai: var(--color-primary-300, #6bb8bf); }
+.wm-ai { color: var(--color-wordmark-ai); }
+
+/* =====================================================================
+   PRINT / PDF
+   Used by /invoice/print/{token}, which headless Chromium renders to PDF.
+   The screen invoice and the PDF are now the same markup, so anything here
+   is about paper: sheet size, where breaks may fall, and forcing Chromium
+   to keep backgrounds it would otherwise drop.
+   ===================================================================== */
+@page {
+  size: A4;
+  margin: 14mm 12mm;
+}
+
+@media print {
+  /* Chromium discards background colours when printing unless told not to.
+     Without this the teal header block and every status banner print white
+     on white — the single most common surprise in HTML-to-PDF. */
+  *, *::before, *::after {
+    -webkit-print-color-adjust: exact !important;
+    print-color-adjust: exact !important;
+  }
+
+  html, body { background: #fff !important; }
+
+  /* The card chrome is screen furniture; on paper the sheet is the card. */
+  .print-sheet { box-shadow: none !important; border: 0 !important; }
+
+  /* No drop shadows anywhere on paper. A shadow signals "this floats above the
+     page", which means nothing once the page IS paper — and Chromium rasterises
+     it into a grey band that reads as a stray border. It was most obvious on the
+     black Revolut button, where the soft edge had nothing to blend into. */
+  * { box-shadow: none !important; }
+
+  /* Never split a line item, a totals block or the payment panel across a
+     page. A row broken mid-height is the thing that makes a generated PDF
+     look generated. thead repeats automatically for real tables. */
+  tr, thead, .no-break { break-inside: avoid; page-break-inside: avoid; }
+  table { break-inside: auto; }
+  thead { display: table-header-group; }
+  tfoot { display: table-footer-group; }
+
+  /* Keep a heading with the rows it introduces. */
+  h1, h2, h3 { break-after: avoid; page-break-after: avoid; }
+
+  /* Links keep the colours they were designed with. An earlier version reset
+     them to `color: inherit`, which turned the PayPal and Revolut buttons into
+     dark text on their own dark backgrounds — unreadable. Printing the real
+     page only works if the page is left alone. */
+  a { text-decoration: none; }
+
+  /* Anything interactive has no meaning on paper. */
+  .no-print, button:not(.keep-print) { display: none !important; }
+}
+
+/* ---------------------------------------------------------------------
+   Self-hosted body font.
+   The app also links Google Fonts, but the PDF print route deliberately
+   does not — waiting on two external hosts was the slowest part of
+   generating an invoice, and a document generator should not stop working
+   because a CDN is having a bad day. Same Noto Sans the PDF fallback
+   embeds, so screen and paper agree.
+   --------------------------------------------------------------------- */
+@font-face {
+  font-family: 'Noto Sans';
+  src: url('/fonts/NotoSans-Regular.ttf') format('truetype');
+  font-weight: 400;
+  font-display: swap;
+}
+@font-face {
+  font-family: 'Noto Sans';
+  src: url('/fonts/NotoSans-Bold.ttf') format('truetype');
+  font-weight: 700;
+  font-display: swap;
 }

@@ -6,10 +6,10 @@
 <PageTitle>Personal Data - Akinai</PageTitle>
 
 <div class="space-y-6">
-    <div>
-        <h2 class="text-lg font-semibold text-gray-900 dark:text-slate-100">Personal Data</h2>
-        <p class="mt-1 text-sm text-gray-500 dark:text-slate-400">Download or delete your personal data.</p>
-    </div>
+    <PageHeader Title="Personal Data"
+                Description="Download or delete your personal data."
+                Breadcrumbs="@(new List<PageHeader.BreadcrumbItem> { new("Settings", "/settings"), new("Account", "/account/manage"), new("Personal Data") })" />
+
     <div class="bg-white dark:bg-[#1b1612] rounded-2xl border border-gray-200 dark:border-[#2f2924] p-6 space-y-6">
 
     @if (!string.IsNullOrEmpty(_statusMessage))

@@ -1,0 +1,603 @@
+@inject ICall<GetBusinessProfile, BusinessProfileDto> GetBusinessProfileCall
+@inject ICall<SaveBusinessProfile> SaveBusinessProfileCall
+@inject ICall<GetAllCurrencyPaymentSettings, List<CurrencyPaymentSettingsDto>> GetAllCurrencyPaymentSettingsCall
+@inject ICall<SaveCurrencyPaymentSettings> SaveCurrencyPaymentSettingsCall
+@inject HttpClient Http
+
+@inject EntitlementState Entitlements
+@implements IDisposable
+<div class="space-y-6">
+    @if (_isLoading)
+    {
+        <LoadingSpinner Padding="py-20" />
+    }
+    else
+    {
+        @if (!string.IsNullOrEmpty(_statusMessage))
+        {
+            <div class="@(_isError ? "bg-red-50 dark:bg-red-900/30 border-red-200 dark:border-red-800 text-red-700 dark:text-red-300" : "bg-emerald-50 dark:bg-emerald-900/30 border-emerald-200 dark:border-emerald-800 text-emerald-700 dark:text-emerald-300") p-4 border rounded-xl text-sm">
+                @_statusMessage
+            </div>
+        }
+
+        <!-- Global Settings Form -->
+        <EditForm Model="Input" OnValidSubmit="OnValidSubmitAsync" class="space-y-6">
+            <DataAnnotationsValidator />
+
+            <!-- Invoice Defaults -->
+            <Card Title="Default Settings">
+                <div class="space-y-4">
+                    <div class="grid grid-cols-1 gap-4 sm:grid-cols-2">
+                        <div>
+                            <label for="DefaultCurrency" class="block text-sm font-medium text-gray-700 dark:text-slate-300 mb-2">Default Currency</label>
+                            <Select TValue="string" @bind-Value="Input.DefaultCurrency"
+                                Options="@(SelectableCurrencies().Select(c => new SelectOption<string>(c.Code, $"{c.Code} - {c.Name}")).ToList())" />
+                            @if (CurrencyRestricted)
+                            {
+                                <div class="mt-2">
+                                    <PlanRestrictionNote Message="Your plan bills in one currency. Pro unlocks every currency, with a reporting currency across them." />
+                                </div>
+                            }
+                        </div>
+                        <div>
+                            <label for="DefaultPaymentTermsDays" class="block text-sm font-medium text-gray-700 dark:text-slate-300 mb-2">Default Payment Terms (Days)</label>
+                            <InputNumber @bind-Value="Input.DefaultPaymentTermsDays" id="DefaultPaymentTermsDays"
+                                class="form-control" />
+                        </div>
+                    </div>
+
+                    <div>
+                        <label for="InvoiceNotes" class="block text-sm font-medium text-gray-700 dark:text-slate-300 mb-2">Default Invoice Notes</label>
+                        <InputTextArea @bind-Value="Input.InvoiceNotes" id="InvoiceNotes" rows="3"
+                            class="form-control resize-none"
+                            placeholder="Thank you for your business." />
+                    </div>
+
+                    <div>
+                        <label for="InvoiceFooter" class="block text-sm font-medium text-gray-700 dark:text-slate-300 mb-2">Invoice Footer Text</label>
+                        <InputText @bind-Value="Input.InvoiceFooter" id="InvoiceFooter"
+                            class="form-control"
+                            placeholder="Registered in England. Company No. 12345678" />
+                    </div>
+                </div>
+            </Card>
+
+            <!-- Email Templates -->
+            <Card Title="Email Template">
+                <div class="space-y-4">
+                    <p class="text-xs text-gray-500 dark:text-slate-400">Placeholders: {InvoiceNumber}, {ClientName}, {Amount}, {DueDate}, {CompanyName}, {InvoiceDetails}</p>
+
+                    <div>
+                        <label for="InvoiceEmailSubject" class="block text-sm font-medium text-gray-700 dark:text-slate-300 mb-2">Email Subject</label>
+                        <InputText @bind-Value="Input.InvoiceEmailSubject" id="InvoiceEmailSubject"
+                            class="form-control"
+                            placeholder="Invoice {InvoiceNumber} from {CompanyName}" />
+                    </div>
+
+                    <div>
+                        <label for="InvoiceEmailBody" class="block text-sm font-medium text-gray-700 dark:text-slate-300 mb-2">Email Body</label>
+                        <InputTextArea @bind-Value="Input.InvoiceEmailBody" id="InvoiceEmailBody" rows="5"
+                            class="form-control resize-none"
+                            placeholder="Dear {ClientName},&#10;&#10;Please find attached invoice {InvoiceNumber} for {Amount}.&#10;&#10;Payment is due by {DueDate}." />
+                    </div>
+                </div>
+            </Card>
+
+            <!-- Global Online Payment Options -->
+            <Card Title="Online Payments (Global)">
+                <div class="space-y-4">
+                    <p class="text-xs text-gray-500 dark:text-slate-400">These payment options apply to all currencies.</p>
+
+                    <div class="grid grid-cols-1 gap-4 sm:grid-cols-2">
+                        <!-- PayPal -->
+                        <div>
+                            <label for="PayPalMeUsername" class="block text-sm font-medium text-gray-700 dark:text-slate-300 mb-2">
+                                <span class="flex items-center gap-2">
+                                    <svg class="w-5 h-5 text-[#003087]" viewBox="0 0 24 24" fill="currentColor">
+                                        <path d="M7.076 21.337H2.47a.641.641 0 0 1-.633-.74L4.944.901C5.026.382 5.474 0 5.998 0h7.46c2.57 0 4.578.543 5.69 1.81 1.01 1.15 1.304 2.42 1.012 4.287-.023.143-.047.288-.077.437-.983 5.05-4.349 6.797-8.647 6.797h-2.19c-.524 0-.968.382-1.05.9l-1.12 7.106zm14.146-14.42a3.35 3.35 0 0 0-.607-.541c-.013.076-.026.175-.041.254-.59 3.025-2.566 6.082-7.508 6.082H10.18l-.089.563-.964 6.084-.03.191a.641.641 0 0 0 .633.74h3.905c.524 0 .968-.382 1.05-.9l.043-.222.835-5.283.054-.289a1.05 1.05 0 0 1 1.036-.894h.652c4.156 0 7.41-1.69 8.36-6.578.388-1.986.2-3.642-.753-4.808a4.004 4.004 0 0 0-1.14-.911"/>
+                                    </svg>
+                                    PayPal.me
+                                </span>
+                            </label>
+                            <div class="flex items-center gap-2">
+                                <span class="text-sm text-gray-500 dark:text-slate-400 whitespace-nowrap">paypal.me/</span>
+                                <InputText @bind-Value="Input.PayPalMeUsername" id="PayPalMeUsername"
+                                    class="form-control flex-1"
+                                    placeholder="yourname" />
+                            </div>
+                        </div>
+
+                        <!-- Wise -->
+                        <div>
+                            <label for="WiseEmail" class="block text-sm font-medium text-gray-700 dark:text-slate-300 mb-2">
+                                <span class="flex items-center gap-2">
+                                    <svg class="w-5 h-5 text-[#9FE870]" viewBox="0 0 24 24" fill="currentColor">
+                                        <path d="M6.488 7.469 0 15.05h11.585l1.301-3.576H7.922l3.033-3.507.01-.092L8.993 4.48h8.873l-6.878 18.925h4.706L24 .595H2.543l3.945 6.874Z"/>
+                                    </svg>
+                                    Wise Email
+                                </span>
+                            </label>
+                            <InputText @bind-Value="Input.WiseEmail" id="WiseEmail" type="email"
+                                class="form-control"
+                                placeholder="you@email.com" />
+                        </div>
+
+                        <!-- Revolut -->
+                        <div>
+                            <label for="RevolutUsername" class="block text-sm font-medium text-gray-700 dark:text-slate-300 mb-2">
+                                <span class="flex items-center gap-2">
+                                    <svg class="w-5 h-5" viewBox="0 0 24 24" fill="currentColor">
+                                        <path d="M20.9133 6.9566C20.9133 3.1208 17.7898 0 13.9503 0H2.424v3.8605h10.9782c1.7376 0 3.177 1.3651 3.2087 3.043.016.84-.2994 1.633-.8878 2.2324-.5886.5998-1.375.9303-2.2144.9303H9.2322a.2756.2756 0 0 0-.2755.2752v3.431c0 .0585.018.1142.052.1612L16.2646 24h5.3114l-7.2727-10.094c3.6625-.1838 6.61-3.2612 6.61-6.9494zM6.8943 5.9229H2.424V24h4.4704z"/>
+                                    </svg>
+                                    Revolut
+                                </span>
+                            </label>
+                            <div class="flex items-center gap-2">
+                                <span class="text-sm text-gray-500 dark:text-slate-400 whitespace-nowrap">revolut.me/</span>
+                                <InputText @bind-Value="Input.RevolutUsername" id="RevolutUsername"
+                                    class="form-control flex-1"
+                                    placeholder="yourname" />
+                            </div>
+                        </div>
+                    </div>
+
+                </div>
+            </Card>
+
+            <!-- Actions -->
+            <div class="flex items-center justify-end">
+                <PrimaryButton ButtonType="submit" Text="Save Global Settings" IsLoading="_isSaving" />
+            </div>
+        </EditForm>
+
+        <!-- Currency-Specific Bank Details -->
+        <Card Title="Bank Details by Currency">
+            <div class="space-y-6">
+                <p class="text-xs text-gray-500 dark:text-slate-400">Configure different bank accounts for each currency you invoice in.</p>
+
+                <!-- Currency Tabs -->
+                <div class="flex flex-wrap gap-2">
+                    @foreach (var currency in SelectableCurrencies())
+                    {
+                        var isSelected = _selectedCurrency == currency.Code;
+                        var hasSettings = _currencySettings.ContainsKey(currency.Code) && !string.IsNullOrEmpty(_currencySettings[currency.Code].BankAccountNumber);
+                        <button type="button" @onclick="() => SelectCurrency(currency.Code)"
+                            class="@(isSelected ? "bg-primary-600 text-white" : "bg-gray-100 dark:bg-slate-700 text-gray-700 dark:text-slate-300 hover:bg-gray-200 dark:hover:bg-slate-600") px-4 py-2 rounded-xl text-sm font-medium transition-all duration-200 flex items-center gap-2">
+                            @currency.Code
+                            @if (hasSettings)
+                            {
+                                <svg class="w-4 h-4 @(isSelected ? "text-white" : "text-emerald-500")" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                                    <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M5 13l4 4L19 7" />
+                                </svg>
+                            }
+                        </button>
+                    }
+                </div>
+
+                @if (!string.IsNullOrEmpty(_selectedCurrency))
+                {
+                    var settings = GetOrCreateCurrencySettings(_selectedCurrency);
+                    <div class="space-y-4 pt-4 border-t border-gray-100 dark:border-slate-700">
+                        <div class="grid grid-cols-1 gap-4 sm:grid-cols-2">
+                            <div>
+                                <label class="block text-sm font-medium text-gray-700 dark:text-slate-300 mb-2">Bank Name</label>
+                                <input type="text" @bind="settings.BankName" @bind:event="oninput"
+                                    class="form-control" />
+                            </div>
+                            <div>
+                                <label class="block text-sm font-medium text-gray-700 dark:text-slate-300 mb-2">Account Name</label>
+                                <input type="text" @bind="settings.BankAccountName" @bind:event="oninput"
+                                    class="form-control" />
+                            </div>
+                        </div>
+
+                        <div class="grid grid-cols-1 gap-4 sm:grid-cols-2">
+                            <div>
+                                <label class="block text-sm font-medium text-gray-700 dark:text-slate-300 mb-2">Account Number</label>
+                                <input type="text" @bind="settings.BankAccountNumber" @bind:event="oninput"
+                                    class="form-control" />
+                            </div>
+                            <div>
+                                <label class="block text-sm font-medium text-gray-700 dark:text-slate-300 mb-2">Sort Code / Routing Number</label>
+                                <input type="text" @bind="settings.BankSortCode" @bind:event="oninput"
+                                    class="form-control" />
+                            </div>
+                        </div>
+
+                        <div class="grid grid-cols-1 gap-4 sm:grid-cols-2">
+                            <div>
+                                <label class="block text-sm font-medium text-gray-700 dark:text-slate-300 mb-2">IBAN</label>
+                                <input type="text" @bind="settings.BankIban" @bind:event="oninput"
+                                    class="form-control" />
+                            </div>
+                            <div>
+                                <label class="block text-sm font-medium text-gray-700 dark:text-slate-300 mb-2">BIC / SWIFT</label>
+                                <input type="text" @bind="settings.BankSwift" @bind:event="oninput"
+                                    class="form-control" />
+                            </div>
+                        </div>
+
+                        @* Optional, and folded away by default — most invoices never
+                           need it, but a wire from Asia routed through a correspondent
+                           is returned or held for days without these. *@
+                        <details class="pt-4 border-t border-gray-100 dark:border-slate-700">
+                            <summary class="text-sm font-medium text-gray-700 dark:text-slate-300 cursor-pointer select-none">
+                                Correspondent bank &amp; cross-border details
+                                <span class="ml-1 text-xs font-normal text-gray-500 dark:text-slate-400">(optional)</span>
+                            </summary>
+                            <p class="mt-2 text-xs text-gray-500 dark:text-slate-400">
+                                Needed when the payer's bank has no direct link to yours — common for
+                                transfers from China, Korea and elsewhere in Asia. Ask your bank for its
+                                correspondent details if you are unsure.
+                            </p>
+                            <div class="mt-4 space-y-4">
+                                <div>
+                                    <label class="block text-sm font-medium text-gray-700 dark:text-slate-300 mb-2">Your bank's address</label>
+                                    <textarea @bind="settings.BankAddress" @bind:event="oninput" rows="2"
+                                        placeholder="Asked for on most cross-border transfer forms"
+                                        class="form-control resize-none"></textarea>
+                                </div>
+                                <div class="grid grid-cols-1 gap-4 sm:grid-cols-2">
+                                    <div>
+                                        <label class="block text-sm font-medium text-gray-700 dark:text-slate-300 mb-2">Correspondent bank</label>
+                                        <input type="text" @bind="settings.IntermediaryBankName" @bind:event="oninput"
+                                            class="form-control" />
+                                    </div>
+                                    <div>
+                                        <label class="block text-sm font-medium text-gray-700 dark:text-slate-300 mb-2">Correspondent BIC / SWIFT</label>
+                                        <input type="text" @bind="settings.IntermediaryBankSwift" @bind:event="oninput"
+                                            class="form-control" />
+                                    </div>
+                                    <div>
+                                        <label class="block text-sm font-medium text-gray-700 dark:text-slate-300 mb-2">Account at correspondent</label>
+                                        <input type="text" @bind="settings.IntermediaryAccountNumber" @bind:event="oninput"
+                                            class="form-control" />
+                                    </div>
+                                    <div>
+                                        <label class="block text-sm font-medium text-gray-700 dark:text-slate-300 mb-2">Payment purpose code</label>
+                                        <input type="text" @bind="settings.PaymentPurposeCode" @bind:event="oninput"
+                                            placeholder="Required on inbound FX in some countries"
+                                            class="form-control" />
+                                    </div>
+                                </div>
+                            </div>
+                        </details>
+
+                        @if (_selectedCurrency == "VND")
+                        {
+                            <div class="pt-4 border-t border-gray-100 dark:border-slate-700">
+                                <label class="block text-sm font-medium text-gray-700 dark:text-slate-300 mb-2">
+                                    <span class="flex items-center gap-2">
+                                        <svg class="w-5 h-5 text-[#3D5AF1]" viewBox="0 0 24 24" fill="currentColor">
+                                            <path d="M3 3h18v18H3V3zm2 2v14h14V5H5zm2 2h10v2H7V7zm0 4h10v2H7v-2zm0 4h7v2H7v-2z"/>
+                                        </svg>
+                                        VietQR Bank
+                                    </span>
+                                </label>
+                                <Select TValue="string" @bind-Value="settings.VietQrBankCode" Placeholder="-- Select Bank for QR Code --"
+                                    Options="@(new List<SelectOption<string>> { new("", "-- Select Bank for QR Code --") }.Concat(_vietQrBanks.Select(bank => new SelectOption<string>(bank.Code, bank.ShortName))).ToList())" />
+                                <p class="mt-1.5 text-xs text-gray-500 dark:text-slate-400">A QR code will appear on VND invoices for easy mobile payment.</p>
+                            </div>
+                        }
+
+                        <div class="pt-4">
+                            <button type="button" @onclick="SaveCurrencySettings" disabled="@_isSavingCurrency"
+                                class="inline-flex items-center justify-center gap-2 px-6 py-3 text-sm font-medium text-white rounded-xl transition-all duration-200 hover:shadow-lg active:scale-[0.98] disabled:opacity-50 disabled:cursor-not-allowed bg-primary-600 hover:bg-primary-700">
+                                @if (_isSavingCurrency)
+                                {
+                                    <div class="w-4 h-4 border-2 border-white/30 border-t-white rounded-full animate-spin"></div>
+                                    <span>Saving...</span>
+                                }
+                                else
+                                {
+                                    <span>Save @_selectedCurrency Bank Details</span>
+                                }
+                            </button>
+                        </div>
+                    </div>
+                }
+            </div>
+        </Card>
+    }
+</div>
+
+<ErrorAlert Message="@_errorMessage" />
+
+@code {
+    // A plan change pushed from the server (see NotificationState) re-renders
+    // this page, so the pickers widen or narrow without a reload.
+    private void OnEntitlementsChanged() => InvokeAsync(StateHasChanged);
+
+    public void Dispose() => Entitlements.OnChange -= OnEntitlementsChanged;
+
+    // The plan may allow only the currency the account already uses. An empty
+    // allowed-list means it has not committed to one yet, so everything is
+    // still on the table; the choice it makes becomes the one.
+    private bool CurrencyRestricted => CurrencyChoices.IsRestricted(Entitlements);
+
+    private List<CurrencyInfo> SelectableCurrencies() =>
+        CurrencyChoices.Filter(Entitlements, _availableCurrencies, c => c.Code, Input.DefaultCurrency);
+
+    private bool _isLoading = true;
+    private bool _isSaving;
+    private bool _isSavingCurrency;
+    private string? _statusMessage;
+    private string? _errorMessage;
+    private bool _isError;
+    private List<VietQrBank> _vietQrBanks = [];
+    private string _selectedCurrency = "USD";
+    private Dictionary<string, CurrencySettingsModel> _currencySettings = new();
+
+    private BusinessProfileDto? _fullProfile;
+    private InputModel Input { get; init; } = new();
+
+    private static readonly List<CurrencyInfo> _availableCurrencies =
+    [
+        new("USD", "US Dollar"),
+        new("GBP", "British Pound"),
+        new("EUR", "Euro"),
+        new("CAD", "Canadian Dollar"),
+        new("AUD", "Australian Dollar"),
+        new("VND", "Vietnamese Dong"),
+        new("RUB", "Russian Ruble"),
+        new("CNY", "Chinese Yuan"),
+        new("KRW", "South Korean Won")
+    ];
+
+    protected override async Task OnInitializedAsync()
+    {
+        Entitlements.OnChange += OnEntitlementsChanged;
+        await Entitlements.EnsureLoadedAsync();
+        await LoadSettingsAsync();
+        await LoadCurrencySettingsAsync();
+
+        // Must run after the profile loads: SelectableCurrencies keeps the
+        // *current* value in the list, and until LoadSettingsAsync runs that
+        // value is still the "USD" default — so USD looked selectable and the
+        // fallback never fired.
+        var selectable = SelectableCurrencies();
+        if (selectable.Count > 0 && selectable.All(c => c.Code != _selectedCurrency))
+            _selectedCurrency = selectable[0].Code;
+        await LoadVietQrBanksAsync();
+    }
+
+    private async Task LoadVietQrBanksAsync()
+    {
+        try
+        {
+            var response = await Http.GetFromJsonAsync<VietQrBankResponse>("https://api.vietqr.io/v2/banks");
+            if (response?.Data != null)
+            {
+                _vietQrBanks = response.Data
+                    .OrderByDescending(b => b.TransferSupported)
+                    .ThenBy(b => b.ShortName)
+                    .ToList();
+            }
+        }
+        catch (Exception ex)
+        {
+            Console.WriteLine($"Error loading VietQR banks: {ex.Message}");
+        }
+    }
+
+    private async Task LoadSettingsAsync()
+    {
+        try
+        {
+            _fullProfile = await GetBusinessProfileCall.Call(new GetBusinessProfile());
+            if (_fullProfile != null)
+            {
+                Input.DefaultCurrency = _fullProfile.DefaultCurrency;
+                Input.DefaultPaymentTermsDays = _fullProfile.DefaultPaymentTermsDays;
+                Input.InvoiceNotes = _fullProfile.InvoiceNotes;
+                Input.InvoiceFooter = _fullProfile.InvoiceFooter;
+                Input.InvoiceEmailSubject = _fullProfile.InvoiceEmailSubject;
+                Input.InvoiceEmailBody = _fullProfile.InvoiceEmailBody;
+                Input.PayPalMeUsername = _fullProfile.PayPalMeUsername;
+                Input.WiseEmail = _fullProfile.WiseEmail;
+                Input.RevolutUsername = _fullProfile.RevolutUsername;
+            }
+        }
+        catch (Exception ex) when (EmptyResponse.IsEmptyOk(ex))
+        {
+            // Empty state for a new account, not a failure — see EmptyResponse.
+        }
+        catch (Exception ex)
+        {
+            _errorMessage = $"Failed to load invoice settings: {ex.Message}";
+        }
+        finally
+        {
+            _isLoading = false;
+        }
+    }
+
+    private async Task LoadCurrencySettingsAsync()
+    {
+        try
+        {
+            var settings = await GetAllCurrencyPaymentSettingsCall.Call(new GetAllCurrencyPaymentSettings());
+            foreach (var s in settings)
+            {
+                _currencySettings[s.CurrencyCode] = new CurrencySettingsModel
+                {
+                    BankName = s.BankName,
+                    BankAccountName = s.BankAccountName,
+                    BankAccountNumber = s.BankAccountNumber,
+                    BankSortCode = s.BankSortCode,
+                    BankIban = s.BankIban,
+                    BankSwift = s.BankSwift,
+                    VietQrBankCode = s.VietQrBankCode,
+                    BankAddress = s.BankAddress,
+                    IntermediaryBankName = s.IntermediaryBankName,
+                    IntermediaryBankSwift = s.IntermediaryBankSwift,
+                    IntermediaryAccountNumber = s.IntermediaryAccountNumber,
+                    PaymentPurposeCode = s.PaymentPurposeCode
+                };
+            }
+        }
+        catch (Exception ex)
+        {
+            Console.WriteLine($"Error loading currency settings: {ex.Message}");
+        }
+    }
+
+    private void SelectCurrency(string currencyCode)
+    {
+        _selectedCurrency = currencyCode;
+    }
+
+    private CurrencySettingsModel GetOrCreateCurrencySettings(string currencyCode)
+    {
+        if (!_currencySettings.ContainsKey(currencyCode))
+        {
+            _currencySettings[currencyCode] = new CurrencySettingsModel();
+        }
+        return _currencySettings[currencyCode];
+    }
+
+    private async Task OnValidSubmitAsync()
+    {
+        _isSaving = true;
+        _statusMessage = null;
+
+        try
+        {
+            await SaveBusinessProfileCall.Call(new SaveBusinessProfile
+            {
+                CompanyName = _fullProfile?.CompanyName ?? "",
+                TradingName = _fullProfile?.TradingName,
+                Email = _fullProfile?.Email ?? "",
+                Phone = _fullProfile?.Phone,
+                Website = _fullProfile?.Website,
+                Street = _fullProfile?.Street,
+                City = _fullProfile?.City,
+                State = _fullProfile?.State,
+                PostalCode = _fullProfile?.PostalCode,
+                Country = _fullProfile?.Country,
+                TaxNumber = _fullProfile?.TaxNumber,
+                RegistrationNumber = _fullProfile?.RegistrationNumber,
+                // Keep old bank details for backwards compatibility (will be deprecated)
+                BankName = _fullProfile?.BankName,
+                BankAccountName = _fullProfile?.BankAccountName,
+                BankAccountNumber = _fullProfile?.BankAccountNumber,
+                BankSortCode = _fullProfile?.BankSortCode,
+                BankIban = _fullProfile?.BankIban,
+                BankSwift = _fullProfile?.BankSwift,
+                DefaultCurrency = Input.DefaultCurrency ?? "USD",
+                DefaultPaymentTermsDays = Input.DefaultPaymentTermsDays ?? 30,
+                InvoiceNotes = Input.InvoiceNotes,
+                InvoiceFooter = Input.InvoiceFooter,
+                InvoiceEmailSubject = Input.InvoiceEmailSubject,
+                InvoiceEmailBody = Input.InvoiceEmailBody,
+                PayPalMeUsername = Input.PayPalMeUsername,
+                WiseEmail = Input.WiseEmail,
+                RevolutUsername = Input.RevolutUsername,
+                VietQrBankCode = _fullProfile?.VietQrBankCode
+            });
+            _statusMessage = "Global settings saved successfully.";
+            _isError = false;
+        }
+        catch (Exception ex)
+        {
+            _statusMessage = $"Error saving settings: {ex.Message}";
+            _isError = true;
+        }
+        finally
+        {
+            _isSaving = false;
+        }
+    }
+
+    private async Task SaveCurrencySettings()
+    {
+        if (string.IsNullOrEmpty(_selectedCurrency)) return;
+
+        _isSavingCurrency = true;
+        _statusMessage = null;
+
+        try
+        {
+            var settings = GetOrCreateCurrencySettings(_selectedCurrency);
+            await SaveCurrencyPaymentSettingsCall.Call(new SaveCurrencyPaymentSettings
+            {
+                CurrencyCode = _selectedCurrency,
+                BankName = settings.BankName,
+                BankAccountName = settings.BankAccountName,
+                BankAccountNumber = settings.BankAccountNumber,
+                BankSortCode = settings.BankSortCode,
+                BankIban = settings.BankIban,
+                BankSwift = settings.BankSwift,
+                VietQrBankCode = settings.VietQrBankCode,
+                BankAddress = settings.BankAddress,
+                IntermediaryBankName = settings.IntermediaryBankName,
+                IntermediaryBankSwift = settings.IntermediaryBankSwift,
+                IntermediaryAccountNumber = settings.IntermediaryAccountNumber,
+                PaymentPurposeCode = settings.PaymentPurposeCode
+            });
+            _statusMessage = $"{_selectedCurrency} bank details saved successfully.";
+            _isError = false;
+        }
+        catch (Exception ex)
+        {
+            _statusMessage = $"Error saving {_selectedCurrency} settings: {ex.Message}";
+            _isError = true;
+        }
+        finally
+        {
+            _isSavingCurrency = false;
+        }
+    }
+
+    private sealed class InputModel
+    {
+        public string? DefaultCurrency { get; set; } = "USD";
+        public int? DefaultPaymentTermsDays { get; set; } = 30;
+        public string? InvoiceNotes { get; set; }
+        public string? InvoiceFooter { get; set; }
+        public string? InvoiceEmailSubject { get; set; }
+        public string? InvoiceEmailBody { get; set; }
+        public string? PayPalMeUsername { get; set; }
+        public string? WiseEmail { get; set; }
+        public string? RevolutUsername { get; set; }
+    }
+
+    private sealed class CurrencySettingsModel
+    {
+        public string? BankName { get; set; }
+        public string? BankAccountName { get; set; }
+        public string? BankAccountNumber { get; set; }
+        public string? BankSortCode { get; set; }
+        public string? BankIban { get; set; }
+        public string? BankSwift { get; set; }
+        public string? VietQrBankCode { get; set; }
+        public string? BankAddress { get; set; }
+        public string? IntermediaryBankName { get; set; }
+        public string? IntermediaryBankSwift { get; set; }
+        public string? IntermediaryAccountNumber { get; set; }
+        public string? PaymentPurposeCode { get; set; }
+    }
+
+    private record CurrencyInfo(string Code, string Name);
+
+    private sealed class VietQrBankResponse
+    {
+        [System.Text.Json.Serialization.JsonPropertyName("code")]
+        public string? Code { get; set; }
+
+        [System.Text.Json.Serialization.JsonPropertyName("data")]
+        public List<VietQrBank>? Data { get; set; }
+    }
+
+    private sealed class VietQrBank
+    {
+        [System.Text.Json.Serialization.JsonPropertyName("code")]
+        public string Code { get; set; } = "";
+
+        [System.Text.Json.Serialization.JsonPropertyName("shortName")]
+        public string ShortName { get; set; } = "";
+
+        [System.Text.Json.Serialization.JsonPropertyName("transferSupported")]
+        public int TransferSupported { get; set; }
+    }
+}

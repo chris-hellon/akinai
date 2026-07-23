@@ -14,7 +14,7 @@
                 SearchPlaceholder="Search projects..."
                 SearchValue="@searchTerm"
                 SearchValueChanged="OnSearchChanged"
-                Breadcrumbs="@(new List<PageHeader.BreadcrumbItem> { new("Projects") })">
+                Breadcrumbs="@(new List<PageHeader.BreadcrumbItem> { new("Management", "/management"), new("Projects") })">
     <Filters>
         <Select TValue="string" Value="selectedClientId" ValueChanged="OnClientChanged" Class="w-full sm:w-52"
                 Options="@(new[] { new SelectOption<string>("", "All Clients") }.Concat(clientsForFilter?.Select(c => new SelectOption<string>(c.Id.ToString(), c.Name)) ?? []).ToList())" />

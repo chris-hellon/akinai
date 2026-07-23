@@ -1,0 +1,182 @@
+@inject ICall<GetInvoiceTemplates, List<InvoiceTemplateDto>> GetTemplatesCall
+@inject ICall<DeleteInvoiceTemplate> DeleteTemplateCall
+@inject ICall<SetDefaultTemplate> SetDefaultCall
+<PlanGate Feature="@(e => e.CustomTemplates)"
+          Title="Custom templates are a Pro feature"
+          Description="Design invoices in your own colours and layout so they look like they came from your studio.">
+    <div class="space-y-6">
+        @if (_isLoading)
+        {
+            <div class="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-6">
+                @for (int i = 0; i < 3; i++)
+                {
+                    <div class="bg-white dark:bg-slate-800 rounded-lg p-6 animate-pulse">
+                        <div class="h-32 bg-gray-200 dark:bg-slate-700 rounded-xl mb-4"></div>
+                        <div class="h-4 bg-gray-200 dark:bg-slate-700 rounded w-3/4 mb-2"></div>
+                        <div class="h-3 bg-gray-200 dark:bg-slate-700 rounded w-1/2"></div>
+                    </div>
+                }
+            </div>
+        }
+        else if (!_templates.Any())
+        {
+            <EmptyState Title="No templates found"
+                        Message="Create your first invoice template to customize how your invoices look."
+                        IconType="EmptyState.EmptyStateIcon.Document"
+                        ActionUrl="settings/templates/new"
+                        ActionText="Create Template" />
+        }
+        else
+        {
+            <div class="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-6">
+                @foreach (var template in _templates)
+                {
+                    <Card>
+                        <!-- Preview Area -->
+                        <div class="mb-4">
+                            <TemplatePreview
+                                PrimaryColor="@template.PrimaryColor"
+                                AccentColor="@template.AccentColor"
+                                TextColor="@template.TextColor"
+                                BackgroundColor="@template.BackgroundColor"
+                                HeaderLayout="@template.HeaderLayout"
+                                ItemsLayout="@template.ItemsLayout"
+                                FooterLayout="@template.FooterLayout"
+                                ShowLogo="@template.ShowLogo"
+                                ShowPaymentQR="@template.ShowPaymentQR"
+                                ShowBankDetails="@template.ShowBankDetails"
+                                ShowItemDescriptions="@template.ShowItemDescriptions"
+                                FontFamily="@template.FontFamily" />
+                        </div>
+
+                        <!-- Template Info -->
+                        <div class="flex items-start justify-between">
+                            <div>
+                                <div class="flex items-center gap-2">
+                                    <h3 class="font-semibold text-gray-900 dark:text-slate-100">@template.Name</h3>
+                                    @if (template.IsDefault)
+                                    {
+                                        <span class="px-2 py-0.5 text-xs font-medium rounded-full bg-primary-100 text-primary-700 dark:bg-primary-900/30 dark:text-primary-400">Default</span>
+                                    }
+                                    @if (template.IsSystem)
+                                    {
+                                        <span class="px-2 py-0.5 text-xs font-medium rounded-full bg-gray-100 text-gray-600 dark:bg-slate-700 dark:text-slate-400">System</span>
+                                    }
+                                </div>
+                                <p class="text-sm text-gray-500 dark:text-slate-400">@template.TemplateType</p>
+                            </div>
+
+                            <!-- Color Swatches -->
+                            <div class="flex gap-1">
+                                <div class="w-5 h-5 rounded-full border border-gray-200 dark:border-slate-600" style="background-color: @template.PrimaryColor" title="Primary"></div>
+                                <div class="w-5 h-5 rounded-full border border-gray-200 dark:border-slate-600" style="background-color: @template.AccentColor" title="Accent"></div>
+                            </div>
+                        </div>
+
+                        @if (!string.IsNullOrEmpty(template.Description))
+                        {
+                            <p class="mt-2 text-sm text-gray-500 dark:text-slate-400 line-clamp-2">@template.Description</p>
+                        }
+
+                        <!-- Actions -->
+                        <div class="mt-4 pt-4 border-t border-gray-100 dark:border-slate-700 flex items-center justify-between">
+                            <div class="flex items-center gap-2">
+                                @if (!template.IsDefault)
+                                {
+                                    <button @onclick="() => SetAsDefaultAsync(template)" class="text-sm text-primary-600 dark:text-primary-400 hover:underline">
+                                        Set as Default
+                                    </button>
+                                }
+                            </div>
+                            <div class="flex items-center gap-1">
+                                @if (!template.IsSystem)
+                                {
+                                    <IconButton Href="@($"settings/templates/{template.Id}/edit")" Title="Edit">
+                                        <EditIcon />
+                                    </IconButton>
+                                    <IconButton OnClick="() => DeleteTemplateAsync(template)" Variant="IconButton.IconButtonVariant.Danger" Title="Delete">
+                                        <DeleteIcon />
+                                    </IconButton>
+                                }
+                                else
+                                {
+                                    <IconButton Href="@($"settings/templates/{template.Id}")" Title="View">
+                                        <ViewIcon />
+                                    </IconButton>
+                                }
+                            </div>
+                        </div>
+                    </Card>
+                }
+            </div>
+        }
+    </div>
+</PlanGate>
+
+<ErrorAlert Message="@_errorMessage" />
+
+@code {
+    private List<InvoiceTemplateDto> _templates = new();
+    private bool _isLoading = true;
+    private string? _errorMessage;
+
+    protected override async Task OnInitializedAsync()
+    {
+        await LoadTemplates();
+    }
+
+    private async Task LoadTemplates()
+    {
+        _isLoading = true;
+        try
+        {
+            _templates = await GetTemplatesCall.Call(new GetInvoiceTemplates { IncludeSystem = true });
+        }
+        catch (Exception ex)
+        {
+            _errorMessage = $"Failed to load templates: {ex.Message}";
+        }
+        finally
+        {
+            _isLoading = false;
+        }
+    }
+
+    private async Task SetAsDefaultAsync(InvoiceTemplateDto template)
+    {
+        try
+        {
+            await SetDefaultCall.Call(new SetDefaultTemplate { Id = template.Id });
+            await LoadTemplates();
+        }
+        catch (Exception ex)
+        {
+            _errorMessage = $"Failed to set default template: {ex.Message}";
+        }
+    }
+
+    private async Task DeleteTemplateAsync(InvoiceTemplateDto template)
+    {
+        var confirmed = await ModalService.ShowAsync<bool>(
+            typeof(DeleteConfirmationModal),
+            "Delete Template",
+            new Dictionary<string, object>
+            {
+                { "ItemName", template.Name },
+                { "WarningMessage", "This will permanently delete this template. Invoices using it will fall back to the default template." }
+            },
+            new ModalOptions { Size = ModalSize.Small });
+
+        if (!confirmed) return;
+
+        try
+        {
+            await DeleteTemplateCall.Call(new DeleteInvoiceTemplate { Id = template.Id });
+            await LoadTemplates();
+        }
+        catch (Exception ex)
+        {
+            _errorMessage = $"Failed to delete template: {ex.Message}";
+        }
+    }
+}
