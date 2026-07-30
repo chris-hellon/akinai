@@ -8,7 +8,7 @@
 
 @inject ICall<GetSubscription, SubscriptionDto> GetSubscriptionCall
 @inject ICall<GetEntitlements, EntitlementsDto> GetEntitlementsCall
-@inject ICall<GetBillingHistory, List<SubscriptionEventDto>> GetHistoryCall
+@inject ICall<GetBillingHistory, PaginatedResponse<SubscriptionEventDto>> GetHistoryCall
 @inject ICall<StartCheckout, CheckoutSessionDto> StartCheckoutCall
 @inject ICall<CancelSubscription, SubscriptionDto> CancelCall
 @inject ICall<ResumeSubscription, SubscriptionDto> ResumeCall
@@ -133,17 +133,46 @@
                             @(_entitlements?.Plan == BillingPlan.Free ? "Your current plan" : "Included")
                         </button>
                     }
-                    else if (_entitlements?.Plan == plan.Plan && _subscription?.CancelAtPeriodEnd != true)
+                    @* "Extend" only makes sense where a period is bought one at a
+                       time — the simulator. A real provider renews on its own, so
+                       offering it there would start a SECOND subscription and bill
+                       the customer twice. *@
+                    else if (_entitlements?.Plan == plan.Plan && _subscription?.CancelAtPeriodEnd != true && _subscription?.RenewsAutomatically == true)
                     {
-                        <button type="button" class="btn-secondary w-full text-xs" disabled="@_isBusy" @onclick="() => SubscribeAsync(plan.Plan)">
-                            Extend by another @(_cycle == BillingCycle.Annual ? "year" : "month")
+                        <p class="w-full text-center text-xs text-gray-500 dark:text-slate-400 py-2.5">
+                            Renews automatically. Cancel any time.
+                        </p>
+                    }
+                    else if (_entitlements?.Plan == plan.Plan && _subscription?.CancelAtPeriodEnd != true && _subscription?.RenewsAutomatically != true)
+                    {
+                        <button type="button" class="btn-secondary w-full text-xs inline-flex items-center justify-center gap-2 disabled:cursor-wait" disabled="@_isBusy" @onclick="() => SubscribeAsync(plan.Plan)">
+                            @if (_startingPlan == plan.Plan)
+                            {
+                                <span class="w-3 h-3 border-2 border-gray-300 border-t-gray-600 rounded-full animate-spin"></span>
+                                <span>Taking you to checkout…</span>
+                            }
+                            else
+                            {
+                                <span>Extend by another @(_cycle == BillingCycle.Annual ? "year" : "month")</span>
+                            }
                         </button>
                     }
                     else
                     {
+                        @* Creating a checkout session is a round trip to the payment
+                           provider, so this is never instant. Without visible progress
+                           the button reads as broken and people click it again. *@
                         <button type="button" disabled="@_isBusy" @onclick="() => SubscribeAsync(plan.Plan)"
-                                class="w-full inline-flex items-center justify-center px-5 py-2.5 text-sm font-medium text-white rounded-xl transition-all duration-200 hover:shadow-lg active:scale-[0.98] brand-mark">
-                            Upgrade to @plan.Name
+                                class="w-full inline-flex items-center justify-center gap-2 px-5 py-2.5 text-sm font-medium text-white rounded-xl transition-all duration-200 hover:shadow-lg active:scale-[0.98] disabled:opacity-70 disabled:cursor-wait brand-mark">
+                            @if (_startingPlan == plan.Plan)
+                            {
+                                <span class="w-4 h-4 border-2 border-white/40 border-t-white rounded-full animate-spin"></span>
+                                <span>Taking you to checkout…</span>
+                            }
+                            else
+                            {
+                                <span>Upgrade to @plan.Name</span>
+                            }
                         </button>
                     }
                 </ActionTemplate>
@@ -151,12 +180,12 @@
         </div>
 
         <!-- History -->
-        @if (_history.Count > 0)
+        @if (_history is { TotalCount: > 0 })
         {
             <div class="bg-white dark:bg-[#1b1612] rounded-2xl border border-gray-200 dark:border-[#2f2924] p-6 space-y-4">
                 <h2 class="text-lg font-semibold text-gray-900 dark:text-slate-100">Billing history</h2>
                 <div class="rounded-xl border border-gray-200 dark:border-[#2f2924] divide-y divide-gray-100 dark:divide-[#2f2924]">
-                    @foreach (var entry in _history)
+                    @foreach (var entry in _history.Items)
                     {
                         <div class="p-4 flex flex-wrap items-center justify-between gap-3">
                             <div class="min-w-0">
@@ -188,6 +217,14 @@
                         </div>
                     }
                 </div>
+
+                <Pagination CurrentPage="_history.Page"
+                            TotalItems="_history.TotalCount"
+                            PageSize="_history.PageSize"
+                            ItemName="events"
+                            OnPageChanged="OnHistoryPageChanged"
+                            OnPageSizeChanged="OnHistoryPageSizeChanged"
+                            PageSizeOptions="_historyPageSizes" />
             </div>
         }
     }
@@ -196,7 +233,14 @@
 @code {
     private SubscriptionDto? _subscription;
     private EntitlementsDto? _entitlements;
-    private List<SubscriptionEventDto> _history = [];
+    private PaginatedResponse<SubscriptionEventDto>? _history;
+
+    private int _historyPage = 1;
+    private int _historyPageSize = 10;
+
+    // Smaller steps than the list pages: this sits below the plan cards rather
+    // than filling a screen of its own.
+    private readonly int[] _historyPageSizes = [10, 25, 50];
 
     private BillingCycle _cycle = BillingCycle.Monthly;
     private bool _isLoading = true;
@@ -219,7 +263,7 @@
         {
             _subscription = await GetSubscriptionCall.Call(new GetSubscription());
             _entitlements = await GetEntitlementsCall.Call(new GetEntitlements());
-            _history = await GetHistoryCall.Call(new GetBillingHistory()) ?? [];
+            await LoadHistoryAsync();
 
             if (_subscription?.Cycle is BillingCycle cycle) _cycle = cycle;
         }
@@ -230,14 +274,44 @@
         _isLoading = false;
     }
 
+    /// <summary>
+    /// Fetches one page of history without touching _isLoading — paging should
+    /// swap the rows, not blank the plan cards above them.
+    /// </summary>
+    private async Task LoadHistoryAsync()
+        => _history = await GetHistoryCall.Call(new GetBillingHistory
+        {
+            Page = _historyPage,
+            PageSize = _historyPageSize,
+        }) ?? new PaginatedResponse<SubscriptionEventDto>();
+
+    private async Task OnHistoryPageChanged(int page)
+    {
+        _historyPage = page;
+        await LoadHistoryAsync();
+    }
+
+    private async Task OnHistoryPageSizeChanged(int size)
+    {
+        _historyPageSize = size;
+        // Back to the first page: page 4 of a 10-per-page list does not exist
+        // once the size becomes 50.
+        _historyPage = 1;
+        await LoadHistoryAsync();
+    }
+
     private void OnCycleChanged(string value)
     {
         if (Enum.TryParse<BillingCycle>(value, out var cycle)) _cycle = cycle;
     }
 
+    /// <summary>Which plan's button is mid-checkout, so only that one spins.</summary>
+    private BillingPlan? _startingPlan;
+
     private async Task SubscribeAsync(BillingPlan plan)
     {
         _isBusy = true;
+        _startingPlan = plan;
         _message = null;
         try
         {
@@ -248,9 +322,11 @@
             }
             else
             {
-                // Mirrors a hosted checkout: the server decides where we go next.
-                Nav.NavigateTo(session.RedirectUrl);
-                return;
+                // forceLoad because the provider's checkout is a different origin —
+                // Blazor's router cannot handle it, and without this the click
+                // silently does nothing on a real provider.
+                Nav.NavigateTo(session.RedirectUrl, forceLoad: true);
+                return;   // spinner stays up while the browser navigates away
             }
         }
         catch (Exception ex)
@@ -258,6 +334,7 @@
             SetError($"Could not start checkout: {ex.Message}");
         }
         _isBusy = false;
+        _startingPlan = null;
     }
 
     private async Task CancelAsync()

@@ -43,4 +43,15 @@ public record InvoiceDetailDto(
     /// <summary>When the client first and last opened the link, and how often.</summary>
     DateTime? FirstViewedAtUtc = null,
     DateTime? LastViewedAtUtc = null,
-    int ViewCount = 0);
+    int ViewCount = 0,
+    /// <summary>
+    /// True when the services rows above are a saved summary rather than one
+    /// row per tracked entry. The rows look identical either way, so the owner
+    /// needs telling which they are looking at.
+    /// </summary>
+    bool IsSummarised = false,
+    /// <summary>
+    /// How many time entries this invoice bills, regardless of how they are
+    /// presented. Drives whether summarising is worth offering.
+    /// </summary>
+    int TimeEntryCount = 0);

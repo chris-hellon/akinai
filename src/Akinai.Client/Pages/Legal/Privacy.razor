@@ -1,0 +1,200 @@
+@page "/privacy"
+@layout LegalLayout
+@attribute [AllowAnonymous]
+
+<PageTitle>Privacy Policy — Akinai</PageTitle>
+
+<h1>Privacy Policy</h1>
+<p class="lgupdated">Last updated @LastUpdated</p>
+
+<p class="lgintro">
+    Akinai is invoicing software for people who bill clients across borders. This
+    page explains what we hold, why we hold it, and who else sees it. It covers
+    two different sets of people: <strong>you</strong>, the account holder, and
+    <strong>your clients</strong>, whose details you enter so you can invoice them.
+</p>
+
+<div class="lgnote">
+    <p>
+        <strong>Your clients' data belongs to you, not us.</strong> You decide what
+        to record about them and why; we only store and process it so the service
+        works. In UK and EU data-protection terms you are the <em>controller</em>
+        and we are your <em>processor</em>. If one of your clients wants their
+        details corrected or removed, they should ask you — and you can do it from
+        inside the app.
+    </p>
+</div>
+
+<h2>Who we are</h2>
+<p>
+    Akinai is operated by CGH Web. For anything about this policy, or to exercise
+    any of the rights below, email <a href="mailto:@ContactEmail">@ContactEmail</a>
+    or use the <a href="contact">contact page</a>.
+</p>
+
+<h2>What we collect</h2>
+
+<div class="lgtable-wrap">
+    <table>
+        <thead>
+            <tr><th>What</th><th>Why</th></tr>
+        </thead>
+        <tbody>
+            <tr>
+                <td><strong>Account details</strong> — email address, password (stored only as a hash), and any two-factor or passkey credentials you set up</td>
+                <td>To create your account, sign you in, and keep it secure</td>
+            </tr>
+            <tr>
+                <td><strong>Business profile</strong> — company and trading name, address, tax and registration numbers, logo, contact details, and the payment details you want shown on invoices (bank account, IBAN, SWIFT, PayPal, Wise, Revolut)</td>
+                <td>These appear on the invoices you send, so your clients know who is billing them and how to pay</td>
+            </tr>
+            <tr>
+                <td><strong>Client records</strong> — the names, companies, email addresses, phone numbers and billing addresses you enter</td>
+                <td>To address and deliver the documents you create</td>
+            </tr>
+            <tr>
+                <td><strong>Your work</strong> — invoices, estimates, line items, notes and terms, projects, jobs, timesheets, expenses and products</td>
+                <td>This is the service. It is what you came here to create</td>
+            </tr>
+            <tr>
+                <td><strong>Imported bank lines</strong> — transactions from CSV statements you choose to upload</td>
+                <td>To match incoming payments against your open invoices. We never connect to your bank; import is manual and initiated by you</td>
+            </tr>
+            <tr>
+                <td><strong>Document view records</strong> — when a public invoice link was first and last opened, and how many times</td>
+                <td>So you can tell whether a client has seen an invoice. We record the timestamp and count only — not who opened it, their IP address, or their location</td>
+            </tr>
+            <tr>
+                <td><strong>Billing records</strong> — your plan, subscription status, renewal date, and the identifiers Stripe gives us for your customer and subscription</td>
+                <td>To run your subscription and keep an accurate history of plan changes</td>
+            </tr>
+            <tr>
+                <td><strong>Translation usage</strong> — a running count of characters translated, and a cache of translated phrases</td>
+                <td>To apply the monthly allowance on your plan, and to avoid paying to translate the same sentence twice</td>
+            </tr>
+        </tbody>
+    </table>
+</div>
+
+<h3>What we do not collect</h3>
+<ul>
+    <li><strong>Card numbers.</strong> Payment details are entered on Stripe's own checkout page and never reach our servers. We only ever see the identifiers Stripe returns.</li>
+    <li><strong>Bank credentials.</strong> There is no open-banking connection. Statement import is a file you upload.</li>
+    <li><strong>Advertising or tracking profiles.</strong> We do not sell data, we do not share it with advertisers, and we run no third-party advertising or analytics trackers.</li>
+</ul>
+
+<h2>Who else processes it</h2>
+<p>
+    We use a small number of services to run Akinai. Each receives only what that
+    job requires.
+</p>
+
+<div class="lgtable-wrap">
+    <table>
+        <thead>
+            <tr><th>Service</th><th>What it receives</th></tr>
+        </thead>
+        <tbody>
+            <tr>
+                <td><strong>Stripe</strong><br />Payments</td>
+                <td>Your email address and payment details, entered directly on Stripe's checkout. They act as their own controller for payment data under their privacy policy.</td>
+            </tr>
+            <tr>
+                <td><strong>Microsoft Azure Translator</strong><br />Document translation</td>
+                <td>Only the freeform text on a document you are translating — job descriptions, notes and terms. Names, addresses and payment details are never sent. See the note below.</td>
+            </tr>
+            <tr>
+                <td><strong>ExchangeRate-API</strong><br />Currency conversion</td>
+                <td>Currency codes only. No personal data and no invoice amounts.</td>
+            </tr>
+            <tr>
+                <td><strong>Our email provider</strong><br />Sending mail</td>
+                <td>The recipient address and the contents of the message — for example an invoice you send to a client, or an account email to you.</td>
+            </tr>
+        </tbody>
+    </table>
+</div>
+
+<div class="lgnote">
+    <p>
+        <strong>About translation.</strong> When you send a document in a language
+        other than English, the text <em>you wrote</em> on it is sent to Microsoft
+        to be translated. The document's fixed headings are not — those are built
+        into Akinai and cost nothing to render. If a job description or a note
+        contains something you would rather not send to a third party, write it in
+        the client's language yourself, or leave that document in English.
+    </p>
+</div>
+
+<h2>Where it is held, and for how long</h2>
+<p>
+    Your data is stored in our hosting provider's data centres and is transferred
+    internationally where a service above requires it. We keep your account data
+    for as long as your account exists.
+</p>
+<p>
+    If you cancel a paid plan, nothing is deleted — your account simply moves to
+    the Free plan and your records stay where they are. If you delete your account,
+    we remove your personal data and your business records. We may retain billing
+    and transaction records where we are legally required to, typically for
+    accounting and tax purposes.
+</p>
+
+<h2>Your rights</h2>
+<p>
+    Depending on where you live, you may have the right to access your data,
+    correct it, delete it, restrict or object to how it is used, and receive a
+    portable copy. Two of these are built into the app and need no request:
+</p>
+<ul>
+    <li><strong>Download a copy</strong> — Account → Personal data → Download</li>
+    <li><strong>Delete your account and data</strong> — Account → Personal data → Delete</li>
+</ul>
+<p>
+    For anything else, email <a href="mailto:@ContactEmail">@ContactEmail</a>. If you
+    are in the UK or EU and think we have handled your data badly, you may also
+    complain to your national data-protection authority.
+</p>
+
+<h2>Cookies</h2>
+<p>
+    Akinai sets cookies that are necessary for the service to function — keeping
+    you signed in, and remembering your choices such as light or dark mode. There
+    are no advertising or third-party tracking cookies, which is why you are not
+    being asked to accept anything.
+</p>
+
+<h2>Security</h2>
+<p>
+    Passwords are stored only as salted hashes and are never recoverable in plain
+    text. Two-factor authentication and passkeys are available on every account and
+    we recommend enabling one of them. Access to your data is scoped to your
+    account throughout the application.
+</p>
+<p>
+    Note that invoice and estimate links you share are secured by an unguessable
+    token in the URL rather than a password — that is what lets a client open one
+    without an account. Anyone you send that link to can open the document, so
+    treat it as you would the invoice itself.
+</p>
+
+<h2>Children</h2>
+<p>
+    Akinai is a business tool and is not intended for anyone under 16. We do not
+    knowingly collect data from children.
+</p>
+
+<h2>Changes</h2>
+<p>
+    If we change this policy in a way that materially affects you, we will tell you
+    by email or in the app before it takes effect. The date at the top always shows
+    the current version.
+</p>
+
+@code {
+    // Constants rather than DateTime.Now: the "last updated" date is a statement
+    // about the document, not about when the page was rendered. Bump it by hand
+    // when the wording changes.
+    private const string LastUpdated = "24 July 2026";
+    private const string ContactEmail = "hello@akinaiapp.com";
+}

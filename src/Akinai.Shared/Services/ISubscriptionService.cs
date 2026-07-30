@@ -1,3 +1,4 @@
+using Akinai.Shared.Api;
 using Akinai.Shared.Billing;
 using Akinai.Shared.Dtos.Billing;
 
@@ -14,7 +15,8 @@ public interface ISubscriptionService
 {
     Task<SubscriptionDto> GetAsync(string userId, CancellationToken cancellationToken = default);
 
-    Task<IReadOnlyList<SubscriptionEventDto>> GetHistoryAsync(string userId, CancellationToken cancellationToken = default);
+    Task<PaginatedResponse<SubscriptionEventDto>> GetHistoryAsync(
+        string userId, int page = 1, int pageSize = 10, CancellationToken cancellationToken = default);
 
     /// <summary>
     /// Opens a checkout for a paid plan. The price is fixed server-side at this
@@ -51,4 +53,29 @@ public interface ISubscriptionService
     Task<SubscriptionDto> AdminSetPlanAsync(
         string userId, BillingPlan plan, BillingCycle? cycle, int? months,
         string performedByEmail, CancellationToken cancellationToken = default);
+
+    /// <summary>
+    /// Records the provider's own subscription id against the account, so later
+    /// events about that subscription can be matched back to a user.
+    /// </summary>
+    Task LinkProviderSubscriptionAsync(
+        string userId, string providerSubscriptionId, CancellationToken cancellationToken = default);
+
+    /// <summary>
+    /// A recurring payment succeeded. Extends the paid period.
+    ///
+    /// Without this the account is charged every month and still lapses to Free
+    /// the day after the first period ends — billed for something it no longer
+    /// has. The provider is the source of truth for when the next period ends,
+    /// so the date comes from them rather than being computed here.
+    /// </summary>
+    Task RecordRenewalAsync(
+        string providerSubscriptionId, DateTime periodEndUtc, decimal amount, string currency,
+        CancellationToken cancellationToken = default);
+
+    /// <summary>A recurring payment failed. Entitlements resolve to free while past due.</summary>
+    Task MarkPastDueAsync(string providerSubscriptionId, CancellationToken cancellationToken = default);
+
+    /// <summary>The provider ended the subscription — cancelled, or unpaid too long.</summary>
+    Task EndSubscriptionAsync(string providerSubscriptionId, CancellationToken cancellationToken = default);
 }

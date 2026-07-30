@@ -136,36 +136,57 @@
                                 <td class="px-6 py-4 text-sm text-right text-gray-900 dark:text-slate-100 tnum">@user.ClientCount</td>
                                 <td class="px-6 py-4 text-sm text-right text-gray-900 dark:text-slate-100 tnum">@user.InvoiceCount</td>
                                 <td class="px-6 py-4">
-                                    <div class="flex items-center justify-end gap-2">
+                                    @* Icon buttons rather than a row of text buttons: six labels
+                                       overflowed the column and cut off Delete. Each carries a
+                                       title/aria-label so the action is still named on hover and
+                                       to screen readers. *@
+                                    <div class="flex items-center justify-end gap-1">
                                         @if (!user.EmailConfirmed)
                                         {
-                                            <button type="button" class="btn-secondary text-xs" disabled="@_isBusy"
-                                                    @onclick="() => ResendConfirmAsync(user)">Resend confirm</button>
-                                            <button type="button" class="btn-secondary text-xs" disabled="@_isBusy"
-                                                    @onclick="() => ConfirmEmailAsync(user)">Force confirm</button>
+                                            <button type="button" class="icon-btn" title="Resend confirmation email" aria-label="Resend confirmation email"
+                                                    disabled="@_isBusy" @onclick="() => ResendConfirmAsync(user)">
+                                                <svg class="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M3 8l7.89 5.26a2 2 0 002.22 0L21 8M5 19h14a2 2 0 002-2V7a2 2 0 00-2-2H5a2 2 0 00-2 2v10a2 2 0 002 2z"/></svg>
+                                            </button>
+                                            <button type="button" class="icon-btn" title="Force-confirm email" aria-label="Force-confirm email"
+                                                    disabled="@_isBusy" @onclick="() => ConfirmEmailAsync(user)">
+                                                <svg class="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M9 12l2 2 4-4m6 2a9 9 0 11-18 0 9 9 0 0118 0z"/></svg>
+                                            </button>
                                         }
-                                        <button type="button" class="btn-secondary text-xs" disabled="@_isBusy"
-                                                @onclick="() => SendResetAsync(user)">Reset password</button>
+                                        <button type="button" class="icon-btn" title="Reset password" aria-label="Reset password"
+                                                disabled="@_isBusy" @onclick="() => SendResetAsync(user)">
+                                            <svg class="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M15 7a2 2 0 012 2m4-2a6 6 0 01-7.743 5.743L11 14H9v2H7v2H4a1 1 0 01-1-1v-2.586a1 1 0 01.293-.707l5.964-5.964A6 6 0 1121 9z"/></svg>
+                                        </button>
                                         @* Always available, including on your own row — granting yourself
                                            a plan is the quickest way to check what a customer sees. *@
-                                        <button type="button" class="btn-secondary text-xs" disabled="@_isBusy"
-                                                @onclick="() => BeginPlanChange(user)">Change plan</button>
+                                        <button type="button" class="icon-btn" title="Change plan" aria-label="Change plan"
+                                                disabled="@_isBusy" @onclick="() => BeginPlanChange(user)">
+                                            <svg class="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M3 10h18M7 15h1m4 0h1m-7 4h12a3 3 0 003-3V8a3 3 0 00-3-3H6a3 3 0 00-3 3v8a3 3 0 003 3z"/></svg>
+                                        </button>
                                         @if (!IsSelf(user))
                                         {
-                                            <button type="button" class="btn-secondary text-xs" disabled="@_isBusy"
-                                                    @onclick="() => ToggleAdminAsync(user)">
-                                                @(user.IsAdmin ? "Revoke admin" : "Make admin")
+                                            <button type="button" class="icon-btn" title="@(user.IsAdmin ? "Revoke admin" : "Make admin")" aria-label="@(user.IsAdmin ? "Revoke admin" : "Make admin")"
+                                                    disabled="@_isBusy" @onclick="() => ToggleAdminAsync(user)">
+                                                <svg class="w-4 h-4 @(user.IsAdmin ? "text-primary-600 dark:text-primary-400" : "")" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M9 12l2 2 4-4m5.618-4.016A11.955 11.955 0 0112 2.944a11.955 11.955 0 01-8.618 3.04A12.02 12.02 0 003 9c0 5.591 3.824 10.29 9 11.622 5.176-1.332 9-6.03 9-11.622 0-1.042-.133-2.052-.382-3.016z"/></svg>
                                             </button>
-                                            <button type="button" class="btn-secondary text-xs" disabled="@_isBusy"
-                                                    @onclick="() => ToggleLockAsync(user)">
-                                                @(user.IsLockedOut ? "Unlock" : "Lock")
+                                            <button type="button" class="icon-btn" title="@(user.IsLockedOut ? "Unlock account" : "Lock account")" aria-label="@(user.IsLockedOut ? "Unlock account" : "Lock account")"
+                                                    disabled="@_isBusy" @onclick="() => ToggleLockAsync(user)">
+                                                @if (user.IsLockedOut)
+                                                {
+                                                    <svg class="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M8 11V7a4 4 0 018 0m-4 8v-2m-6 6h12a2 2 0 002-2v-6a2 2 0 00-2-2H6a2 2 0 00-2 2v6a2 2 0 002 2z"/></svg>
+                                                }
+                                                else
+                                                {
+                                                    <svg class="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M12 15v2m-6 4h12a2 2 0 002-2v-6a2 2 0 00-2-2H6a2 2 0 00-2 2v6a2 2 0 002 2zm10-10V7a4 4 0 00-8 0v4h8z"/></svg>
+                                                }
                                             </button>
-                                            <button type="button" class="px-3 py-1.5 text-xs font-medium text-white bg-red-600 rounded-lg"
-                                                    disabled="@_isBusy" @onclick="() => BeginDelete(user)">Delete</button>
+                                            <button type="button" class="icon-btn icon-btn-danger" title="Delete user" aria-label="Delete user"
+                                                    disabled="@_isBusy" @onclick="() => BeginDelete(user)">
+                                                <svg class="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M19 7l-.867 12.142A2 2 0 0116.138 21H7.862a2 2 0 01-1.995-1.858L5 7m5 4v6m4-6v6m1-10V4a1 1 0 00-1-1h-4a1 1 0 00-1 1v3M4 7h16"/></svg>
+                                            </button>
                                         }
                                         else
                                         {
-                                            <span class="text-xs text-gray-500 dark:text-slate-400">You</span>
+                                            <span class="text-xs text-gray-400 dark:text-slate-500 pl-1">You</span>
                                         }
                                     </div>
                                 </td>

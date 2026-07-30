@@ -18,7 +18,14 @@ public static class ApiPublicPaths
         "/api/invoices/public/",   // GetPublicInvoice          — emailed invoice link
         "/api/estimates/public/",  // GetPublicEstimate, Accept/RejectEstimatePublic
         "/api/portal/",            // GetClientPortal* — the client portal
-        "/api/plans"               // GetPlans — the pricing section, before signup
+        "/api/plans",              // GetPlans — the pricing section, before signup
+
+        // SendContactMessage — the contact form. The odd one out: it is a write,
+        // and it is not token-authorised, because the people most likely to need
+        // it are the ones who cannot sign in. It reads nothing and returns
+        // nothing but success or failure; the handler rate-limits per IP and
+        // carries a honeypot.
+        "/api/contact"
     ];
 
     public static bool IsPublic(PathString path)

@@ -6,6 +6,7 @@
 @inject ICall<GetProducts, PaginatedResponse<ProductDto>> GetProductsCall
 @inject ICall<UpdateInvoice> UpdateInvoiceCall
 @inject ICall<GetSupportedLanguages, List<LanguageDto>> GetLanguagesCall
+@inject ICall<GetInvoiceTemplates, List<InvoiceTemplateDto>> GetInvoiceTemplatesCall
 @inject EntitlementState Entitlements
 @inject NavigationManager NavigationManager
 
@@ -103,7 +104,12 @@
                    about how the document goes out, not another date field. *@
                 <div class="grid grid-cols-1 gap-5 sm:grid-cols-2">
                     <div>
-                        <label class="block text-sm font-medium text-gray-700 mb-2">Language</label>
+                        <label class="block text-sm font-medium text-gray-700 dark:text-slate-300 mb-2">Template</label>
+                        <Select TValue="string" @bind-Value="_selectedTemplateId"
+                                Options="@(new List<SelectOption<string>> { new("", "Default") }.Concat(_templates?.Select(t => new SelectOption<string>(t.Id.ToString(), $"{t.Name}{(t.IsDefault ? " (Default)" : "")}")) ?? Enumerable.Empty<SelectOption<string>>()).ToList())" />
+                    </div>
+                    <div>
+                        <label class="block text-sm font-medium text-gray-700 dark:text-slate-300 mb-2">Language</label>
                         <Select TValue="string" @bind-Value="_selectedLanguage" Options="@LanguageChoices()" />
                     </div>
                 </div>
@@ -349,6 +355,8 @@
     /// <summary>Empty means "inherit from the client or account default".</summary>
     private string _selectedLanguage = "";
     private List<LanguageDto> _languages = new();
+    private string _selectedTemplateId = "";
+    private List<InvoiceTemplateDto>? _templates;
 
     private List<SelectOption<string>> LanguageChoices()
     {
@@ -406,6 +414,7 @@
         try
         {
             _languages = await GetLanguagesCall.Call(new GetSupportedLanguages()) ?? new();
+            _templates = await GetInvoiceTemplatesCall.Call(new GetInvoiceTemplates { IncludeSystem = true });
             // Untranslated on purpose: this form saves what it shows, so it must
             // load the user's original text, never a machine translation of it.
             _invoice = await GetInvoiceCall.Call(new GetInvoice { Id = Id });
@@ -420,6 +429,7 @@
                 // The invoice's own stored choice, not the resolved language —
                 // blank must stay blank so "inherit" survives a save.
                 _selectedLanguage = _invoice.InvoiceLanguage ?? "";
+                _selectedTemplateId = _invoice.TemplateId?.ToString() ?? "";
 
                 _lineItems = _invoice.LineItems.Select(li => new EditableLineItem
                 {
@@ -591,6 +601,7 @@
                 TaxRate = _taxRate,
                 Notes = _notes,
                 Language = string.IsNullOrEmpty(_selectedLanguage) ? null : _selectedLanguage,
+                TemplateId = string.IsNullOrEmpty(_selectedTemplateId) ? null : Guid.Parse(_selectedTemplateId),
                 AddedTimeEntryIds = _selectedEntryIds.Count > 0 ? _selectedEntryIds.ToList() : null,
                 RemovedTimeEntryIds = _removedLineItemIds.Count > 0 ? _removedLineItemIds : null,
                 AddedExpenseIds = _selectedExpenseIds.Count > 0 ? _selectedExpenseIds.ToList() : null,

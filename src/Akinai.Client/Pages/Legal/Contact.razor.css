@@ -1,0 +1,102 @@
+/* Contact form. The surrounding prose and chrome come from LegalLayout; these
+   are only the form controls, which that layout has no opinion about. */
+
+.cfield {
+    margin-bottom: 20px;
+}
+
+.cfield label {
+    display: block;
+    font-size: 14px;
+    font-weight: 600;
+    color: oklch(.245 .012 55);
+    margin-bottom: 6px;
+}
+
+.cfield ::deep input,
+.cfield ::deep textarea {
+    width: 100%;
+    padding: 10px 13px;
+    font: inherit;
+    font-size: 15px;
+    color: oklch(.245 .012 55);
+    background: oklch(.988 .006 83);
+    border: 1px solid oklch(.885 .013 75);
+    border-radius: 8px;
+    outline: none;
+}
+
+.cfield ::deep textarea {
+    resize: vertical;
+    min-height: 140px;
+    line-height: 1.6;
+}
+
+.cfield ::deep input:focus,
+.cfield ::deep textarea:focus {
+    border-color: #0e5c66;
+    box-shadow: 0 0 0 3px rgb(14 92 102 / .12);
+}
+
+.cfield ::deep .validation-message {
+    display: block;
+    margin-top: 6px;
+    font-size: 13px;
+    color: #b42318;
+}
+
+.chint {
+    margin: 6px 0 0 !important;
+    font-size: 12px !important;
+    color: oklch(.60 .012 60) !important;
+}
+
+/* Honeypot: off-screen rather than display:none. Some bots skip inputs that
+   are not rendered at all, and this way it still exists in the layout. */
+.choney {
+    position: absolute;
+    left: -9999px;
+    width: 1px;
+    height: 1px;
+    overflow: hidden;
+}
+
+.cbtn {
+    display: inline-flex;
+    align-items: center;
+    justify-content: center;
+    padding: 11px 24px;
+    font: inherit;
+    font-size: 15px;
+    font-weight: 600;
+    color: #fff;
+    background: #0e5c66;
+    border: 0;
+    border-radius: 8px;
+    cursor: pointer;
+}
+
+.cbtn:hover:not(:disabled) { background: #0a4a53; }
+
+.cbtn:disabled { opacity: .6; cursor: not-allowed; }
+
+.cbox {
+    border-radius: 10px;
+    padding: 18px 20px;
+    margin-bottom: 24px;
+}
+
+.cerror {
+    background: #fef3f2;
+    border: 1px solid #fda29b;
+    color: #b42318;
+}
+
+.cerror ::deep p { color: #b42318 !important; }
+
+.csent {
+    background: oklch(.988 .006 83);
+    border: 1px solid oklch(.885 .013 75);
+    border-left: 3px solid #0e5c66;
+    padding: 24px 26px;
+}

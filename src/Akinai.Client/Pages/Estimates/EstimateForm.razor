@@ -8,6 +8,8 @@
 @inject ICall<CreateEstimate, Guid> CreateEstimateCall
 @inject ICall<UpdateEstimate> UpdateEstimateCall
 @inject ICall<DeleteEstimate> DeleteEstimateCall
+@inject ICall<GetSupportedLanguages, List<LanguageDto>> GetLanguagesCall
+@inject EntitlementState Entitlements
 
 <PageTitle>@(Id.HasValue ? "Edit Estimate" : "New Estimate") - Akinai</PageTitle>
 
@@ -57,6 +59,13 @@
                             <InputNumber id="validDays" @bind-Value="_model.ValidDays"
                                 class="form-control" />
                             <p class="mt-1 text-xs text-gray-500 dark:text-slate-400">@(_model.ValidDays > 0 ? $"Expires: {_model.EstimateDate.AddDays(_model.ValidDays):MMM dd, yyyy}" : "No expiry")</p>
+                        </div>
+
+                        @* Matches the invoice form: language is a decision about
+                           how the document goes out, and it pins once set. *@
+                        <div>
+                            <label for="language" class="block text-sm font-medium text-gray-700 dark:text-slate-300 mb-2">Language</label>
+                            <Select TValue="string" @bind-Value="_selectedLanguage" Options="@LanguageChoices()" />
                         </div>
                     </div>
                 </Card>
@@ -205,6 +214,25 @@
     private string? _errorMessage;
     private string? _estimateNumber;
     private List<PageHeader.BreadcrumbItem> _breadcrumbs = [];
+    private string _selectedLanguage = "";
+    private List<LanguageDto> _languages = [];
+
+    /// <summary>
+    /// Blank plus the languages this plan may use. The current selection is
+    /// always kept in the list, so an estimate pinned to a language the plan
+    /// has since lost still shows what it is rather than silently resetting.
+    /// </summary>
+    private List<SelectOption<string>> LanguageChoices()
+    {
+        var allowed = Entitlements.Current?.AllowedLanguages;
+        var selectable = allowed is { Count: > 0 }
+            ? _languages.Where(l => allowed.Contains(l.Code) || l.Code == _selectedLanguage)
+            : _languages;
+
+        return new List<SelectOption<string>> { new("", "Default for this client") }
+            .Concat(selectable.Select(l => new SelectOption<string>(l.Code, $"{l.Name} ({l.NativeName})")))
+            .ToList();
+    }
 
     private decimal Subtotal => _model.LineItems.Sum(i => i.Quantity * i.UnitPrice);
     private decimal TaxAmount => Subtotal * _model.TaxRate / 100;
@@ -225,12 +253,15 @@
             var clientsTask = GetClientsCall.Call(new GetClients { ActiveOnly = true, PageSize = 1000 });
             var productsTask = GetProductsCall.Call(new GetProducts { ActiveOnly = true, PageSize = 1000 });
             var templatesTask = GetTemplatesCall.Call(new GetInvoiceTemplates());
+            var languagesTask = GetLanguagesCall.Call(new GetSupportedLanguages());
 
-            await Task.WhenAll(clientsTask, productsTask, templatesTask);
+            await Task.WhenAll(clientsTask, productsTask, templatesTask, languagesTask);
+            await Entitlements.EnsureLoadedAsync();
 
             _clients = (await clientsTask)?.Items?.ToList() ?? [];
             _products = (await productsTask)?.Items?.ToList() ?? [];
             _templates = await templatesTask ?? [];
+            _languages = await languagesTask ?? [];
 
             if (Id.HasValue)
             {
@@ -238,6 +269,9 @@
                 if (estimate != null)
                 {
                     _estimateNumber = estimate.EstimateNumber;
+                    // The estimate's own stored choice, not the resolved
+                    // language — blank must stay blank so "inherit" survives.
+                    _selectedLanguage = estimate.EstimateLanguage ?? "";
                     _model = new EstimateFormModel
                     {
                         ClientId = estimate.ClientId.ToString(),
@@ -365,6 +399,7 @@
                     Notes = _model.Notes,
                     Terms = _model.Terms,
                     TemplateId = _model.TemplateId,
+                    Language = string.IsNullOrEmpty(_selectedLanguage) ? null : _selectedLanguage,
                     LineItems = updateLineItems
                 });
                 NavigationManager.NavigateTo($"estimates/{Id.Value}");
@@ -381,6 +416,7 @@
                     Notes = _model.Notes,
                     Terms = _model.Terms,
                     TemplateId = _model.TemplateId,
+                    Language = string.IsNullOrEmpty(_selectedLanguage) ? null : _selectedLanguage,
                     LineItems = lineItems
                 });
                 NavigationManager.NavigateTo($"estimates/{newId}");

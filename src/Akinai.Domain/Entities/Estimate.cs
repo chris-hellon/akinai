@@ -24,6 +24,16 @@ public class Estimate : AggregateRoot, IAuditableEntity
     public DateOnly? AcceptedDate { get; private set; }
     public DateOnly? RejectedDate { get; private set; }
 
+    /// <summary>
+    /// The language this estimate is written in.
+    ///
+    /// Null means "not decided here" — fall back to the client's override, then
+    /// the account default. Once set it pins, exactly as it does on an invoice:
+    /// an estimate a client has accepted is the basis of what they agreed to,
+    /// and changing an account default later must not restate it.
+    /// </summary>
+    public SupportedLanguage? Language { get; private set; }
+
     public Client Client { get; private set; } = null!;
     public Invoice? ConvertedInvoice { get; private set; }
     public InvoiceTemplate? Template { get; private set; }
@@ -47,10 +57,12 @@ public class Estimate : AggregateRoot, IAuditableEntity
         int validDays = 30,
         decimal taxRate = 0,
         string? notes = null,
-        string? terms = null)
+        string? terms = null,
+        SupportedLanguage? language = null)
     {
         return new Estimate
         {
+            Language = language,
             UserId = userId,
             EstimateNumber = estimateNumber,
             ClientId = clientId,
@@ -70,10 +82,13 @@ public class Estimate : AggregateRoot, IAuditableEntity
         int validDays,
         decimal taxRate,
         string? notes,
-        string? terms)
+        string? terms,
+        SupportedLanguage? language = null)
     {
         if (Status != EstimateStatus.Draft)
             throw new DomainException("Cannot modify a non-draft estimate");
+
+        Language = language;
 
         EstimateDate = estimateDate;
         ValidDays = validDays;

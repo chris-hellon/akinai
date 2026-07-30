@@ -7,7 +7,10 @@ using Microsoft.EntityFrameworkCore;
 
 namespace Akinai.Infrastructure.Handlers.Estimates;
 
-public class UpdateEstimateHandler(IDbContextFactory<ApplicationDbContext> dbFactory, ICurrentUserService currentUserService)
+public class UpdateEstimateHandler(
+    IDbContextFactory<ApplicationDbContext> dbFactory,
+    ICurrentUserService currentUserService,
+    IEntitlementService entitlementService)
     : IHandle<UpdateEstimate>
 {
     public async Task<HttpResult> Handle(UpdateEstimate request, CancellationToken cancellationToken)
@@ -24,12 +27,17 @@ public class UpdateEstimateHandler(IDbContextFactory<ApplicationDbContext> dbFac
         if (estimate == null)
             return HttpResult.NotFound();
 
+        var entitlements = await entitlementService.GetAsync(userId, cancellationToken);
+        if (!Invoices.InvoiceLanguageRequest.TryResolve(request.Language, entitlements, out var language))
+            return HttpResult.Forbidden();
+
         estimate.UpdateDetails(
             request.EstimateDate,
             request.ValidDays,
             request.TaxRate,
             request.Notes,
-            request.Terms);
+            request.Terms,
+            language);
 
         // Update template
         estimate.SetTemplate(request.TemplateId);

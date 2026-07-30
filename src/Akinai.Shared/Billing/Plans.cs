@@ -93,7 +93,15 @@ public static class Plans
         Estimates: true,
         CustomTemplates: true,
         RemoveBranding: true,
-        AiSpendLimitUsd: 1.00m,
+        // ~£1.00 at the time of writing. Denominated in USD because that is
+        // what the model providers bill in; the round number is the GBP side,
+        // so this will drift with the rate and is worth a look occasionally.
+        //
+        // Not a binding constraint for text features — summarising a timesheet
+        // on the cheapest tier costs about $0.0014, so this is roughly 950
+        // invoices a month. It is headroom for vision work (receipt capture),
+        // which is the only thing that could realistically consume it.
+        AiSpendLimitUsd: 1.33m,
         Highlights:
         [
             "Everything in Free, plus:",

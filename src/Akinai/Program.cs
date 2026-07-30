@@ -209,6 +209,30 @@ public class Program
         // Map EasyApi endpoints
         app.MapRequests();
 
+        // ---------------------------------------------------------------------
+        // Stripe webhook.
+        //
+        // Deliberately outside /api, so the authentication gate above does not
+        // apply — Stripe has no session and never will. Its authorisation is the
+        // signature on the payload, verified in StripeWebhookHandler against the
+        // signing secret. An unverified webhook would be a free upgrade for
+        // anyone who found the URL.
+        //
+        // The body is read raw: signature verification runs over the exact bytes
+        // Stripe sent, so anything that reparses or reserialises it breaks.
+        // ---------------------------------------------------------------------
+        app.MapPost("/webhooks/stripe", async (HttpRequest request, IServiceProvider services, CancellationToken ct) =>
+        {
+            var handler = services.GetService<Akinai.Infrastructure.Services.Billing.StripeWebhookHandler>();
+            if (handler is null) return Results.NotFound();   // Stripe not configured
+
+            using var reader = new StreamReader(request.Body);
+            var payload = await reader.ReadToEndAsync(ct);
+
+            var ok = await handler.HandleAsync(payload, request.Headers["Stripe-Signature"], ct);
+            return ok ? Results.Ok() : Results.BadRequest();
+        }).AllowAnonymous();
+
         // Real-time notifications hub
         app.MapHub<Infrastructure.Hubs.NotificationHub>("/hubs/notifications");
 

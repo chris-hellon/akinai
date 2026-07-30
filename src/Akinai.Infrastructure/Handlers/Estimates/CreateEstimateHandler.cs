@@ -31,6 +31,12 @@ public class CreateEstimateHandler(IDbContextFactory<ApplicationDbContext> dbFac
 
         var estimateNumber = GenerateEstimateNumber(lastEstimate?.EstimateNumber);
 
+        // Same gate as invoices: the picker hides languages the plan lacks,
+        // but a crafted request would otherwise buy a paid language for free
+        // and spend against the shared translation allowance.
+        if (!Invoices.InvoiceLanguageRequest.TryResolve(request.Language, entitlements, out var language))
+            return HttpResult<Guid>.Forbidden();
+
         var estimate = Estimate.Create(
             userId,
             estimateNumber,
@@ -40,7 +46,8 @@ public class CreateEstimateHandler(IDbContextFactory<ApplicationDbContext> dbFac
             request.ValidDays,
             request.TaxRate,
             request.Notes,
-            request.Terms);
+            request.Terms,
+            language);
 
         // Set template if provided
         if (request.TemplateId.HasValue)

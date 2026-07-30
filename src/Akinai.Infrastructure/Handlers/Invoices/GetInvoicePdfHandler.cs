@@ -6,6 +6,7 @@ using Akinai.Shared.Api.Invoices;
 using Akinai.Shared.Services;
 using Microsoft.AspNetCore.Http;
 using Microsoft.EntityFrameworkCore;
+using Microsoft.Extensions.Logging;
 
 namespace Akinai.Infrastructure.Handlers.Invoices;
 
@@ -16,7 +17,8 @@ public class GetInvoicePdfHandler(
     IExchangeRateService exchangeRates,
     IInvoiceTranslator translator,
     Services.Pdf.IHtmlPdfRenderer htmlRenderer,
-    IHttpContextAccessor httpContextAccessor)
+    IHttpContextAccessor httpContextAccessor,
+    ILogger<GetInvoicePdfHandler> logger)
     : IHandle<GetInvoicePdf, byte[]>
 {
     public async Task<HttpResult<byte[]>> Handle(GetInvoicePdf request, CancellationToken cancellationToken)
@@ -104,6 +106,15 @@ public class GetInvoicePdfHandler(
                     return HttpResult<byte[]>.Ok(rendered);
             }
         }
+
+        // Reaching here means the HTML render did not produce a PDF. Logged as a
+        // warning, not swallowed: the fallback is a safety net, and a fallback
+        // that fires on every invoice — as a TLS or launch failure would — is a
+        // bug hiding behind an old-looking PDF, which is exactly how this went
+        // unnoticed once.
+        logger.LogWarning(
+            "Invoice {InvoiceId}: HTML PDF render produced nothing (token set: {HasToken}); using the QuestPDF fallback.",
+            invoice.Id, invoice.PublicAccessToken is not null);
 
         // Fallback: the original QuestPDF generator. Kept because a missing or
         // un-launchable Chromium must not stop someone downloading an invoice —

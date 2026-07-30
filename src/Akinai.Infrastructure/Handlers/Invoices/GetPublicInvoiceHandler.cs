@@ -15,7 +15,8 @@ namespace Akinai.Infrastructure.Handlers.Invoices;
 public class GetPublicInvoiceHandler(IDbContextFactory<ApplicationDbContext> dbFactory,
     Services.IExchangeRateService exchangeRates,
     Shared.Services.IInvoiceTranslator translator,
-    Shared.Services.ICurrentUserService currentUserService)
+    Shared.Services.ICurrentUserService currentUserService,
+    Shared.Services.IEntitlementService entitlements)
     : IHandle<GetPublicInvoice, PublicInvoiceDto?>
 {
     public async Task<HttpResult<PublicInvoiceDto?>> Handle(GetPublicInvoice request, CancellationToken cancellationToken)
@@ -25,6 +26,7 @@ public class GetPublicInvoiceHandler(IDbContextFactory<ApplicationDbContext> dbF
         var invoice = await db.Invoices
             .Include(i => i.Client)
             .Include(i => i.Template)
+            .Include(i => i.ServiceLines)
             .FirstOrDefaultAsync(i => i.PublicAccessToken == request.Token, cancellationToken);
 
         if (invoice == null)
@@ -80,8 +82,13 @@ public class GetPublicInvoiceHandler(IDbContextFactory<ApplicationDbContext> dbF
         var taxAmount = subtotal * (invoice.TaxRate / 100);
         var total = subtotal + taxAmount;
 
-        // Build line items
-        var lineItems = timeEntries.Select(e =>
+        // Build line items. A saved summary replaces the per-entry rows — the
+        // entries still drive the subtotal above, they just stop being what the
+        // client reads. Translation below then treats a summarised description
+        // exactly as it treats a job name.
+        var lineItems = invoice.ServiceLines.Count > 0
+            ? ServiceLineProjection.ToLineItems(invoice.ServiceLines, invoice.Currency)
+            : timeEntries.Select(e =>
         {
             var projectName = e.Job.Project.Name;
             var description = e.Description ?? e.Job.Name;
@@ -215,30 +222,35 @@ public class GetPublicInvoiceHandler(IDbContextFactory<ApplicationDbContext> dbF
                 currencySettings.VietQrBankCode);
         }
 
+        // Linked template, or the owner's default when none is linked, so the
+        // client sees the document the owner styled rather than the built-in
+        // standard layout.
+        var template = await EffectiveTemplate.ResolveAsync(db, invoice.CreatedBy, invoice.Template, cancellationToken);
+
         // Map template to DTO
         InvoiceTemplateDto? templateDto = null;
-        if (invoice.Template != null)
+        if (template != null)
         {
             templateDto = new InvoiceTemplateDto(
-                invoice.Template.Id,
-                invoice.Template.Name,
-                invoice.Template.Description,
-                invoice.Template.IsDefault,
-                invoice.Template.IsSystem,
-                invoice.Template.TemplateType.ToString(),
-                invoice.Template.PrimaryColor,
-                invoice.Template.AccentColor,
-                invoice.Template.TextColor,
-                invoice.Template.BackgroundColor,
-                invoice.Template.ShowLogo,
-                invoice.Template.ShowPaymentQR,
-                invoice.Template.ShowBankDetails,
-                invoice.Template.ShowItemDescriptions,
-                invoice.Template.HeaderLayout.ToString(),
-                invoice.Template.ItemsLayout.ToString(),
-                invoice.Template.FooterLayout.ToString(),
-                invoice.Template.FontFamily,
-                invoice.Template.CustomCss);
+                template.Id,
+                template.Name,
+                template.Description,
+                template.IsDefault,
+                template.IsSystem,
+                template.TemplateType.ToString(),
+                template.PrimaryColor,
+                template.AccentColor,
+                template.TextColor,
+                template.BackgroundColor,
+                template.ShowLogo,
+                template.ShowPaymentQR,
+                template.ShowBankDetails,
+                template.ShowItemDescriptions,
+                template.HeaderLayout.ToString(),
+                template.ItemsLayout.ToString(),
+                template.FooterLayout.ToString(),
+                template.FontFamily,
+                template.CustomCss);
         }
 
         var result = new PublicInvoiceDto(
@@ -278,7 +290,8 @@ public class GetPublicInvoiceHandler(IDbContextFactory<ApplicationDbContext> dbF
             await Services.VndPaymentRate.GetAsync(exchangeRates, businessProfile?.DefaultCurrency, cancellationToken),
             currencyPaymentDto,
             templateDto,
-            language.ToString());
+            language.ToString(),
+            await DocumentBranding.ShowForAsync(entitlements, invoice.CreatedBy, cancellationToken));
 
         return HttpResult<PublicInvoiceDto?>.Ok(result);
     }

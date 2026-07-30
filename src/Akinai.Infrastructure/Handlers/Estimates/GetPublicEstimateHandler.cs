@@ -7,7 +7,10 @@ using Microsoft.EntityFrameworkCore;
 
 namespace Akinai.Infrastructure.Handlers.Estimates;
 
-public class GetPublicEstimateHandler(IDbContextFactory<ApplicationDbContext> dbFactory)
+public class GetPublicEstimateHandler(
+    IDbContextFactory<ApplicationDbContext> dbFactory,
+    Akinai.Shared.Services.IInvoiceTranslator translator,
+    Akinai.Shared.Services.IEntitlementService entitlements)
     : IHandle<GetPublicEstimate, PublicEstimateDto?>
 {
     public async Task<HttpResult<PublicEstimateDto?>> Handle(GetPublicEstimate request, CancellationToken cancellationToken)
@@ -35,6 +38,55 @@ public class GetPublicEstimateHandler(IDbContextFactory<ApplicationDbContext> db
             li.UnitPrice.Currency,
             li.Order,
             li.LineTotal.Amount)).ToList();
+
+        // --- Translation --------------------------------------------------
+        // Server-side, exactly as for invoices, so the estimate arrives in the
+        // client's language whether they open the page or the PDF renderer
+        // prints it. Fixed headings come from EstimateLabels in the renderer
+        // using the Language field below — no API call, no cost.
+        //
+        // Line descriptions, notes and terms are what the user typed, so those
+        // go through the translator. Terms in particular matter: an estimate a
+        // client accepts is the basis of what they agreed to, and terms they
+        // could not read are not terms they agreed to.
+        var language = await translator.ResolveForInvoiceAsync(
+            estimate.UserId, estimate.ClientId, ToShared(estimate.Language), cancellationToken);
+
+        var notes = estimate.Notes;
+        var terms = estimate.Terms;
+
+        if (language != Akinai.Shared.Enums.SupportedLanguage.English)
+        {
+            var texts = new Dictionary<string, string>();
+            for (var i = 0; i < lineItems.Count; i++)
+            {
+                if (!string.IsNullOrWhiteSpace(lineItems[i].Description))
+                    texts[$"li:{i}"] = lineItems[i].Description;
+            }
+            if (!string.IsNullOrWhiteSpace(notes)) texts["notes"] = notes;
+            if (!string.IsNullOrWhiteSpace(terms)) texts["terms"] = terms;
+
+            if (texts.Count > 0)
+            {
+                // One call for the whole estimate, deduplicated by content
+                // inside the translator. Anything untranslatable comes back as
+                // the original, so this cannot fail the render.
+                var translated = await translator.TranslateAsync(
+                    estimate.UserId, language, texts, cancellationToken);
+
+                for (var i = 0; i < lineItems.Count; i++)
+                {
+                    if (translated.TryGetValue($"li:{i}", out var description)
+                        && !string.IsNullOrWhiteSpace(description))
+                    {
+                        lineItems[i] = lineItems[i] with { Description = description };
+                    }
+                }
+
+                if (translated.TryGetValue("notes", out var n) && !string.IsNullOrWhiteSpace(n)) notes = n;
+                if (translated.TryGetValue("terms", out var t) && !string.IsNullOrWhiteSpace(t)) terms = t;
+            }
+        }
 
         // Build client address
         string? clientAddress = null;
@@ -67,8 +119,8 @@ public class GetPublicEstimateHandler(IDbContextFactory<ApplicationDbContext> db
             estimate.AcceptedDate,
             estimate.RejectedDate,
             estimate.Status.ToString(),
-            estimate.Notes,
-            estimate.Terms,
+            notes,
+            terms,
             lineItems,
             estimate.CalculateSubtotal().Amount,
             estimate.TaxRate,
@@ -92,8 +144,14 @@ public class GetPublicEstimateHandler(IDbContextFactory<ApplicationDbContext> db
             estimate.Template?.ShowLogo ?? true,
             estimate.Template?.HeaderLayout,
             estimate.Template?.ItemsLayout,
-            estimate.Template?.FooterLayout);
+            estimate.Template?.FooterLayout,
+            language.ToString(),
+            await Handlers.DocumentBranding.ShowForAsync(entitlements, estimate.UserId, cancellationToken));
 
         return HttpResult<PublicEstimateDto?>.Ok(dto);
     }
+
+    /// <summary>Domain enum to shared enum; both declare the same members in the same order.</summary>
+    private static Akinai.Shared.Enums.SupportedLanguage? ToShared(Domain.Enums.SupportedLanguage? language)
+        => language is null ? null : (Akinai.Shared.Enums.SupportedLanguage)(int)language.Value;
 }

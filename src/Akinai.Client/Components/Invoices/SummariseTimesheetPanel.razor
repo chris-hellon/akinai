@@ -1,0 +1,172 @@
+@using Akinai.Shared.Api.Invoices
+@using Akinai.Shared.Dtos.Invoices
+
+@inject ICall<SummariseTimesheet, TimesheetSummaryDto> SummariseCall
+@inject ICall<ClearInvoiceServiceLines> ClearCall
+@inject EntitlementState Entitlements
+
+@*
+    The sidebar entry point for summarising tracked time.
+
+    It only triggers and reports state. The proposal it fetches is handed up to
+    the page, which previews it on the real invoice — so what the user judges is
+    the actual document with its dates and layout, not a stand-in table. Nothing
+    is saved here; the page owns apply and cancel.
+*@
+
+@if (IsSummarised)
+{
+    <div class="rounded-lg border border-primary-200 dark:border-primary-800 bg-primary-50/60 dark:bg-primary-900/20 p-4 space-y-2">
+        <div class="text-sm font-medium text-gray-900 dark:text-slate-100">Summarised for the client</div>
+        <p class="text-xs text-gray-600 dark:text-slate-400">
+            The services section shows @LineCount @(LineCount == 1 ? "line" : "lines") instead of
+            every tracked entry. Your timesheet is unchanged.
+        </p>
+        <button @onclick="ClearAsync" disabled="@_isBusy"
+                class="text-xs font-medium text-primary-700 dark:text-primary-300 hover:underline disabled:opacity-50">
+            @(_isBusy ? "Working…" : "Show every entry again")
+        </button>
+    </div>
+}
+else if (CanOffer)
+{
+    @* Given prominence deliberately — this is a paid feature and the previous
+       text-link treatment made it easy to miss. A tinted panel, an icon and a
+       PRO tag mark it as something the plan unlocks. *@
+    <div class="rounded-xl border border-primary-200 dark:border-primary-800/60 bg-gradient-to-br from-primary-50 to-white dark:from-primary-900/25 dark:to-slate-800 p-4">
+        <div class="flex items-center gap-2 mb-2">
+            <div class="w-8 h-8 rounded-lg flex items-center justify-center bg-primary-100 dark:bg-primary-900/50 shrink-0">
+                <svg class="w-4 h-4 text-primary-600 dark:text-primary-300" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                    <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M4 6h16M4 12h8m-8 6h12" />
+                </svg>
+            </div>
+            <span class="text-sm font-semibold text-gray-900 dark:text-slate-100">Tidy up for the client</span>
+            <span class="ml-auto text-[10px] font-bold tracking-wider uppercase text-primary-700 dark:text-primary-300 bg-primary-100 dark:bg-primary-900/50 px-1.5 py-0.5 rounded">Pro</span>
+        </div>
+        <p class="text-xs text-gray-600 dark:text-slate-400 mb-3">
+            Turn @EntryCount tracked entries into a few readable lines. Preview it on the invoice — nothing saves until you approve.
+        </p>
+        <button @onclick="StartAsync" disabled="@_isBusy"
+                class="w-full inline-flex items-center justify-center gap-2 px-4 py-2.5 text-sm font-medium text-white rounded-lg brand-mark disabled:opacity-60 transition-all hover:shadow-md active:scale-[0.99]">
+            @if (_isBusy)
+            {
+                <div class="w-4 h-4 border-2 border-white/30 border-t-white rounded-full animate-spin"></div>
+                <span>Summarising…</span>
+            }
+            else
+            {
+                <svg class="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                    <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M5 3v4M3 5h4M6 17v4m-2-2h4m5-16l2.286 6.857L21 12l-5.714 2.143L13 21l-2.286-6.857L5 12l5.714-2.143L13 3z" />
+                </svg>
+                <span>Summarise for the client</span>
+            }
+        </button>
+    </div>
+}
+else if (ShowUpgradeHint)
+{
+    <p class="text-xs text-gray-400 dark:text-slate-500">
+        <a href="settings/billing" class="text-primary-600 dark:text-primary-400 hover:underline">Pro</a>
+        can summarise these @EntryCount entries into a few lines a client can read.
+    </p>
+}
+
+@if (_error is not null)
+{
+    <p class="text-xs text-amber-700 dark:text-amber-400 mt-2">@_error</p>
+}
+
+@code {
+    [Parameter, EditorRequired] public Guid InvoiceId { get; set; }
+
+    /// <summary>Draft invoices only — an issued one cannot have its lines rewritten.</summary>
+    [Parameter] public bool IsDraft { get; set; }
+
+    /// <summary>How many time entries the invoice bills.</summary>
+    [Parameter] public int EntryCount { get; set; }
+
+    /// <summary>Already summarised, so offer the undo instead.</summary>
+    [Parameter] public bool IsSummarised { get; set; }
+
+    /// <summary>Lines in the saved summary, for the wording above.</summary>
+    [Parameter] public int LineCount { get; set; }
+
+    /// <summary>A proposal was produced. The page previews it on the invoice.</summary>
+    [Parameter] public EventCallback<TimesheetSummaryDto> OnProposed { get; set; }
+
+    /// <summary>The summary was cleared. The page reloads.</summary>
+    [Parameter] public EventCallback OnCleared { get; set; }
+
+    private bool _isBusy;
+    private string? _error;
+
+    // Two entries is the least that can be usefully grouped; one would spend a
+    // call to produce the row it already had.
+    private bool HasEnoughToGroup => EntryCount >= 2;
+
+    private bool CanOffer => IsDraft && HasEnoughToGroup && (Entitlements.Current?.CanUseAi ?? false);
+
+    /// <summary>
+    /// Shown to accounts whose plan has no AI at all — never to a Pro account
+    /// that has merely spent this month's allowance, which is a different
+    /// message and comes back from the server.
+    /// </summary>
+    private bool ShowUpgradeHint =>
+        IsDraft && HasEnoughToGroup && !(Entitlements.Current?.HasAiFeatures ?? false);
+
+    protected override async Task OnInitializedAsync() => await Entitlements.EnsureLoadedAsync();
+
+    /// <summary>Fetches a proposal and hands it to the page to preview.</summary>
+    private async Task StartAsync()
+    {
+        _isBusy = true;
+        _error = null;
+
+        try
+        {
+            var summary = await SummariseCall.Call(new SummariseTimesheet
+            {
+                Id = InvoiceId,
+                Tone = Akinai.Shared.Ai.SummaryTone.Professional,
+            });
+
+            if (summary is null || !summary.Accepted)
+            {
+                // Every soft failure lands here: unconfigured, out of allowance,
+                // provider down, or a grouping that failed validation.
+                _error = summary?.Reason ?? "Could not produce a summary just now.";
+                return;
+            }
+
+            await OnProposed.InvokeAsync(summary);
+        }
+        catch (Exception ex)
+        {
+            _error = $"Could not summarise: {ex.Message}";
+        }
+        finally
+        {
+            _isBusy = false;
+        }
+    }
+
+    private async Task ClearAsync()
+    {
+        _isBusy = true;
+        _error = null;
+
+        try
+        {
+            await ClearCall.Call(new ClearInvoiceServiceLines { Id = InvoiceId });
+            await OnCleared.InvokeAsync();
+        }
+        catch (Exception ex)
+        {
+            _error = $"Could not restore the entries: {ex.Message}";
+        }
+        finally
+        {
+            _isBusy = false;
+        }
+    }
+}

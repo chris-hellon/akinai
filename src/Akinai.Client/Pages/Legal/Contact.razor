@@ -1,0 +1,178 @@
+@page "/contact"
+@layout LegalLayout
+@attribute [AllowAnonymous]
+
+@using System.ComponentModel.DataAnnotations
+@using Akinai.Shared.Api.Contact
+@inject ICall<SendContactMessage, ContactResultDto> SendContactCall
+
+<PageTitle>Contact — Akinai</PageTitle>
+
+<h1>Contact</h1>
+<p class="lgupdated">We read everything that comes in</p>
+
+<p class="lgintro">
+    Questions about the product, a bug you have hit, or something about your
+    account or billing — send it here and it reaches a person. If you would rather
+    use your own mail client, write to
+    <a href="mailto:@ContactEmail">@ContactEmail</a>.
+</p>
+
+@if (_sent)
+{
+    <div class="cbox csent">
+        <h2 style="margin-top:0">Message sent</h2>
+        <p>
+            Thanks — that has gone through. We usually reply within one working day.
+            Keep an eye on your spam folder if you have not heard from us in two.
+        </p>
+        <p style="margin-bottom:0">
+            <a href="">Back to the home page</a>
+        </p>
+    </div>
+}
+else
+{
+    <EditForm Model="@_model" OnValidSubmit="SubmitAsync" FormName="contact">
+        <DataAnnotationsValidator />
+
+        @if (_error is not null)
+        {
+            <div class="cbox cerror" role="alert">
+                <p style="margin:0">@_error</p>
+            </div>
+        }
+
+        <div class="cfield">
+            <label for="name">Your name</label>
+            <InputText id="name" @bind-Value="_model.Name" autocomplete="name" />
+            <ValidationMessage For="@(() => _model.Name)" />
+        </div>
+
+        <div class="cfield">
+            <label for="email">Email address</label>
+            <InputText id="email" type="email" @bind-Value="_model.Email" autocomplete="email" />
+            <ValidationMessage For="@(() => _model.Email)" />
+            <p class="chint">So we can reply. We will not add you to anything.</p>
+        </div>
+
+        <div class="cfield">
+            <label for="subject">Subject</label>
+            <InputText id="subject" @bind-Value="_model.Subject" />
+            <ValidationMessage For="@(() => _model.Subject)" />
+        </div>
+
+        <div class="cfield">
+            <label for="message">Message</label>
+            <InputTextArea id="message" rows="8" @bind-Value="_model.Message" />
+            <ValidationMessage For="@(() => _model.Message)" />
+            <p class="chint">@_model.Message?.Length ?? 0 / 5000 characters</p>
+        </div>
+
+        @* Honeypot. Hidden from people, tempting to bots that fill every input.
+           aria-hidden and tabindex keep it away from screen readers and the tab
+           order, so it is invisible to anyone using the form properly. *@
+        <div class="choney" aria-hidden="true">
+            <label for="website">Website</label>
+            <InputText id="website" @bind-Value="_model.Website" tabindex="-1" autocomplete="off" />
+        </div>
+
+        <button type="submit" class="cbtn" disabled="@_isSending">
+            @(_isSending ? "Sending…" : "Send message")
+        </button>
+    </EditForm>
+
+    <h2>Other ways to reach us</h2>
+    <div class="lgtable-wrap">
+        <table>
+            <thead>
+                <tr><th>About</th><th>Where</th></tr>
+            </thead>
+            <tbody>
+                <tr>
+                    <td>Anything at all</td>
+                    <td><a href="mailto:@ContactEmail">@ContactEmail</a></td>
+                </tr>
+                <tr>
+                    <td>Your data — access, correction or deletion</td>
+                    <td>The form above, or see the <a href="privacy">privacy policy</a></td>
+                </tr>
+                <tr>
+                    <td>Billing and subscriptions</td>
+                    <td>Settings → Billing when signed in, or the form above</td>
+                </tr>
+            </tbody>
+        </table>
+    </div>
+
+    <p>
+        A note on what we cannot help with: we do not give tax or accounting advice,
+        and we cannot tell you whether an invoice meets the rules where you or your
+        client are based. See the <a href="terms">terms</a> for what that means.
+    </p>
+}
+
+@code {
+    private const string ContactEmail = "hello@akinaiapp.com";
+
+    private readonly ContactModel _model = new();
+    private bool _isSending;
+    private bool _sent;
+    private string? _error;
+
+    private async Task SubmitAsync()
+    {
+        _isSending = true;
+        _error = null;
+
+        try
+        {
+            var result = await SendContactCall.Call(new SendContactMessage
+            {
+                Name = _model.Name,
+                Email = _model.Email,
+                Subject = _model.Subject,
+                Message = _model.Message,
+                Website = _model.Website,
+            });
+
+            if (result?.Sent == true)
+                _sent = true;
+            else
+                _error = result?.Error ?? "Sorry — we couldn't send that. Please try again.";
+        }
+        catch
+        {
+            // Anything that reaches here is ours, not theirs. Give them the
+            // direct address so a broken form is not a dead end.
+            _error = $"Sorry — we couldn't send that. Please email {ContactEmail} directly.";
+        }
+        finally
+        {
+            _isSending = false;
+        }
+    }
+
+    private sealed class ContactModel
+    {
+        [Required(ErrorMessage = "Please tell us your name.")]
+        [StringLength(200)]
+        public string Name { get; set; } = string.Empty;
+
+        [Required(ErrorMessage = "We need an email address to reply to.")]
+        [EmailAddress(ErrorMessage = "That email address doesn't look right.")]
+        [StringLength(320)]
+        public string Email { get; set; } = string.Empty;
+
+        [Required(ErrorMessage = "Please give your message a subject.")]
+        [StringLength(200)]
+        public string Subject { get; set; } = string.Empty;
+
+        [Required(ErrorMessage = "Please write a message.")]
+        [StringLength(5000, ErrorMessage = "Please keep your message under 5000 characters.")]
+        public string Message { get; set; } = string.Empty;
+
+        /// <summary>Honeypot — see the markup. Never validated, never displayed.</summary>
+        public string Website { get; set; } = string.Empty;
+    }
+}

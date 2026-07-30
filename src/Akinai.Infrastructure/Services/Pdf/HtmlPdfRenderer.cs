@@ -123,10 +123,16 @@ public sealed class HtmlPdfRenderer(ILogger<HtmlPdfRenderer> logger) : IHtmlPdfR
             _browser = await Puppeteer.LaunchAsync(new LaunchOptions
             {
                 Headless = true,
+                // The renderer only ever loads our own print pages over
+                // loopback. In development those are served over HTTPS with a
+                // self-signed cert issued for "localhost" — which Chromium
+                // rejects when the page is fetched by 127.0.0.1, failing the
+                // render and silently dropping every PDF to the QuestPDF
+                // fallback. Accepting insecure certs fixes that; it is safe
+                // precisely because no user-supplied URL is ever loaded here.
+                AcceptInsecureCerts = true,
                 // --no-sandbox is required in most containers, which run as a
                 // non-root user without the kernel namespaces the sandbox needs.
-                // Safe here because the only pages loaded are our own, over
-                // loopback, never user-supplied URLs.
                 Args = ["--no-sandbox", "--disable-dev-shm-usage", "--font-render-hinting=none"],
             });
 

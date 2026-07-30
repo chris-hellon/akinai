@@ -34,4 +34,9 @@ public record EstimateDetailDto(
     DateTime CreatedAt,
     DateTime? ModifiedAt,
     Guid? TemplateId = null,
-    InvoiceTemplateDto? Template = null);
+    InvoiceTemplateDto? Template = null,
+    /// <summary>
+    /// The language pinned on this estimate, or null to inherit. Mirrors
+    /// InvoiceDetailDto.InvoiceLanguage so the two edit forms behave alike.
+    /// </summary>
+    string? EstimateLanguage = null);

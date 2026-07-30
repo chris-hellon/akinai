@@ -10,7 +10,10 @@
 @inject ICall<GetBusinessLogo, byte[]> GetBusinessLogoCall
 @inject ICall<GetCurrencyPaymentSettings, CurrencyPaymentSettingsDto> GetCurrencyPaymentSettingsCall
 @inject ICall<GetInvoiceBankTransactions, List<BankTransactionDto>> GetInvoiceBankTransactionsCall
+@inject ICall<SaveInvoiceServiceLines> SaveServiceLinesCall
+@inject ICall<SummariseTimesheet, TimesheetSummaryDto> SummariseCall
 @inject IJSRuntime JS
+@inject EntitlementState Entitlements
 
 <PageTitle>@(_invoice != null ? _invoice.InvoiceNumber : "Invoice") - Akinai</PageTitle>
 
@@ -104,12 +107,64 @@
         <div class="grid grid-cols-1 lg:grid-cols-3 gap-6">
             <!-- Main Content - Invoice View -->
             <div class="lg:col-span-2">
+                @* Preview banner. While previewing, the invoice below renders the
+                   proposed summary rather than the saved rows, so the user judges
+                   the real document — dates and all — before anything is written.
+                   Editing a description here updates the invoice live. *@
+                @if (IsPreviewing)
+                {
+                    <div class="mb-4 rounded-lg border border-primary-300 dark:border-primary-700 bg-primary-50 dark:bg-primary-900/25 p-4 space-y-3">
+                        <div class="flex items-start justify-between gap-3">
+                            <div>
+                                <div class="text-sm font-semibold text-gray-900 dark:text-slate-100">Preview — not saved</div>
+                                <p class="text-xs text-gray-600 dark:text-slate-400 mt-0.5">
+                                    This is how the invoice below will read. @_previewDescriptions.Count lines in place of @_proposal!.OriginalRowCount tracked rows. The total is unchanged.
+                                </p>
+                            </div>
+                            <div class="flex gap-2 shrink-0">
+                                <button @onclick="CancelPreview" disabled="@_isApplying"
+                                        class="px-3 py-1.5 text-xs font-medium text-gray-700 dark:text-slate-300 bg-white dark:bg-slate-700 border border-gray-200 dark:border-slate-600 rounded-lg hover:bg-gray-50 dark:hover:bg-slate-600 disabled:opacity-50">
+                                    Cancel
+                                </button>
+                                <button @onclick="ApplyPreview" disabled="@(_isApplying || _previewDescriptions.Any(string.IsNullOrWhiteSpace))"
+                                        class="px-3 py-1.5 text-xs font-medium text-white rounded-lg brand-mark disabled:opacity-50">
+                                    @(_isApplying ? "Saving…" : "Save to invoice")
+                                </button>
+                            </div>
+                        </div>
+                        <div class="space-y-2">
+                            @for (var i = 0; i < _previewDescriptions.Count; i++)
+                            {
+                                var index = i;
+                                <input @bind="_previewDescriptions[index]" @bind:event="oninput" @bind:after="RebuildPreview"
+                                       class="w-full text-sm rounded-lg border border-gray-200 dark:border-slate-600 bg-white dark:bg-slate-800 px-3 py-2 text-gray-900 dark:text-slate-100 focus:outline-none focus:ring-2 focus:ring-primary-500/30" />
+                            }
+                        </div>
+
+                        @* Tone: pick a voice and regenerate to see it. Each is a
+                           fresh call, so the button says so. *@
+                        <div class="flex flex-wrap items-center gap-2 pt-1">
+                            <span class="text-xs text-gray-500 dark:text-slate-400 mr-1">Tone:</span>
+                            @foreach (var tone in Akinai.Shared.Ai.SummaryTone.All)
+                            {
+                                var t = tone;
+                                <button type="button" @onclick="() => RegenerateAsync(t)" disabled="@_isApplying"
+                                        class="px-2.5 py-1 text-xs rounded-full border transition-colors disabled:opacity-50 @(t == _previewTone
+                                            ? "bg-primary-600 border-primary-600 text-white"
+                                            : "border-gray-200 dark:border-slate-600 text-gray-600 dark:text-slate-300 hover:border-primary-400")">
+                                    @t
+                                </button>
+                            }
+                        </div>
+                    </div>
+                }
                 <div class="bg-white dark:bg-slate-800 rounded-lg shadow-xl border border-gray-100 dark:border-slate-700 overflow-hidden">
                     <InvoiceViewContent
                         InvoiceNumber="@_invoice.InvoiceNumber"
                         Status="@_invoice.Status"
                         Currency="@_invoice.Currency"
                         Language="@_invoice.Language"
+                        ShowBranding="@ShowBranding"
                         IssueDate="@_invoice.IssueDate"
                         DueDate="@_invoice.DueDate"
                         PaidDate="@_invoice.PaidDate"
@@ -129,7 +184,7 @@
                         TaxAmount="@_invoice.TaxAmount"
                         Total="@_invoice.Total"
                         Notes="@_invoice.Notes"
-                        LineItems="@_invoice.LineItems"
+                        LineItems="@(_previewLines ?? _invoice.LineItems)"
                         ExpenseLineItems="@_invoice.ExpenseLineItems"
                         ProductLineItems="@_invoice.ProductLineItems"
                         PrimaryColor="@PrimaryColor"
@@ -255,6 +310,28 @@
                     </Card>
                 }
 
+                @* Summarising sits above the other actions because it changes
+                   what the document says, where the rest only move or send it.
+
+                   Only shown when the panel would actually offer something: a
+                   draft can be summarised, and a summary already applied can be
+                   undone. An issued, unsummarised invoice has neither, so the
+                   card would otherwise render empty — which is what it did. *@
+                @* Hidden while previewing — the preview banner over the invoice
+                   is doing the work, and the sidebar trigger would be redundant. *@
+                @if (!IsPreviewing && _invoice.TimeEntryCount > 0 && (_invoice.Status == "Draft" || _invoice.IsSummarised))
+                {
+                    <Card Title="Services">
+                        <SummariseTimesheetPanel InvoiceId="@Id"
+                                                 IsDraft="@(_invoice.Status == "Draft")"
+                                                 EntryCount="@_invoice.TimeEntryCount"
+                                                 IsSummarised="@_invoice.IsSummarised"
+                                                 LineCount="@(_invoice.LineItems?.Count ?? 0)"
+                                                 OnProposed="OnSummaryProposed"
+                                                 OnCleared="LoadData" />
+                    </Card>
+                }
+
                 <!-- Actions Card -->
                 <Card Title="Actions">
                     <div class="space-y-3">
@@ -296,10 +373,32 @@
 <ErrorAlert Message="@_errorMessage" />
 
 @code {
+
+    /// <summary>
+    /// Whether the preview shows the Akinai footer line.
+    ///
+    /// Deliberately not EntitlementState.Allows, which fails open: an
+    /// unresolved plan here would hide the branding and show the owner a
+    /// preview their client will not get. Unknown means show.
+    /// </summary>
+    private bool ShowBranding => !(Entitlements.Current?.RemoveBranding ?? false);
     [Parameter]
     public Guid Id { get; set; }
 
     private InvoiceDetailDto? _invoice;
+
+    // --- Summary preview -------------------------------------------------
+    // A proposal being reviewed. While set, the invoice above renders these
+    // lines instead of the saved ones, and nothing is written until Save.
+    private TimesheetSummaryDto? _proposal;
+    private List<InvoiceLineItemDto>? _previewLines;
+    private List<string> _previewDescriptions = [];
+    private List<Guid> _previewKeys = [];
+    private string _previewTone = Akinai.Shared.Ai.SummaryTone.Professional;
+    private bool _isApplying;
+
+    private bool IsPreviewing => _proposal is not null;
+
     private List<BankTransactionDto> _bankPayments = new();
     private BusinessProfileDto? _businessProfile;
     private byte[]? _businessLogo;
@@ -329,6 +428,10 @@
 
     protected override async Task OnInitializedAsync()
     {
+        // Needed before the preview renders, or the owner briefly sees a
+        // branding line their plan has removed.
+        await Entitlements.EnsureLoadedAsync();
+
         _breadcrumbs =
         [
             new PageHeader.BreadcrumbItem("Time & Billing", "/time-billing"),
@@ -378,6 +481,141 @@
         finally
         {
             _isLoading = false;
+        }
+    }
+
+    // --- Summary preview -------------------------------------------------
+
+    /// <summary>
+    /// A proposal came back from the summariser. Enter preview: the invoice
+    /// above now renders these lines. Nothing is saved yet.
+    /// </summary>
+    private void OnSummaryProposed(TimesheetSummaryDto summary)
+    {
+        _previewTone = Akinai.Shared.Ai.SummaryTone.Professional;
+        ApplyProposal(summary);
+    }
+
+    /// <summary>Loads a proposal into the preview, resetting editable state.</summary>
+    private void ApplyProposal(TimesheetSummaryDto summary)
+    {
+        _proposal = summary;
+        _previewDescriptions = summary.Lines.Select(l => l.Description).ToList();
+        // Stable keys so editing a description does not remount every row.
+        _previewKeys = summary.Lines.Select(_ => Guid.NewGuid()).ToList();
+        RebuildPreview();
+    }
+
+    /// <summary>
+    /// Re-runs the summariser in a different tone and replaces the preview.
+    ///
+    /// A fresh model call — grouping may shift with the tone, so the entry ids
+    /// are taken from the new proposal, never carried over. Any wording the user
+    /// had edited is discarded, which is the point: they asked for a new voice.
+    /// </summary>
+    private async Task RegenerateAsync(string tone)
+    {
+        if (_isApplying || tone == _previewTone) return;
+
+        _isApplying = true;
+        _errorMessage = null;
+
+        try
+        {
+            var summary = await SummariseCall.Call(new SummariseTimesheet { Id = Id, Tone = tone });
+
+            if (summary is { Accepted: true })
+            {
+                _previewTone = tone;
+                ApplyProposal(summary);
+            }
+            else
+            {
+                _errorMessage = summary?.Reason ?? "Could not regenerate the summary.";
+            }
+        }
+        catch (Exception ex)
+        {
+            _errorMessage = $"Could not regenerate: {ex.Message}";
+        }
+        finally
+        {
+            _isApplying = false;
+        }
+    }
+
+    /// <summary>
+    /// Rebuilds the previewed line items from the proposal and the current
+    /// (possibly edited) descriptions.
+    ///
+    /// This mirrors the server's ServiceLineProjection exactly — description in
+    /// the job-name slot, blank project and date, the blended rate — so the
+    /// preview renders identically to what a save will produce. The numbers are
+    /// the proposal's, which the server already summed from the entries; editing
+    /// wording cannot touch them.
+    /// </summary>
+    private void RebuildPreview()
+    {
+        if (_proposal is null) { _previewLines = null; return; }
+
+        _previewLines = _proposal.Lines.Select((l, i) => new InvoiceLineItemDto(
+            _previewKeys[i],
+            Guid.Empty,
+            _previewDescriptions[i],   // JobName — the column the table renders
+            string.Empty,              // ProjectName — a group spans projects
+            null,                      // SectionName
+            null,                      // Date — a group spans dates
+            _previewDescriptions[i],
+            l.Hours,
+            l.Hours == 0 ? 0 : l.Amount / l.Hours,
+            l.Amount,
+            _invoice!.Currency)).ToList();
+    }
+
+    private void CancelPreview()
+    {
+        _proposal = null;
+        _previewLines = null;
+        _previewDescriptions = [];
+        _previewKeys = [];
+    }
+
+    /// <summary>
+    /// Persists the previewed summary. Only wording and grouping are sent; the
+    /// server re-derives and re-checks every number, so nothing the user did in
+    /// the preview can move the total.
+    /// </summary>
+    private async Task ApplyPreview()
+    {
+        if (_proposal is null || _previewDescriptions.Any(string.IsNullOrWhiteSpace)) return;
+
+        _isApplying = true;
+        _errorMessage = null;
+
+        try
+        {
+            await SaveServiceLinesCall.Call(new SaveInvoiceServiceLines
+            {
+                Id = Id,
+                Lines = _proposal.Lines
+                    .Select((l, i) => new ServiceLineInput
+                    {
+                        Description = _previewDescriptions[i].Trim(),
+                        TimeEntryIds = l.TimeEntryIds,
+                    })
+                    .ToList(),
+            });
+
+            CancelPreview();
+            await LoadData();
+        }
+        catch (Exception ex)
+        {
+            _errorMessage = $"Could not save the summary: {ex.Message}";
+        }
+        finally
+        {
+            _isApplying = false;
         }
     }
 

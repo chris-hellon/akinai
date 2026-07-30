@@ -23,21 +23,6 @@ namespace Akinai.Infrastructure.Data.Migrations
 
             SqlServerModelBuilderExtensions.UseIdentityColumns(modelBuilder);
 
-            modelBuilder.Entity("InvoiceRecurringInvoice", b =>
-                {
-                    b.Property<Guid>("GeneratedInvoicesId")
-                        .HasColumnType("uniqueidentifier");
-
-                    b.Property<Guid>("RecurringInvoiceId")
-                        .HasColumnType("uniqueidentifier");
-
-                    b.HasKey("GeneratedInvoicesId", "RecurringInvoiceId");
-
-                    b.HasIndex("RecurringInvoiceId");
-
-                    b.ToTable("InvoiceRecurringInvoice", "App");
-                });
-
             modelBuilder.Entity("Akinai.Domain.Entities.AiUsage", b =>
                 {
                     b.Property<Guid>("Id")
@@ -731,6 +716,10 @@ namespace Akinai.Infrastructure.Data.Migrations
                     b.Property<DateOnly?>("ExpiryDate")
                         .HasColumnType("date");
 
+                    b.Property<string>("Language")
+                        .HasMaxLength(20)
+                        .HasColumnType("nvarchar(20)");
+
                     b.Property<DateTime?>("ModifiedAt")
                         .HasColumnType("datetime2");
 
@@ -1093,6 +1082,38 @@ namespace Akinai.Infrastructure.Data.Migrations
                     b.HasIndex("ProductId");
 
                     b.ToTable("InvoiceLineItems", "App");
+                });
+
+            modelBuilder.Entity("Akinai.Domain.Entities.InvoiceServiceLine", b =>
+                {
+                    b.Property<Guid>("Id")
+                        .ValueGeneratedOnAdd()
+                        .HasColumnType("uniqueidentifier");
+
+                    b.Property<decimal>("Amount")
+                        .HasPrecision(18, 2)
+                        .HasColumnType("decimal(18,2)");
+
+                    b.Property<string>("Description")
+                        .IsRequired()
+                        .HasMaxLength(500)
+                        .HasColumnType("nvarchar(500)");
+
+                    b.Property<decimal>("Hours")
+                        .HasPrecision(18, 2)
+                        .HasColumnType("decimal(18,2)");
+
+                    b.Property<Guid>("InvoiceId")
+                        .HasColumnType("uniqueidentifier");
+
+                    b.Property<int>("Order")
+                        .HasColumnType("int");
+
+                    b.HasKey("Id");
+
+                    b.HasIndex("InvoiceId");
+
+                    b.ToTable("InvoiceServiceLines", "App");
                 });
 
             modelBuilder.Entity("Akinai.Domain.Entities.InvoiceTemplate", b =>
@@ -2190,6 +2211,21 @@ namespace Akinai.Infrastructure.Data.Migrations
                     b.ToTable("Users", "Identity");
                 });
 
+            modelBuilder.Entity("InvoiceRecurringInvoice", b =>
+                {
+                    b.Property<Guid>("GeneratedInvoicesId")
+                        .HasColumnType("uniqueidentifier");
+
+                    b.Property<Guid>("RecurringInvoiceId")
+                        .HasColumnType("uniqueidentifier");
+
+                    b.HasKey("GeneratedInvoicesId", "RecurringInvoiceId");
+
+                    b.HasIndex("RecurringInvoiceId");
+
+                    b.ToTable("InvoiceRecurringInvoice", "App");
+                });
+
             modelBuilder.Entity("Microsoft.AspNetCore.Identity.IdentityRole", b =>
                 {
                     b.Property<string>("Id")
@@ -2342,21 +2378,6 @@ namespace Akinai.Infrastructure.Data.Migrations
                     b.HasKey("UserId", "LoginProvider", "Name");
 
                     b.ToTable("UserTokens", "Identity");
-                });
-
-            modelBuilder.Entity("InvoiceRecurringInvoice", b =>
-                {
-                    b.HasOne("Akinai.Domain.Entities.Invoice", null)
-                        .WithMany()
-                        .HasForeignKey("GeneratedInvoicesId")
-                        .OnDelete(DeleteBehavior.Cascade)
-                        .IsRequired();
-
-                    b.HasOne("Akinai.Domain.Entities.RecurringInvoice", null)
-                        .WithMany()
-                        .HasForeignKey("RecurringInvoiceId")
-                        .OnDelete(DeleteBehavior.Cascade)
-                        .IsRequired();
                 });
 
             modelBuilder.Entity("Akinai.Domain.Entities.AiUsage", b =>
@@ -2865,6 +2886,17 @@ namespace Akinai.Infrastructure.Data.Migrations
                         .IsRequired();
                 });
 
+            modelBuilder.Entity("Akinai.Domain.Entities.InvoiceServiceLine", b =>
+                {
+                    b.HasOne("Akinai.Domain.Entities.Invoice", "Invoice")
+                        .WithMany("ServiceLines")
+                        .HasForeignKey("InvoiceId")
+                        .OnDelete(DeleteBehavior.Cascade)
+                        .IsRequired();
+
+                    b.Navigation("Invoice");
+                });
+
             modelBuilder.Entity("Akinai.Domain.Entities.InvoiceTemplate", b =>
                 {
                     b.HasOne("Akinai.Infrastructure.Data.ApplicationUser", null)
@@ -3204,6 +3236,21 @@ namespace Akinai.Infrastructure.Data.Migrations
                         .IsRequired();
                 });
 
+            modelBuilder.Entity("InvoiceRecurringInvoice", b =>
+                {
+                    b.HasOne("Akinai.Domain.Entities.Invoice", null)
+                        .WithMany()
+                        .HasForeignKey("GeneratedInvoicesId")
+                        .OnDelete(DeleteBehavior.Cascade)
+                        .IsRequired();
+
+                    b.HasOne("Akinai.Domain.Entities.RecurringInvoice", null)
+                        .WithMany()
+                        .HasForeignKey("RecurringInvoiceId")
+                        .OnDelete(DeleteBehavior.Cascade)
+                        .IsRequired();
+                });
+
             modelBuilder.Entity("Microsoft.AspNetCore.Identity.IdentityRoleClaim<string>", b =>
                 {
                     b.HasOne("Microsoft.AspNetCore.Identity.IdentityRole", null)
@@ -3319,6 +3366,8 @@ namespace Akinai.Infrastructure.Data.Migrations
                     b.Navigation("CurrencyTotals");
 
                     b.Navigation("LineItems");
+
+                    b.Navigation("ServiceLines");
 
                     b.Navigation("TimeEntries");
                 });

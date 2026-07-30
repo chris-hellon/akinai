@@ -95,7 +95,8 @@ public class GetEstimateHandler(IDbContextFactory<ApplicationDbContext> dbFactor
             estimate.CreatedAt,
             estimate.ModifiedAt,
             estimate.TemplateId,
-            templateDto);
+            templateDto,
+            estimate.Language?.ToString());
 
         return HttpResult<EstimateDetailDto?>.Ok(dto);
     }

@@ -37,6 +37,48 @@
             <a href="settings/billing" class="btn-secondary text-xs inline-block">Back to billing</a>
         </div>
     }
+    else if (Paid)
+    {
+        @* Back from the provider's hosted checkout. The payment is confirmed by
+           their signed webhook, not by this redirect — so this page reports and
+           waits, and never offers a button that would grant the plan. *@
+        <div class="bg-white dark:bg-[#1b1612] rounded-2xl border border-gray-200 dark:border-[#2f2924] p-6 space-y-6 text-center">
+            <div class="mx-auto w-14 h-14 rounded-lg flex items-center justify-center brand-mark">
+                <svg class="w-7 h-7 text-white" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                    <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M5 13l4 4L19 7" />
+                </svg>
+            </div>
+
+            @if (_activated)
+            {
+                <div>
+                    <h1 class="text-2xl font-bold text-gray-900 dark:text-slate-100 tracking-tight">You're on @(_session?.PlanName ?? "Pro")</h1>
+                    <p class="mt-2 text-sm text-gray-500 dark:text-slate-400">Payment received and your plan is active.</p>
+                </div>
+                <a href="settings/billing" class="inline-flex items-center justify-center px-5 py-2.5 text-sm font-medium text-white rounded-xl brand-mark">Go to billing</a>
+            }
+            else
+            {
+                <div>
+                    <h1 class="text-2xl font-bold text-gray-900 dark:text-slate-100 tracking-tight">Payment received</h1>
+                    <p class="mt-2 text-sm text-gray-500 dark:text-slate-400">
+                        Confirming with your payment provider — this usually takes a few seconds.
+                    </p>
+                </div>
+                <div class="flex items-center justify-center gap-2 text-sm text-gray-500 dark:text-slate-400">
+                    <span class="w-4 h-4 border-2 border-gray-300 border-t-primary-600 rounded-full animate-spin"></span>
+                    <span>Activating your plan…</span>
+                </div>
+                @if (_confirmTimedOut)
+                {
+                    <p class="text-xs text-amber-700 dark:text-amber-500">
+                        This is taking longer than expected. Your payment went through — refresh in a moment,
+                        or check the billing page.
+                    </p>
+                }
+            }
+        </div>
+    }
     else
     {
         <div class="bg-white dark:bg-[#1b1612] rounded-2xl border border-gray-200 dark:border-[#2f2924] p-6 space-y-6">
@@ -110,6 +152,13 @@
 @code {
     [Parameter] public Guid SessionId { get; set; }
 
+    /// <summary>Set by the provider's success URL. Means "they paid", not "it is active".</summary>
+    [SupplyParameterFromQuery(Name = "paid")] private string? PaidFlag { get; set; }
+    private bool Paid => PaidFlag == "1";
+
+    private bool _activated;
+    private bool _confirmTimedOut;
+
     private CheckoutSessionDto? _session;
     private bool _isLoading = true;
     private bool _isBusy;
@@ -127,6 +176,26 @@
             _session = null;
         }
         _isLoading = false;
+
+        // The webhook lands independently of this page, so poll until the plan
+        // flips rather than asking the user to refresh. Bounded — if it has not
+        // arrived in ~20s something is wrong and saying so beats spinning forever.
+        if (Paid)
+        {
+            for (var attempt = 0; attempt < 10 && !_activated; attempt++)
+            {
+                await Entitlements.ReloadAsync();
+                if (Entitlements.Current?.IsPaid == true)
+                {
+                    _activated = true;
+                    break;
+                }
+                await Task.Delay(2000);
+                StateHasChanged();
+            }
+            _confirmTimedOut = !_activated;
+            StateHasChanged();
+        }
     }
 
     private async Task PayAsync()

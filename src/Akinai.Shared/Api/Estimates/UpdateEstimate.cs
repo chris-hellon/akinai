@@ -26,6 +26,14 @@ public class UpdateEstimate : IPut
     [BodyParam]
     public Guid? TemplateId { get; init; }
 
+
+    /// <summary>
+    /// Language for this estimate, as a <c>SupportedLanguage</c> name. Null
+    /// means inherit from the client override, then the account default.
+    /// </summary>
+    [BodyParam]
+    public string? Language { get; init; }
+
     [BodyParam]
     public List<UpdateEstimateLineItem> LineItems { get; init; } = [];
 }

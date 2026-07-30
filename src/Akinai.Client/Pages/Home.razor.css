@@ -166,7 +166,12 @@ a{color:var(--shu);text-decoration:none}a:hover{color:var(--shu2)}
 .cta .cseal{position:relative;margin:0 auto;width:60px;height:60px;border:2.5px solid rgba(247,243,234,.55);border-radius:10px;display:flex;align-items:center;justify-content:center;font-family:var(--serif);font-weight:800;font-size:32px;color:#f7f3ea;transform:rotate(-6deg);opacity:.95}
 .cta-h{font-family:var(--serif);font-weight:700;font-size:32px;line-height:1.3;color:#fff;margin:0 auto;max-width:640px}
 .cta-p{font-size:16px;color:rgba(255,255,255,.78);margin:16px auto 0;max-width:500px}
-.ft{display:flex;align-items:center;justify-content:space-between;padding:30px 46px;border-top:1px solid var(--line)}
+.ft{display:flex;align-items:center;justify-content:space-between;gap:18px;flex-wrap:wrap;padding:30px 46px;border-top:1px solid var(--line)}
+/* Legal links sit between the mark and the copyright, so the footer reads
+   left-to-right as who we are, what you can read, and the notice. */
+.ftlinks{display:flex;gap:18px}
+.ftlinks a{font-size:13px;color:var(--ink2);text-decoration:none}
+.ftlinks a:hover{color:var(--ink);text-decoration:underline}
 .ts{font-family:var(--mono);font-size:12px;color:var(--ink3);letter-spacing:.03em}
 .divk{display:flex;align-items:center;justify-content:center;gap:16px;padding:6px 0}
 .divk .dl{height:1px;width:60px;background:var(--line)}
@@ -295,7 +300,7 @@ a{color:var(--shu);text-decoration:none}a:hover{color:var(--shu2)}
     .fsec{grid-template-columns:1fr;gap:32px}
     .spec .si{padding:0 16px}
     .tate{display:none}
-    .ft{padding:24px 22px}
+    .ft{padding:24px 22px;flex-direction:column;align-items:flex-start;gap:14px}
 }
 
 /* narrow phones — the bar has to hold burger + wordmark + CTA */
@@ -319,7 +324,10 @@ a{color:var(--shu);text-decoration:none}a:hover{color:var(--shu2)}
 .pcard{display:flex;flex-direction:column;flex:1 1 280px;max-width:340px;padding:28px 26px;
   border:1px solid var(--line);border-radius:14px;background:var(--paper);position:relative}
 .pcard-hl{border-color:var(--shu);box-shadow:0 1px 3px rgba(16,24,40,.06)}
-.pbadge{position:absolute;top:-11px;left:26px;padding:3px 10px;border-radius:999px;
+/* Named distinctly: .pbadge was already taken by the inline document badges
+   above, and redefining it dragged them out of flow and under the card's
+   overflow clip. */
+.pcard-badge{position:absolute;top:-11px;left:26px;padding:3px 10px;border-radius:999px;
   background:var(--shu);color:#fff;font-size:11px;letter-spacing:.06em;text-transform:uppercase}
 .pname{font-family:var(--serif);font-size:19px;font-weight:600}
 .pprice{margin-top:10px;display:flex;align-items:baseline;gap:4px}
@@ -330,3 +338,164 @@ a{color:var(--shu);text-decoration:none}a:hover{color:var(--shu2)}
 .plist li{position:relative;padding-left:22px;font-size:14px;line-height:1.5;color:var(--ink2)}
 .plist li::before{content:"";position:absolute;left:0;top:7px;width:11px;height:6px;
   border-left:1.6px solid var(--shu);border-bottom:1.6px solid var(--shu);transform:rotate(-45deg)}
+
+/* ---------------------------------------------------------------------
+   FAQ
+
+   Native <details>, so the marker and the open/closed state come free.
+   The default triangle is replaced with a drawn +/- because the triangle
+   sits at a different baseline in every browser.
+   --------------------------------------------------------------------- */
+.faqlist{margin-top:38px;border-top:1px solid var(--line)}
+.faq{border-bottom:1px solid var(--line)}
+.faq summary{
+    display:flex;align-items:center;justify-content:space-between;gap:20px;
+    padding:20px 2px;cursor:pointer;list-style:none;
+    font-size:16px;font-weight:600;color:var(--ink);
+}
+/* Both, because Safari uses the WebKit pseudo-element and the rest use marker. */
+.faq summary::-webkit-details-marker{display:none}
+.faq summary::marker{content:""}
+.faq summary:hover{color:var(--shu)}
+
+.faq summary::after{
+    content:"";flex:none;width:11px;height:11px;position:relative;
+    background:
+        linear-gradient(var(--ink3),var(--ink3)) center/11px 1.5px no-repeat,
+        linear-gradient(var(--ink3),var(--ink3)) center/1.5px 11px no-repeat;
+    transition:transform .18s ease;
+}
+/* The vertical stroke rotates away, leaving the horizontal one: + becomes −. */
+.faq[open] summary::after{
+    background:linear-gradient(var(--shu),var(--shu)) center/11px 1.5px no-repeat;
+    transform:rotate(180deg);
+}
+
+.faqa{padding:0 2px 22px;max-width:64ch}
+.faqa p{font-size:15px;line-height:1.72;color:var(--ink2);margin:0 0 12px}
+.faqa p:last-child{margin-bottom:0}
+.faqa a{color:var(--shu);text-decoration:underline;text-underline-offset:2px}
+
+@media (max-width:640px){
+    .faq summary{font-size:15px;padding:17px 2px}
+    .faqa{padding-bottom:18px}
+}
+
+/* ---------------------------------------------------------------------
+   Problem section
+
+   The one dark block on the page. Everything else is paper, so this reads
+   as the moment the page stops describing itself and names the reader's
+   situation — and it breaks four consecutive text-left/panel-right
+   sections that were otherwise identical in shape.
+   --------------------------------------------------------------------- */
+.probsec{
+    background:radial-gradient(120% 140% at 15% -20%,#15707d,#0a3b43 68%),
+               linear-gradient(160deg,#0e5c66,#07292f);
+    border-top:1px solid var(--line);border-bottom:1px solid var(--line);
+}
+/* The section's own colour tokens, so .stt/.sdd keep their type scale but
+   invert — rather than duplicating the typography with new class names. */
+.prob-eyebrow{color:rgba(255,255,255,.62)}
+.prob-eyebrow .kj{color:rgba(255,255,255,.9)}
+.prob-h{color:#fff}
+.prob-d{color:rgba(255,255,255,.72)}
+
+/* Two-up, not four. At the wrap's 1024px a four-column row gives each card
+   about 240px, which turns a 45-word paragraph into eight thin lines. Two
+   columns also keeps this the only 2x2 on the page, which is the point. */
+.probgrid{
+    display:grid;grid-template-columns:repeat(2,1fr);gap:22px;margin-top:46px;
+}
+.prob{
+    padding:26px 22px 24px;border-radius:12px;
+    background:rgba(255,255,255,.055);
+    border:1px solid rgba(255,255,255,.13);
+}
+.probn{
+    display:block;font-family:var(--mono);font-size:11px;font-weight:600;
+    letter-spacing:.18em;color:rgba(255,255,255,.45);margin-bottom:13px;
+}
+.probt{
+    font-family:var(--serif);font-size:19px;font-weight:700;line-height:1.3;
+    color:#fff;margin-bottom:9px;
+}
+.probp{
+    font-size:14px;line-height:1.68;color:rgba(255,255,255,.7);margin:0;
+}
+
+@media (max-width:640px){
+    .probgrid{grid-template-columns:1fr;gap:14px;margin-top:34px}
+    .prob{padding:22px 20px}
+}
+
+/* ---------------------------------------------------------------------
+   Alternating column order
+
+   The four feature sections were all text-left / panel-right. Flipping
+   every other one gives the eye somewhere new to land without changing
+   the grid or the reading order in the markup — order, not direction,
+   so screen readers still get text before panel.
+   --------------------------------------------------------------------- */
+.fsec-rev > *:first-child{order:2}
+.fsec-rev > *:last-child{order:1}
+
+@media (max-width:900px){
+    /* Stacked, the panel must not jump above its own heading. */
+    .fsec-rev > *:first-child{order:1}
+    .fsec-rev > *:last-child{order:2}
+}
+
+/* ---------------------------------------------------------------------
+   Founder note
+
+   Asymmetric on purpose — a seal and a column of text, unlike anything
+   else on the page, because it is the one section written by a person
+   rather than about a product.
+   --------------------------------------------------------------------- */
+.fnote{
+    display:grid;grid-template-columns:auto 1fr;gap:28px;align-items:start;
+    max-width:760px;margin:0 auto;
+}
+.fnseal{
+    display:grid;place-items:center;width:56px;height:56px;flex:none;
+    border:2px solid var(--shu);border-radius:10px;
+    font-family:var(--serif);font-size:28px;color:var(--shu);
+    transform:rotate(-4deg);
+}
+.fnp{font-size:15.5px;line-height:1.78;color:var(--ink2);margin:0 0 14px}
+.fnby{
+    margin-top:18px;font-family:var(--mono);font-size:12px;
+    letter-spacing:.04em;color:var(--ink);
+}
+.fnby span{color:var(--ink3)}
+
+@media (max-width:640px){
+    .fnote{grid-template-columns:1fr;gap:18px}
+    .fnseal{width:46px;height:46px;font-size:23px}
+}
+
+/* Two columns under the demo: what is written into the app, and what a model
+   translates. The split is the point — on a financial document, the headings
+   being code and not AI output is a reassurance worth stating. */
+.aisplit{display:grid;grid-template-columns:1fr 1fr;gap:26px;max-width:720px;margin:34px auto 0;text-align:left}
+.aikind{font-family:var(--mono);font-size:10.5px;font-weight:600;letter-spacing:.14em;text-transform:uppercase;color:var(--shu);margin-bottom:7px}
+.aip{font-size:14px;line-height:1.65;color:var(--ink2);margin:0}
+@media (max-width:640px){.aisplit{grid-template-columns:1fr;gap:20px}}
+
+/* Reporting-currency panel: several currencies resolving to one figure. The
+   arrows carry the whole idea, so the type stays quiet and the total is the
+   only thing given weight. */
+.convhead{padding:14px 18px;border-bottom:1px solid var(--line);font-family:var(--mono);font-size:10.5px;font-weight:600;letter-spacing:.14em;text-transform:uppercase;color:var(--ink3)}
+.convrows{padding:6px 0}
+.convrow{display:grid;grid-template-columns:44px 1fr 20px 1fr;align-items:center;gap:10px;padding:9px 18px}
+.convcur{font-family:var(--mono);font-size:10.5px;font-weight:600;letter-spacing:.08em;color:var(--ink3)}
+.convamt{font-family:var(--mono);font-size:13px;color:var(--ink2)}
+.convarrow{color:var(--ink3);font-size:13px;text-align:center}
+.convgbp{font-family:var(--mono);font-size:13px;color:var(--ink);text-align:right}
+.convtotal{display:flex;align-items:baseline;justify-content:space-between;padding:15px 18px;border-top:1px solid var(--line);background:var(--paper);font-size:13px;color:var(--ink2)}
+.convbig{font-family:var(--mono);font-size:20px;font-weight:600;color:var(--shu)}
+@media (max-width:520px){
+    .convrow{grid-template-columns:40px 1fr 16px 1fr;gap:6px;padding:9px 14px}
+    .convamt,.convgbp{font-size:12px}
+}

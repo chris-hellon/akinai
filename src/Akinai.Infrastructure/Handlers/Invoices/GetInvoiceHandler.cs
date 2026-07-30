@@ -26,6 +26,7 @@ public class GetInvoiceHandler(
         var invoice = await db.Invoices
             .Include(i => i.Client)
             .Include(i => i.Template)
+            .Include(i => i.ServiceLines)
             .FirstOrDefaultAsync(i => i.Id == request.Id && i.Client.UserId == userId, cancellationToken);
 
         if (invoice is null) return HttpResult<InvoiceDetailDto?>.NotFound();
@@ -56,7 +57,12 @@ public class GetInvoiceHandler(
             ? $"{invoice.Client.BillingAddress.Street1}, {invoice.Client.BillingAddress.City}, {invoice.Client.BillingAddress.State} {invoice.Client.BillingAddress.PostalCode}"
             : null;
 
-        var lineItems = timeEntries.Select(e =>
+        // A saved summary replaces the per-entry rows entirely. The entries are
+        // still loaded and still linked — reporting needs them — they simply
+        // stop being what anyone reads.
+        var lineItems = invoice.ServiceLines.Count > 0
+            ? ServiceLineProjection.ToLineItems(invoice.ServiceLines, invoice.Currency)
+            : timeEntries.Select(e =>
         {
             var jobName = e.Job.Name;
             var projectName = e.Job.Project.Name;
@@ -114,11 +120,16 @@ public class GetInvoiceHandler(
             li.UnitPrice.Currency,
             li.Order)).ToList();
 
+        // The linked template, or the account's default when none is linked —
+        // so an invoice with no template of its own still honours the default
+        // the user chose (centred header, logo, colours).
+        var template = await EffectiveTemplate.ResolveAsync(db, userId, invoice.Template, cancellationToken);
+
         // Map template to DTO if present
         InvoiceTemplateDto? templateDto = null;
-        if (invoice.Template != null)
+        if (template != null)
         {
-            var t = invoice.Template;
+            var t = template;
             templateDto = new InvoiceTemplateDto(
                 t.Id,
                 t.Name,
@@ -187,7 +198,9 @@ public class GetInvoiceHandler(
             invoice.Language?.ToString(),
             invoice.FirstViewedAtUtc,
             invoice.LastViewedAtUtc,
-            invoice.ViewCount);
+            invoice.ViewCount,
+            invoice.HasSummarisedServices,
+            timeEntries.Count);
 
         return HttpResult<InvoiceDetailDto?>.Ok(result);
     }

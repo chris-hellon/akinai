@@ -39,6 +39,12 @@ public class EstimateConfiguration : IEntityTypeConfiguration<Estimate>
             .HasConversion<string>()
             .HasMaxLength(20);
 
+        // Stored as its name, like the invoice's, so the column stays readable
+        // and reordering the enum cannot silently repoint existing rows.
+        builder.Property(e => e.Language)
+            .HasConversion<string>()
+            .HasMaxLength(20);
+
         builder.Property(e => e.TaxRate)
             .HasPrecision(5, 2);
 

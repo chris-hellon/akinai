@@ -1,4 +1,12 @@
+@using Akinai.Shared.Localization
 @{
+    // Fixed labels and the culture to format this estimate's dates with. Same
+    // arrangement as the invoice: headings come from code, only the freeform
+    // text the user wrote has been machine-translated (server-side, before it
+    // reached this component).
+    var L = EstimateLabels.For(Language);
+    var culture = L.Culture;
+
     var isExpired = Status != "Accepted" && Status != "Rejected" && Status != "Converted" && ExpiryDate.HasValue && ExpiryDate.Value < DateOnly.FromDateTime(DateTime.Today);
     var isAccepted = Status == "Accepted";
     var isRejected = Status == "Rejected";
@@ -9,38 +17,38 @@
 @if (isAccepted)
 {
     <StatusBanner Variant="StatusBanner.StatusVariant.Success"
-                  Title="Accepted"
-                  Subtitle="@AcceptedDate?.ToString("MMMM d, yyyy")" />
+                  Title="@L.StatusAccepted"
+                  Subtitle="@AcceptedDate?.ToString("d MMMM yyyy", culture)" />
 }
 else if (isRejected)
 {
     <StatusBanner Variant="StatusBanner.StatusVariant.Danger"
-                  Title="Rejected"
-                  Subtitle="@RejectedDate?.ToString("MMMM d, yyyy")" />
+                  Title="@L.StatusRejected"
+                  Subtitle="@RejectedDate?.ToString("d MMMM yyyy", culture)" />
 }
 else if (isConverted)
 {
     <StatusBanner Variant="StatusBanner.StatusVariant.Purple"
-                  Title="Converted to Invoice" />
+                  Title="@L.StatusConverted" />
 }
 else if (isExpired)
 {
     var daysPastExpiry = DateOnly.FromDateTime(DateTime.Today).DayNumber - ExpiryDate!.Value.DayNumber;
     <StatusBanner Variant="StatusBanner.StatusVariant.Warning"
-                  Title="Expired"
-                  Subtitle="@($"{daysPastExpiry} days ago")" />
+                  Title="@L.StatusExpired"
+                  Subtitle="@string.Format(culture, L.DaysAgo, daysPastExpiry)" />
 }
 else if (Status == "Sent")
 {
     <StatusBanner Variant="StatusBanner.StatusVariant.Info"
-                  Title="Awaiting Response"
-                  Subtitle="@(ExpiryDate.HasValue ? $"Valid until {ExpiryDate.Value:MMMM d, yyyy}" : null)" />
+                  Title="@L.StatusAwaiting"
+                  Subtitle="@(ExpiryDate.HasValue ? string.Format(culture, L.ValidUntilDate, ExpiryDate.Value.ToString("d MMMM yyyy", culture)) : null)" />
 }
 else if (Status == "Draft")
 {
     <StatusBanner Variant="StatusBanner.StatusVariant.Warning"
-                  Title="Draft"
-                  Subtitle="Not yet sent" />
+                  Title="@L.StatusDraft"
+                  Subtitle="@L.DraftNotSent" />
 }
 
 <!-- Estimate Header -->
@@ -52,7 +60,7 @@ else if (Status == "Draft")
             @if (ShowLogo && BusinessLogo is { Length: > 0 })
             {
                 <div class="mb-4 flex justify-center">
-                    <img src="data:image/png;base64,@Convert.ToBase64String(BusinessLogo)" alt="Business Logo" class="h-12 object-contain brightness-0 invert" />
+                    <img src="data:image/png;base64,@Convert.ToBase64String(BusinessLogo)" alt="Business Logo" class="h-12 object-contain" />
                 </div>
             }
             @if (!string.IsNullOrEmpty(BusinessName))
@@ -68,17 +76,17 @@ else if (Status == "Draft")
             <div class="text-3xl font-bold text-gray-900 dark:text-white">
                 @EstimateNumber
             </div>
-            <div class="text-sm text-gray-500 dark:text-slate-400 mt-1">ESTIMATE</div>
+            <div class="text-sm text-gray-500 dark:text-slate-400 mt-1">@L.Estimate</div>
             <div class="flex justify-center gap-6 mt-4 text-sm">
                 <div>
-                    <span class="text-gray-500 dark:text-slate-400">Date:</span>
-                    <span class="font-medium text-gray-900 dark:text-white ml-1">@EstimateDate.ToString("MMM d, yyyy")</span>
+                    <span class="text-gray-500 dark:text-slate-400">@L.Date:</span>
+                    <span class="font-medium text-gray-900 dark:text-white ml-1">@EstimateDate.ToString("d MMM yyyy", culture)</span>
                 </div>
                 @if (ExpiryDate.HasValue)
                 {
                     <div>
-                        <span class="text-gray-500 dark:text-slate-400">Valid Until:</span>
-                        <span class="font-medium @(isExpired ? "text-amber-600 dark:text-amber-400" : "text-gray-900 dark:text-white") ml-1">@ExpiryDate.Value.ToString("MMM d, yyyy")</span>
+                        <span class="text-gray-500 dark:text-slate-400">@L.ValidUntil:</span>
+                        <span class="font-medium @(isExpired ? "text-amber-600 dark:text-amber-400" : "text-gray-900 dark:text-white") ml-1">@ExpiryDate.Value.ToString("d MMM yyyy", culture)</span>
                     </div>
                 }
             </div>
@@ -98,7 +106,7 @@ else if (Status == "Draft")
                         @EstimateNumber
                     </div>
                     <div class="text-xs text-gray-500 dark:text-slate-400">
-                        @EstimateDate.ToString("MMM d, yyyy")@(ExpiryDate.HasValue ? $" — Valid until {ExpiryDate.Value:MMM d, yyyy}" : "")
+                        @EstimateDate.ToString("d MMM yyyy", culture)@(ExpiryDate.HasValue ? " — " + string.Format(culture, L.ValidUntilDate, ExpiryDate.Value.ToString("d MMM yyyy", culture)) : "")
                     </div>
                 </div>
             </div>
@@ -119,7 +127,7 @@ else if (Status == "Draft")
                     @if (ShowLogo && BusinessLogo is { Length: > 0 })
                     {
                         <div class="mb-4">
-                            <img src="data:image/png;base64,@Convert.ToBase64String(BusinessLogo)" alt="Business Logo" class="h-12 object-contain brightness-0 invert" />
+                            <img src="data:image/png;base64,@Convert.ToBase64String(BusinessLogo)" alt="Business Logo" class="h-12 object-contain" />
                         </div>
                     }
                     @if (!string.IsNullOrEmpty(BusinessName))
@@ -146,28 +154,28 @@ else if (Status == "Draft")
                 }
                 @if (!string.IsNullOrEmpty(TaxNumber))
                 {
-                    <div class="mt-2 text-xs text-gray-400 dark:text-slate-500">Tax/VAT: @TaxNumber</div>
+                    <div class="mt-2 text-xs text-gray-400 dark:text-slate-500">@L.TaxVat: @TaxNumber</div>
                 }
                 @if (!string.IsNullOrEmpty(RegistrationNumber))
                 {
-                    <div class="text-xs text-gray-400 dark:text-slate-500">Reg: @RegistrationNumber</div>
+                    <div class="text-xs text-gray-400 dark:text-slate-500">@L.Registration: @RegistrationNumber</div>
                 }
             </div>
             <div class="text-left lg:text-right">
                 <div class="text-3xl font-bold text-gray-900 dark:text-white">
                     @EstimateNumber
                 </div>
-                <div class="text-sm text-gray-500 dark:text-slate-400 mt-1">ESTIMATE</div>
+                <div class="text-sm text-gray-500 dark:text-slate-400 mt-1">@L.Estimate</div>
                 <div class="flex flex-wrap items-center gap-4 mt-4 text-sm">
                     <div>
-                        <span class="text-gray-500 dark:text-slate-400">Date:</span>
-                        <span class="font-medium text-gray-900 dark:text-white ml-1">@EstimateDate.ToString("MMM d, yyyy")</span>
+                        <span class="text-gray-500 dark:text-slate-400">@L.Date:</span>
+                        <span class="font-medium text-gray-900 dark:text-white ml-1">@EstimateDate.ToString("d MMM yyyy", culture)</span>
                     </div>
                     @if (ExpiryDate.HasValue)
                     {
                         <div>
-                            <span class="text-gray-500 dark:text-slate-400">Valid Until:</span>
-                            <span class="font-medium @(isExpired ? "text-amber-600 dark:text-amber-400" : "text-gray-900 dark:text-white") ml-1">@ExpiryDate.Value.ToString("MMM d, yyyy")</span>
+                            <span class="text-gray-500 dark:text-slate-400">@L.ValidUntil:</span>
+                            <span class="font-medium @(isExpired ? "text-amber-600 dark:text-amber-400" : "text-gray-900 dark:text-white") ml-1">@ExpiryDate.Value.ToString("d MMM yyyy", culture)</span>
                         </div>
                     }
                 </div>
@@ -180,7 +188,7 @@ else if (Status == "Draft")
         <div class="grid grid-cols-1 md:grid-cols-2 gap-6 @(HeaderLayout == "centered" ? "text-center md:text-left" : "")">
             <!-- Prepared For -->
             <div>
-                <div class="text-xs font-semibold uppercase tracking-wider text-gray-400 dark:text-slate-500 mb-2">Prepared For</div>
+                <div class="text-xs font-semibold uppercase tracking-wider text-gray-400 dark:text-slate-500 mb-2">@L.PreparedFor</div>
                 <div class="text-base font-semibold text-gray-900 dark:text-white">@ClientName</div>
                 @if (!string.IsNullOrEmpty(ClientCompanyName))
                 {
@@ -200,13 +208,13 @@ else if (Status == "Draft")
             @if (HeaderLayout != "minimal")
             {
                 <div class="@(HeaderLayout == "centered" ? "text-center md:text-right" : "text-right")">
-                    <div class="text-xs font-semibold uppercase tracking-wider text-gray-400 dark:text-slate-500 mb-2">Estimated Total</div>
+                    <div class="text-xs font-semibold uppercase tracking-wider text-gray-400 dark:text-slate-500 mb-2">@L.EstimatedTotal</div>
                     <div class="text-4xl font-bold @(isAccepted ? "text-emerald-600" : "")" style="@(isAccepted ? "" : $"color: {PrimaryColor};")">
                         @CurrencyExtensions.GetSymbol(Currency)@Total.ToString("N2")
                     </div>
                     @if (isAccepted)
                     {
-                        <div class="text-sm text-emerald-600">Accepted</div>
+                        <div class="text-sm text-emerald-600">@L.StatusAccepted</div>
                     }
                 </div>
             }
@@ -222,17 +230,17 @@ else if (Status == "Draft")
             <svg class="w-4 h-4" style="color: @AccentColor;" fill="none" stroke="currentColor" viewBox="0 0 24 24">
                 <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M9 5H7a2 2 0 00-2 2v12a2 2 0 002 2h10a2 2 0 002-2V7a2 2 0 00-2-2h-2M9 5a2 2 0 002 2h2a2 2 0 002-2M9 5a2 2 0 012-2h2a2 2 0 012 2" />
             </svg>
-            <span class="text-xs font-semibold uppercase tracking-wider" style="color: @AccentColor;">Items</span>
+            <span class="text-xs font-semibold uppercase tracking-wider" style="color: @AccentColor;">@L.Items</span>
         </div>
     </div>
     <div class="overflow-x-auto">
         <table class="w-full">
             <thead>
                 <tr class="bg-gray-50/50 dark:bg-slate-800/30 @(ItemsLayout == "bordered" ? "border border-gray-200 dark:border-slate-600" : "")">
-                    <th class="px-8 py-4 text-left text-xs font-semibold uppercase tracking-wider text-gray-500 dark:text-slate-400 @(ItemsLayout == "bordered" ? "border border-gray-200 dark:border-slate-600" : "")">Description</th>
-                    <th class="px-6 py-4 text-center text-xs font-semibold uppercase tracking-wider text-gray-500 dark:text-slate-400 @(ItemsLayout == "bordered" ? "border border-gray-200 dark:border-slate-600" : "")">Qty</th>
-                    <th class="px-6 py-4 text-right text-xs font-semibold uppercase tracking-wider text-gray-500 dark:text-slate-400 @(ItemsLayout == "bordered" ? "border border-gray-200 dark:border-slate-600" : "")">Rate</th>
-                    <th class="px-8 py-4 text-right text-xs font-semibold uppercase tracking-wider text-gray-500 dark:text-slate-400 @(ItemsLayout == "bordered" ? "border border-gray-200 dark:border-slate-600" : "")">Amount</th>
+                    <th class="px-8 py-4 text-left text-xs font-semibold uppercase tracking-wider text-gray-500 dark:text-slate-400 @(ItemsLayout == "bordered" ? "border border-gray-200 dark:border-slate-600" : "")">@L.Description</th>
+                    <th class="px-6 py-4 text-center text-xs font-semibold uppercase tracking-wider text-gray-500 dark:text-slate-400 @(ItemsLayout == "bordered" ? "border border-gray-200 dark:border-slate-600" : "")">@L.Qty</th>
+                    <th class="px-6 py-4 text-right text-xs font-semibold uppercase tracking-wider text-gray-500 dark:text-slate-400 @(ItemsLayout == "bordered" ? "border border-gray-200 dark:border-slate-600" : "")">@L.Rate</th>
+                    <th class="px-8 py-4 text-right text-xs font-semibold uppercase tracking-wider text-gray-500 dark:text-slate-400 @(ItemsLayout == "bordered" ? "border border-gray-200 dark:border-slate-600" : "")">@L.Amount</th>
                 </tr>
             </thead>
             <tbody class="divide-y divide-gray-100 dark:divide-slate-700">
@@ -268,27 +276,27 @@ else if (Status == "Draft")
             @if (FooterLayout == "detailed" || TaxRate > 0)
             {
                 <div class="flex justify-between text-sm">
-                    <span class="text-gray-500 dark:text-slate-400">Subtotal</span>
+                    <span class="text-gray-500 dark:text-slate-400">@L.Subtotal</span>
                     <span class="text-gray-900 dark:text-white">@CurrencyExtensions.GetSymbol(Currency)@Subtotal.ToString("N2")</span>
                 </div>
                 @if (TaxRate > 0)
                 {
                     <div class="flex justify-between text-sm">
-                        <span class="text-gray-500 dark:text-slate-400">Tax (@TaxRate.ToString("N1")%)</span>
+                        <span class="text-gray-500 dark:text-slate-400">@L.Tax (@TaxRate.ToString("N1", culture)%)</span>
                         <span class="text-gray-900 dark:text-white">@CurrencyExtensions.GetSymbol(Currency)@TaxAmount.ToString("N2")</span>
                     </div>
                 }
                 else if (FooterLayout == "detailed")
                 {
                     <div class="flex justify-between text-sm">
-                        <span class="text-gray-500 dark:text-slate-400">Tax</span>
+                        <span class="text-gray-500 dark:text-slate-400">@L.Tax</span>
                         <span class="text-gray-900 dark:text-white">@CurrencyExtensions.GetSymbol(Currency)0.00</span>
                     </div>
                 }
                 <div class="pt-3 border-t border-gray-200 dark:border-slate-600"></div>
             }
             <div class="flex justify-between items-center pt-2">
-                <span class="text-base font-semibold text-gray-900 dark:text-white">Total</span>
+                <span class="text-base font-semibold text-gray-900 dark:text-white">@L.Total</span>
                 <span class="text-2xl font-bold @(isAccepted ? "text-emerald-600" : "")" style="@(isAccepted ? "" : $"color: {PrimaryColor};")">@CurrencyExtensions.GetSymbol(Currency)@Total.ToString("N2")</span>
             </div>
         </div>
@@ -306,7 +314,7 @@ else if (Status == "Draft")
                 </svg>
             </div>
             <div>
-                <div class="text-xs font-semibold uppercase tracking-wider text-gray-400 dark:text-slate-500 mb-2">Notes</div>
+                <div class="text-xs font-semibold uppercase tracking-wider text-gray-400 dark:text-slate-500 mb-2">@L.Notes</div>
                 <div class="text-sm text-gray-600 dark:text-slate-400 whitespace-pre-line">@Notes</div>
             </div>
         </div>
@@ -324,32 +332,46 @@ else if (Status == "Draft")
                 </svg>
             </div>
             <div>
-                <div class="text-xs font-semibold uppercase tracking-wider text-gray-400 dark:text-slate-500 mb-2">Terms & Conditions</div>
+                <div class="text-xs font-semibold uppercase tracking-wider text-gray-400 dark:text-slate-500 mb-2">@L.Terms</div>
                 <div class="text-sm text-gray-600 dark:text-slate-400 whitespace-pre-line">@Terms</div>
             </div>
         </div>
     </div>
 }
 
-<!-- Footer -->
-<div class="px-8 py-4 border-t border-gray-100 dark:border-slate-700 bg-gray-50 dark:bg-slate-800/50">
+<!-- Footer. Bottom padding tightens only when a branding line follows. -->
+<div class="px-8 pt-4 @(ShowBranding ? "pb-2" : "pb-4") border-t border-gray-100 dark:border-slate-700 bg-gray-50 dark:bg-slate-800/50">
     <p class="text-center text-xs text-gray-400 dark:text-slate-500">
-        @if (ExpiryDate.HasValue)
-        {
-            @:This estimate is valid until @ExpiryDate.Value.ToString("MMMM d, yyyy").
-        }
-        else
-        {
-            @:Thank you for considering our services.
-        }
+        @(ExpiryDate.HasValue
+            ? string.Format(culture, L.ValidUntilFooter, ExpiryDate.Value.ToString("d MMMM yyyy", culture))
+            : L.ThanksForConsidering)
     </p>
 </div>
+@if (ShowBranding)
+{
+    <div class="bg-gray-50 dark:bg-slate-800/50">
+        <DocumentBranding Show="true" Text="@L.CreatedWith" />
+    </div>
+}
 
 @code {
     // Estimate identification
     [Parameter] public string EstimateNumber { get; set; } = "";
     [Parameter] public string Status { get; set; } = "";
     [Parameter] public string Currency { get; set; } = "USD";
+
+    /// <summary>
+    /// Which language to draw the fixed labels in, and the culture used to
+    /// format dates and numbers. Unknown values fall back to English rather
+    /// than throwing — an estimate must always render.
+    /// </summary>
+    [Parameter] public string Language { get; set; } = "English";
+
+    /// <summary>
+    /// Whether to show the Akinai line in the footer. Comes from the issuing
+    /// account's plan, resolved server-side.
+    /// </summary>
+    [Parameter] public bool ShowBranding { get; set; } = true;
     [Parameter] public DateOnly EstimateDate { get; set; }
     [Parameter] public DateOnly? ExpiryDate { get; set; }
     [Parameter] public DateOnly? AcceptedDate { get; set; }

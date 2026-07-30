@@ -1,0 +1,230 @@
+@page "/terms"
+@layout LegalLayout
+@attribute [AllowAnonymous]
+
+@using Akinai.Shared.Billing
+@using Akinai.Shared.Api.Billing
+@inject ICall<GetPlans, List<PlanDefinition>> GetPlansCall
+
+<PageTitle>Terms and Conditions — Akinai</PageTitle>
+
+<h1>Terms and Conditions</h1>
+<p class="lgupdated">Last updated @LastUpdated</p>
+
+<p class="lgintro">
+    These terms cover your use of Akinai. By creating an account you agree to them.
+    We have tried to write them in plain language — where something matters to your
+    money or your data, it is called out rather than buried.
+</p>
+
+<h2>1. The service</h2>
+<p>
+    Akinai is software for creating, sending and tracking invoices and estimates,
+    recording time and expenses, and reconciling payments. We provide the tool. The
+    contents of anything you send — the amounts, the tax treatment, the terms you
+    offer — are yours.
+</p>
+
+<div class="lgnote">
+    <p>
+        <strong>We are not your accountant.</strong> Akinai does not give tax, legal
+        or financial advice, and does not check whether an invoice is correct or
+        compliant where you or your client are based. Tax rates, invoice numbering
+        rules and mandatory fields vary by country and change over time. Getting
+        those right is your responsibility, and we would encourage you to have a
+        local accountant confirm your setup.
+    </p>
+</div>
+
+<h2>2. Your account</h2>
+<p>
+    You need an account to use Akinai. You must give an accurate email address,
+    keep your credentials secure, and take responsibility for what happens under
+    your account. Tell us promptly if you think someone else has access to it.
+</p>
+<p>
+    Accounts are for a single business or individual. You may not share one set of
+    credentials across several people as a way of avoiding subscription costs.
+</p>
+
+<h2>3. Plans and pricing</h2>
+<p>
+    Akinai has a free plan and a paid plan. Current prices:
+</p>
+
+<div class="lgtable-wrap">
+    <table>
+        <thead>
+            <tr><th>Plan</th><th>Monthly</th><th>Annual</th><th>Main limits</th></tr>
+        </thead>
+        <tbody>
+            @foreach (var plan in _plans)
+            {
+                <tr>
+                    <td><strong>@plan.Name</strong></td>
+                    <td>@(plan.IsPaid ? $"{plan.CurrencySymbol}{plan.MonthlyPrice:0.##}" : "Free")</td>
+                    <td>@(plan.IsPaid ? $"{plan.CurrencySymbol}{plan.AnnualPrice:0.##}" : "Free")</td>
+                    <td>
+                        @(plan.InvoicesPerMonth is int limit
+                            ? $"{limit} invoices per month"
+                            : "Unlimited invoices")@(plan.AllLanguages ? ", all languages" : ", English only")@(plan.MultiCurrency ? ", multi-currency" : ", one currency")
+                    </td>
+                </tr>
+            }
+        </tbody>
+    </table>
+</div>
+
+<p>
+    Prices are in @Currency and exclude any sales tax or VAT, which is calculated
+    and shown at checkout based on where you are. We may change prices, but not for
+    a period you have already paid for — we will give you at least 30 days' notice
+    by email before a change affects your renewal.
+</p>
+
+<h2>4. Subscriptions, renewal and cancellation</h2>
+
+<h3>Renewal is automatic</h3>
+<p>
+    A paid subscription renews by itself at the end of each billing period — monthly
+    or annually, whichever you chose — and your saved payment method is charged
+    automatically. We will notify you in the app each time a renewal is taken.
+</p>
+
+<h3>Cancelling</h3>
+<div class="lgnote">
+    <p>
+        <strong>Cancelling does not cut you off immediately, and does not refund the
+        current period.</strong> When you cancel, your plan stays active until the
+        end of the period you have already paid for, then moves to the Free plan.
+        Nothing you have created is deleted.
+    </p>
+</div>
+
+<h3>If a payment fails</h3>
+<p>
+    If a renewal payment is declined, your account moves to Free plan limits until
+    payment succeeds. Your data stays intact — you keep access to everything you
+    have created, but paid features stop until you update your payment method.
+</p>
+
+<h3>Refunds</h3>
+<p>
+    We do not offer refunds for partial periods. If something has gone genuinely
+    wrong — you were charged twice, or billed after cancelling — email us and we
+    will put it right. Where you have a statutory right to cancel or to a refund
+    under your local consumer law, that right stands regardless of anything here.
+</p>
+
+<h2>5. What happens to your data if you downgrade</h2>
+<p>
+    Moving from Pro to Free never deletes anything. Invoices, estimates, clients and
+    time entries all remain. What changes is what you can do next: features not
+    included in Free stop being available, and the monthly invoice limit applies to
+    new invoices. Documents you already sent remain valid and your clients can still
+    open the links you shared.
+</p>
+
+<h2>6. Acceptable use</h2>
+<p>You agree not to use Akinai to:</p>
+<ul>
+    <li>send invoices for goods or services you have not provided, or that are fraudulent</li>
+    <li>break the law where you or your client are based, including sanctions and anti-money-laundering rules</li>
+    <li>send unsolicited bulk email through the service</li>
+    <li>attempt to gain access to another account, or to disrupt or probe the service</li>
+    <li>resell or white-label Akinai as your own product without a written agreement</li>
+</ul>
+<p>
+    We may suspend or close an account that breaches this section. Where we can, we
+    will tell you first and give you a chance to put it right.
+</p>
+
+<h2>7. Translation and automated features</h2>
+<p>
+    Akinai translates the text you write on a document into your client's language
+    using a machine translation service. The document's fixed headings are
+    professionally set per language; the text you wrote is machine-translated.
+</p>
+<div class="lgnote">
+    <p>
+        <strong>Machine translation is not a legal translation.</strong> Review
+        anything that carries obligations — payment terms, scope of work, penalty
+        clauses — before you send it. If a translated term and your original differ
+        in meaning, that is a difference your client may rely on. Translation is
+        subject to a monthly allowance on your plan; once it is used up, documents
+        render in the original text rather than failing.
+    </p>
+</div>
+
+<h2>8. Availability</h2>
+<p>
+    We work to keep Akinai available and to protect your data, but we do not
+    guarantee uninterrupted service. We may take it down for maintenance, and
+    features may change. If we plan an interruption that would affect you
+    materially, we will give notice where practical.
+</p>
+<p>
+    Keep your own copies of anything you cannot afford to lose. You can export your
+    data at any time from Account → Personal data.
+</p>
+
+<h2>9. Liability</h2>
+<p>
+    Akinai is provided as-is. To the extent the law allows, we are not liable for
+    lost profits, lost business, or indirect or consequential loss, and our total
+    liability to you in any twelve-month period is limited to what you paid us in
+    that period.
+</p>
+<p>
+    Nothing here limits liability for death or personal injury caused by negligence,
+    for fraud, or for anything else that cannot lawfully be limited. If you are a
+    consumer, your statutory rights are unaffected.
+</p>
+
+<h2>10. Ending the agreement</h2>
+<p>
+    You may stop using Akinai and delete your account at any time. We may end this
+    agreement if you materially breach these terms, or if we discontinue the
+    service — in which case we will give you reasonable notice and time to export
+    your data.
+</p>
+
+<h2>11. Changes to these terms</h2>
+<p>
+    We may update these terms. If a change materially affects your rights, we will
+    give notice by email or in the app before it takes effect, and continuing to use
+    Akinai after that means you accept the updated terms.
+</p>
+
+<h2>12. Governing law</h2>
+<p>
+    These terms are governed by the laws of England and Wales, and the courts of
+    England and Wales have non-exclusive jurisdiction. If you are a consumer
+    resident elsewhere, you keep the protection of the mandatory consumer laws where
+    you live, and may bring proceedings there.
+</p>
+
+<h2>13. Contact</h2>
+<p>
+    Questions about these terms go to
+    <a href="mailto:@ContactEmail">@ContactEmail</a>, or use the
+    <a href="contact">contact page</a>.
+</p>
+
+@code {
+    private const string LastUpdated = "24 July 2026";
+    private const string ContactEmail = "hello@akinaiapp.com";
+
+    // Prices come from the live catalogue for the same reason the landing page
+    // does it: a terms page quoting a price the checkout does not charge is
+    // worse than no table at all. Falls back to the compiled defaults.
+    private IReadOnlyList<PlanDefinition> _plans = Plans.All;
+
+    private string Currency => _plans.FirstOrDefault()?.Currency ?? "GBP";
+
+    protected override async Task OnInitializedAsync()
+    {
+        var plans = await GetPlansCall.Call(new GetPlans());
+        if (plans is { Count: > 0 }) _plans = plans;
+    }
+}

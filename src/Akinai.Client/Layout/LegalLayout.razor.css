@@ -1,0 +1,254 @@
+/* Public legal/contact pages.
+
+   The palette is lifted from Home.razor.css rather than shared through a
+   common file: those tokens are declared inside .page there, scoped to that
+   component, so they are not in scope here. Duplicated knowingly — if the
+   brand colours change, both need it. */
+
+.legal {
+    --paper: oklch(.972 .009 83);
+    --paper2: oklch(.988 .006 83);
+    --ink: oklch(.245 .012 55);
+    --ink2: oklch(.44 .012 55);
+    --ink3: oklch(.60 .012 60);
+    --line: oklch(.885 .013 75);
+    --shu: #0e5c66;
+    --serif: 'Shippori Mincho', serif;
+    --sans: 'Zen Kaku Gothic New', system-ui, sans-serif;
+    --mono: 'IBM Plex Mono', ui-monospace, monospace;
+
+    background: var(--paper);
+    color: var(--ink);
+    font-family: var(--sans);
+    min-height: 100vh;
+    display: flex;
+    flex-direction: column;
+    -webkit-font-smoothing: antialiased;
+}
+
+/* --- nav ------------------------------------------------------------- */
+
+.lgnav {
+    display: flex;
+    align-items: center;
+    justify-content: space-between;
+    gap: 16px;
+    padding: 20px 46px;
+    border-bottom: 1px solid var(--line);
+    background: var(--paper2);
+}
+
+.lgbrand {
+    display: inline-flex;
+    align-items: center;
+    gap: 10px;
+    text-decoration: none;
+    color: var(--ink);
+}
+
+.lghanko {
+    display: grid;
+    place-items: center;
+    width: 30px;
+    height: 30px;
+    border-radius: 6px;
+    background: var(--shu);
+    color: #fff;
+    font-family: var(--serif);
+    font-size: 17px;
+}
+
+.lgword {
+    font-weight: 700;
+    font-size: 17px;
+    letter-spacing: -.01em;
+}
+
+.lgnavlinks {
+    display: flex;
+    align-items: center;
+    gap: 18px;
+}
+
+.lgnavlinks a {
+    font-size: 14px;
+    font-weight: 600;
+    color: var(--ink2);
+    text-decoration: none;
+}
+
+.lgnavlinks a:hover { color: var(--ink); }
+
+.lgcta {
+    padding: 8px 16px;
+    border-radius: 8px;
+    background: var(--shu);
+    color: #fff !important;
+}
+
+.lgcta:hover { background: #0a4a53; }
+
+/* --- content --------------------------------------------------------- */
+
+.lgmain {
+    flex: 1;
+    width: 100%;
+    max-width: 720px;   /* ~75 characters — long-form legal text is read, not scanned */
+    margin: 0 auto;
+    padding: 56px 46px 80px;
+}
+
+/* ::deep, because everything below is rendered into @Body by the page
+   components and carries their scope attribute rather than this layout's. */
+
+.lgmain ::deep h1 {
+    font-family: var(--serif);
+    font-size: 38px;
+    line-height: 1.15;
+    letter-spacing: -.02em;
+    margin: 0 0 10px;
+}
+
+.lgmain ::deep .lgupdated {
+    font-family: var(--mono);
+    font-size: 12px;
+    letter-spacing: .03em;
+    color: var(--ink3);
+    margin: 0 0 36px;
+}
+
+.lgmain ::deep .lgintro {
+    font-size: 17px;
+    line-height: 1.65;
+    color: var(--ink2);
+    margin: 0 0 36px;
+    padding-bottom: 28px;
+    border-bottom: 1px solid var(--line);
+}
+
+.lgmain ::deep h2 {
+    font-family: var(--serif);
+    font-size: 22px;
+    letter-spacing: -.01em;
+    margin: 38px 0 12px;
+}
+
+.lgmain ::deep h3 {
+    font-size: 15px;
+    font-weight: 700;
+    margin: 24px 0 8px;
+}
+
+.lgmain ::deep p,
+.lgmain ::deep li {
+    font-size: 15px;
+    line-height: 1.7;
+    color: var(--ink2);
+}
+
+.lgmain ::deep p { margin: 0 0 14px; }
+
+.lgmain ::deep ul {
+    margin: 0 0 16px;
+    padding-left: 22px;
+}
+
+.lgmain ::deep li { margin-bottom: 7px; }
+
+.lgmain ::deep strong { color: var(--ink); font-weight: 600; }
+
+.lgmain ::deep a {
+    color: var(--shu);
+    text-decoration: underline;
+    text-underline-offset: 2px;
+}
+
+/* Tables carry the concrete detail — what data, why, how long. Scrolls
+   inside its own box so a narrow screen never scrolls the page sideways. */
+.lgmain ::deep .lgtable-wrap {
+    overflow-x: auto;
+    margin: 0 0 20px;
+    border: 1px solid var(--line);
+    border-radius: 10px;
+}
+
+.lgmain ::deep table {
+    width: 100%;
+    border-collapse: collapse;
+    font-size: 14px;
+}
+
+.lgmain ::deep th {
+    text-align: left;
+    font-size: 11px;
+    font-weight: 700;
+    letter-spacing: .08em;
+    text-transform: uppercase;
+    color: var(--ink3);
+    background: var(--paper2);
+    padding: 10px 14px;
+    border-bottom: 1px solid var(--line);
+    white-space: nowrap;
+}
+
+.lgmain ::deep td {
+    padding: 11px 14px;
+    color: var(--ink2);
+    line-height: 1.55;
+    border-bottom: 1px solid var(--line);
+    vertical-align: top;
+}
+
+.lgmain ::deep tr:last-child td { border-bottom: 0; }
+
+/* A callout for the things a reader genuinely needs to notice — that we are
+   a processor for their client data, that cancelling runs to period end. */
+.lgmain ::deep .lgnote {
+    background: var(--paper2);
+    border: 1px solid var(--line);
+    border-left: 3px solid var(--shu);
+    border-radius: 8px;
+    padding: 16px 18px;
+    margin: 0 0 20px;
+}
+
+.lgmain ::deep .lgnote p:last-child { margin-bottom: 0; }
+
+/* --- footer ---------------------------------------------------------- */
+
+.lgft {
+    display: flex;
+    align-items: center;
+    justify-content: space-between;
+    gap: 16px;
+    flex-wrap: wrap;
+    padding: 26px 46px;
+    border-top: 1px solid var(--line);
+}
+
+.lgts {
+    font-family: var(--mono);
+    font-size: 12px;
+    letter-spacing: .03em;
+    color: var(--ink3);
+}
+
+.lgftlinks {
+    display: flex;
+    gap: 18px;
+}
+
+.lgftlinks a {
+    font-size: 13px;
+    color: var(--ink2);
+    text-decoration: none;
+}
+
+.lgftlinks a:hover { color: var(--ink); text-decoration: underline; }
+
+@media (max-width: 640px) {
+    .lgnav { padding: 16px 22px; }
+    .lgmain { padding: 36px 22px 56px; }
+    .lgmain ::deep h1 { font-size: 30px; }
+    .lgft { padding: 22px 22px; }
+}

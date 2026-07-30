@@ -72,6 +72,14 @@ public class Invoice : AggregateRoot, IAuditableEntity
     private readonly List<InvoiceLineItem> _lineItems = [];
     public IReadOnlyCollection<InvoiceLineItem> LineItems => _lineItems.AsReadOnly();
 
+    // Summarised services rows. When any exist they are what the client reads
+    // instead of one row per time entry; the entries above stay linked either way.
+    private readonly List<InvoiceServiceLine> _serviceLines = [];
+    public IReadOnlyCollection<InvoiceServiceLine> ServiceLines => _serviceLines.AsReadOnly();
+
+    /// <summary>True when the services section is a summary rather than raw entries.</summary>
+    public bool HasSummarisedServices => _serviceLines.Count > 0;
+
     // The total converted into each currency the owner reports in, snapshotted at save.
     private readonly List<InvoiceCurrencyTotal> _currencyTotals = [];
     public IReadOnlyCollection<InvoiceCurrencyTotal> CurrencyTotals => _currencyTotals.AsReadOnly();
@@ -188,6 +196,33 @@ public class Invoice : AggregateRoot, IAuditableEntity
         if (Status != InvoiceStatus.Draft)
             throw new DomainException("Cannot modify a non-draft invoice");
         _lineItems.Clear();
+    }
+
+    /// <summary>
+    /// Replaces the summarised services rows wholesale.
+    ///
+    /// Replace rather than append: a summary is one view of the same set of
+    /// time entries, so merging two of them would double-count the work.
+    /// </summary>
+    public void ReplaceServiceLines(IEnumerable<InvoiceServiceLine> lines)
+    {
+        if (Status != InvoiceStatus.Draft)
+            throw new DomainException("Cannot modify a non-draft invoice");
+
+        _serviceLines.Clear();
+        _serviceLines.AddRange(lines);
+    }
+
+    /// <summary>
+    /// Drops the summary, so the services section returns to one row per time
+    /// entry. Always available — a summary must never be a one-way door.
+    /// </summary>
+    public void ClearServiceLines()
+    {
+        if (Status != InvoiceStatus.Draft)
+            throw new DomainException("Cannot modify a non-draft invoice");
+
+        _serviceLines.Clear();
     }
 
     /// <summary>

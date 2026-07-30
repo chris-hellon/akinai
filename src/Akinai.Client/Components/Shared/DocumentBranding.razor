@@ -1,0 +1,66 @@
+@*
+    The "Created with Akinai" line at the foot of a client-facing document.
+
+    Rendered only when the issuing account's plan lacks RemoveBranding. The
+    caller decides that — this component never resolves entitlements itself,
+    because it also runs inside the PDF renderer and on anonymous public pages
+    where there is no signed-in user to resolve anything from.
+
+    Deliberately quiet: this sits under someone's invoice to their own client,
+    and a loud badge there costs the user credibility rather than gaining us
+    much. Small, grey, and below the document's own footer line.
+*@
+
+@if (Show)
+{
+    <div class="px-8 pb-5 -mt-1">
+        <p class="text-center text-[11px] leading-none text-gray-300 dark:text-slate-600">
+            @* Not a link: in a PDF it would be dead ink, and on the web an
+               outbound link placed on someone else's invoice is theirs to
+               offer rather than ours to insert. *@
+            @if (_before is not null)
+            {
+                @_before<text>Akin</text><span class="wm-ai">ai</span>@_after
+            }
+            else
+            {
+                @Text
+            }
+        </p>
+    </div>
+}
+
+@code {
+    private const string Brand = "Akinai";
+
+    /// <summary>Whether to render at all. False on plans with RemoveBranding.</summary>
+    [Parameter] public bool Show { get; set; } = true;
+
+    /// <summary>
+    /// The already-translated line, from the document's label set, so it reads
+    /// in the same language as everything above it.
+    /// </summary>
+    [Parameter] public string Text { get; set; } = "Created with Akinai";
+
+    private string? _before;
+    private string? _after;
+
+    protected override void OnParametersSet()
+    {
+        // The brand name is a proper noun and survives translation intact, so
+        // it can be found and accented wherever the sentence puts it — Korean
+        // and Vietnamese lead with it, English and German end with it. If a
+        // future string somehow lacks it, fall through to plain text rather
+        // than dropping the line.
+        var at = Text.IndexOf(Brand, StringComparison.Ordinal);
+        if (at < 0)
+        {
+            _before = null;
+            _after = null;
+            return;
+        }
+
+        _before = Text[..at];
+        _after = Text[(at + Brand.Length)..];
+    }
+}

@@ -5,7 +5,7 @@
 @layout EmptyLayout
 @attribute [AllowAnonymous]
 
-<PageTitle>Akinai — Bill in their language. Get paid on their rail.</PageTitle>
+<PageTitle>Akinai — Invoicing for freelancers with clients abroad</PageTitle>
 
 <div class="page washi">
 
@@ -16,51 +16,106 @@
 <div class="nav">
 <div class="navleft">
 <label class="navburger" for="navtoggle" aria-label="Open menu"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M4 6h16M4 12h16M4 18h16"/></svg></label>
-<a class="brand" href=""><span class="hanko">商</span><span class="wordmark">Akin<span class="wm-ai">ai</span><span class="jp">あきない</span></span></a>
+<a class="brand" href=""><span class="hanko">商</span><span class="wordmark">Akin<span class="wm-ai">ai</span></span></a>
 </div>
-<div class="navlinks"><a class="nlink" href="#payments">Payments</a><a class="nlink" href="#reconciliation">Reconciliation</a><a class="nlink" href="#estimates">Estimates</a><a class="nlink" href="#global">Global</a><a class="nlink" href="#pricing">Pricing</a></div>
+<div class="navlinks"><a class="nlink" href="#payments">Payments</a><a class="nlink" href="#reconciliation">Bank import</a><a class="nlink" href="#estimates">Estimates</a><a class="nlink" href="#global">Global</a><a class="nlink" href="#pricing">Pricing</a><a class="nlink" href="#faq">FAQ</a></div>
 <div class="navact"><a class="signin" href="account/login">Sign in</a><a class="btn btn-ink" href="account/register">Get started</a></div>
 </div>
 <label class="navscrim" for="navtoggle" aria-hidden="true"></label>
 <div class="mobilemenu">
-<div class="mm-brand"><span class="hanko">商</span><span class="wordmark">Akin<span class="wm-ai">ai</span><span class="jp">あきない</span></span></div>
+<div class="mm-brand"><span class="hanko">商</span><span class="wordmark">Akin<span class="wm-ai">ai</span></span></div>
 <a class="mm-link" href="#payments">Payments</a>
-<a class="mm-link" href="#reconciliation">Reconciliation</a>
+<a class="mm-link" href="#reconciliation">Bank import</a>
 <a class="mm-link" href="#estimates">Estimates</a>
 <a class="mm-link" href="#global">Global</a>
+<a class="mm-link" href="#pricing">Pricing</a>
+<a class="mm-link" href="#faq">FAQ</a>
 <div class="mm-act"><a class="signin" href="account/login">Sign in</a><a class="btn btn-ink" href="account/register">Get started</a></div>
 </div>
 
 <!-- hero -->
 <div class="hero">
 <div class="wrap" style="max-width:1088px">
-<span class="eyebrow"><span class="kj">請</span>For foreigners freelancing &amp; running studios in Vietnam</span>
-<h1 class="h1">Bill in their language.<br><span class="thin">Get paid on</span> <span class="em">their rail.</span></h1>
+<span class="eyebrow">Invoicing for freelancers with clients abroad</span>
+<h1 class="h1">Bill in their currency.<br><span class="thin">Report in</span> <span class="em">yours.</span></h1>
 <div class="herohair">
 <div>
-<p class="lead">Eight languages, every payment rail, VietQR built in — and a bank-statement importer that lines each transaction up against your open invoices. Precise by design.</p>
+<p class="lead">Akinai is invoicing software for people billing clients in more than one country. One in euros, one in dong, one in won — each gets an invoice in their own language and currency. Your dashboard adds it all up in yours.</p>
 <div class="herocta"><a class="btn btn-ink btn-lg" href="account/register">Start for free<svg fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M13 7l5 5m0 0l-5 5m5-5H6"></path></svg></a></div>
-<div class="spec"><div class="si"><div class="sn">8</div><div class="sl">Languages</div></div><div class="si"><div class="sn">5<span class="u"> rails</span></div><div class="sl">Bank · PayPal · Wise · Revolut · VietQR</div></div><div class="si"><div class="sn">Auto</div><div class="sl">Reconciled</div></div></div>
+<div class="spec"><div class="si"><div class="sn">8</div><div class="sl">Languages</div></div><div class="si"><div class="sn">5<span class="u"> ways to pay</span></div><div class="sl">Bank · PayPal · Wise · Revolut · VietQR</div></div><div class="si"><div class="sn">Auto</div><div class="sl">Payments matched</div></div></div>
 </div>
 <div class="speccell"><span class="fig">INV — 0231 / VND</span>
 <div class="cardwrap">
 <div class="card">
 <div class="chead"><div class="fx ac gap12"><span class="clogo">DS</span><div><div class="cname">Delta Studio</div><div class="cloc">HO CHI MINH CITY · VN</div></div></div><div class="cstat"><span class="spill sp-await"><span class="sd" style="background:oklch(.5 .11 70)"></span>Awaiting</span><span class="spill sp-paid"><span class="sd" style="background:oklch(.48 .11 155)"></span>Paid</span></div></div>
 <div class="cbody"><div class="fx ac gap8 wrap"><span class="lab">Billed to</span><span class="co">Anh Minh Co.</span><span class="vi">TIẾNG VIỆT · VND</span></div><div class="amtlab">Total · settles in their currency</div><div class="amtroll-wrap"><div class="amtroll"><div class="amtrow">₫68,000,000</div><div class="amtrow">$1,850.00</div><div class="amtrow">€2,480.00</div><div class="amtrow">£1,200.00</div><div class="amtrow">₫68,000,000</div></div></div></div>
-<div class="cpay"><div class="qrwrap"><span class="qrbox"><svg width="60" height="60" viewBox="0 0 80 80" fill="none"><rect x="4" y="4" width="20" height="20" rx="2" stroke="#1a1712" stroke-width="4"/><rect x="12" y="12" width="4" height="4" fill="#1a1712"/><rect x="56" y="4" width="20" height="20" rx="2" stroke="#1a1712" stroke-width="4"/><rect x="64" y="12" width="4" height="4" fill="#1a1712"/><rect x="4" y="56" width="20" height="20" rx="2" stroke="#1a1712" stroke-width="4"/><rect x="12" y="64" width="4" height="4" fill="#1a1712"/><g fill="#1a1712"><rect x="32" y="4" width="6" height="6"/><rect x="42" y="4" width="6" height="6"/><rect x="32" y="14" width="6" height="6"/><rect x="4" y="32" width="6" height="6"/><rect x="14" y="32" width="6" height="6"/><rect x="34" y="32" width="6" height="6"/><rect x="54" y="32" width="6" height="6"/><rect x="70" y="32" width="6" height="6"/><rect x="32" y="52" width="6" height="6"/><rect x="52" y="52" width="6" height="6"/></g></svg><span class="beam"></span></span><div><div class="rname">Scan to pay</div><div class="rsub">VIETQR · OPENS BANKING APP</div></div></div><div class="paidwrap"><span class="seal">済</span><div class="rsub" style="margin-top:9px;letter-spacing:.06em">PAID VIA VIETQR · 27 JUN 2026</div></div></div>
+<div class="cpay"><div class="qrwrap"><span class="qrbox"><svg width="60" height="60" viewBox="0 0 80 80" fill="none"><rect x="4" y="4" width="20" height="20" rx="2" stroke="#1a1712" stroke-width="4"/><rect x="12" y="12" width="4" height="4" fill="#1a1712"/><rect x="56" y="4" width="20" height="20" rx="2" stroke="#1a1712" stroke-width="4"/><rect x="64" y="12" width="4" height="4" fill="#1a1712"/><rect x="4" y="56" width="20" height="20" rx="2" stroke="#1a1712" stroke-width="4"/><rect x="12" y="64" width="4" height="4" fill="#1a1712"/><g fill="#1a1712"><rect x="32" y="4" width="6" height="6"/><rect x="42" y="4" width="6" height="6"/><rect x="32" y="14" width="6" height="6"/><rect x="4" y="32" width="6" height="6"/><rect x="14" y="32" width="6" height="6"/><rect x="34" y="32" width="6" height="6"/><rect x="54" y="32" width="6" height="6"/><rect x="70" y="32" width="6" height="6"/><rect x="32" y="52" width="6" height="6"/><rect x="52" y="52" width="6" height="6"/></g></svg><span class="beam"></span></span><div><div class="rname">Scan to pay</div><div class="rsub">VIETQR · OPENS BANKING APP</div></div></div><div class="paidwrap"><div class="rsub" style="margin-top:9px;letter-spacing:.06em">PAID VIA VIETQR · 27 JUN 2026</div></div></div>
 </div></div>
 </div>
 </div>
 </div>
-<div class="tate" style="position:absolute;top:50%;transform:translateY(-50%);right:20px;font-size:21px">請求</div>
+
 </div>
+
+<!-- Proof.
+
+     Sits directly after the hero, where the problem section used to. The hero
+     makes a claim about currency and language; this is the claim being true,
+     one click away, before any feature is described. -->
+<div id="global" class="sec"><div class="wrap" style="text-align:center">
+<span class="seyebrow">AI translation</span>
+<h2 class="stt">The invoice arrives already in their language</h2>
+<p class="sdd" style="margin:16px auto 0">Pick a client. The document redraws in their language, currency, date format and payment methods.</p>
+
+<div style="margin-top:38px">
+<LocalizedInvoiceDemo />
+</div>
+
+<div class="aisplit">
+<div class="aicol">
+<div class="aikind">Written in, not translated</div>
+<p class="aip">Subtotal, Amount Due, Bill To — every heading is set per language in the app. Always the term a local accountant expects, and free.</p>
+</div>
+<div class="aicol">
+<div class="aikind">Translated by AI</div>
+<p class="aip">Your job descriptions, notes and terms. Cached, so the same phrase is paid for once, and capped per month so it cannot run away.</p>
+</div>
+</div>
+
+<p class="sdd" style="margin:44px auto 0">And four templates to choose the look.</p>
+<div class="fx gap12" style="margin-top:30px;flex-wrap:wrap"><div class="tmpl"><div class="tmplbar" style="background:var(--ink)"></div><div class="tmplbody"><div class="tmplname">Minimal</div><div class="tmpltag">Clean · mono</div></div></div><div class="tmpl"><div class="tmplbar" style="background:var(--shu)"></div><div class="tmplbody"><div class="tmplname">Professional</div><div class="tmpltag">Default</div></div></div><div class="tmpl"><div class="tmplbar" style="background:var(--ai)"></div><div class="tmplbody"><div class="tmplname">Modern</div><div class="tmpltag">Bold accent</div></div></div><div class="tmpl"><div class="tmplbar" style="background:oklch(.42 .03 60)"></div><div class="tmplbody"><div class="tmplname">Classic</div><div class="tmpltag">Traditional</div></div></div></div>
+</div></div>
+
+<!-- Reporting currency.
+
+     Directly after the demo because the two are one idea seen from both ends:
+     the demo is what the client receives, this is what the owner reads back. -->
+<div id="reporting" class="sec sec-alt"><div class="wrap"><div class="fsec">
+<div>
+<span class="seyebrow">Reporting</span>
+<h2 class="stt">Six currencies out, one number back</h2>
+<p class="sdd">Invoice in whatever your client pays in. Your dashboard, reports and cash flow all read in the one currency you think in.</p>
+<div class="bullet"><svg class="bk" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2.2" d="M5 13l4 4L19 7"></path></svg>Converted at the rate on the day you raised it</div>
+<div class="bullet"><svg class="bk" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2.2" d="M5 13l4 4L19 7"></path></svg>So March still says what it said in March</div>
+</div>
+<div class="panel">
+<div class="convhead">Q2 · reported in GBP</div>
+<div class="convrows">
+<div class="convrow"><span class="convcur">VND</span><span class="convamt">₫68,000,000</span><span class="convarrow">→</span><span class="convgbp">£2,040</span></div>
+<div class="convrow"><span class="convcur">EUR</span><span class="convamt">€2,480</span><span class="convarrow">→</span><span class="convgbp">£2,108</span></div>
+<div class="convrow"><span class="convcur">USD</span><span class="convamt">$1,850</span><span class="convarrow">→</span><span class="convgbp">£1,388</span></div>
+<div class="convrow"><span class="convcur">KRW</span><span class="convamt">₩2,400,000</span><span class="convarrow">→</span><span class="convgbp">£1,332</span></div>
+</div>
+<div class="convtotal"><span>Total invoiced</span><span class="convbig">£6,868</span></div>
+</div>
+</div></div></div>
 
 <!-- Payments -->
 <div id="payments" class="sec"><div class="wrap"><div class="fsec">
 <div>
-<span class="seyebrow"><span class="kj">払</span>Payments · every rail</span>
-<h2 class="stt">Get paid the way your client already pays</h2>
-<p class="sdd">One invoice, every option on it. Bank transfer with full IBAN, SWIFT and sort-code details, PayPal.Me, Wise, Revolut — and for Vietnamese clients, a scannable VietQR code that opens their banking app pre-filled.</p>
+<span class="seyebrow">Payments · every method</span>
+<h2 class="stt">No client has to learn a new way to pay you</h2>
+<p class="sdd">Bank transfer with full IBAN and SWIFT, PayPal, Wise, Revolut — and a VietQR code that opens their banking app already filled in.</p>
 <div class="bullet"><svg class="bk" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2.2" d="M5 13l4 4L19 7"></path></svg>Separate bank details per currency</div>
 <div class="bullet"><svg class="bk" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2.2" d="M5 13l4 4L19 7"></path></svg>VietQR generated automatically for VND</div>
 </div>
@@ -73,10 +128,10 @@
 </div>
 </div></div></div>
 
-<div class="divk"><span class="dl"></span><span class="dk">照</span><span class="dl"></span></div>
+
 
 <!-- Reconciliation -->
-<div id="reconciliation" class="sec sec-alt"><div class="wrap"><div class="fsec">
+<div id="reconciliation" class="sec sec-alt"><div class="wrap"><div class="fsec fsec-rev">
 <div class="panel">
 <div class="phead"><div class="lab">Imported · statement.csv</div><span class="conf" style="color:var(--shu);background:#e7f2f3">3 auto-matched</span></div>
 <div class="txr"><div class="mono rsub" style="width:56px">28 JUN</div><div class="f1" style="font-size:13px;font-weight:500">FASTER PYMT NORTHWIND</div><div class="tnum" style="font-size:13px;font-weight:700;width:60px;text-align:right">£6,800</div><span class="conf" style="color:oklch(.48 .11 155);background:oklch(.93 .05 155)">High → INV-0231</span></div>
@@ -84,22 +139,22 @@
 <div class="txr"><div class="mono rsub" style="width:56px">21 JUN</div><div class="f1" style="font-size:13px;font-weight:500">GOCARDLESS LTD</div><div class="tnum" style="font-size:13px;font-weight:700;width:60px;text-align:right">£480</div><span class="conf" style="color:var(--ink2);background:var(--sunk)">Medium → INV-0225</span></div>
 </div>
 <div>
-<span class="seyebrow"><span class="kj">照</span>Reconciliation</span>
-<h2 class="stt">Your bank statement, matched for you</h2>
-<p class="sdd">Import a CSV or OFX statement and Akinai lines each transaction up against your open invoices — ranked High, Medium or Low confidence — so reconciliation is a glance and a click, not an afternoon.</p>
+<span class="seyebrow">Bank import</span>
+<h2 class="stt">Know who has paid without opening a spreadsheet</h2>
+<p class="sdd">Import a statement and every line is ranked against your open invoices. Confirm or override in a click.</p>
 <div class="bullet"><svg class="bk" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2.2" d="M5 13l4 4L19 7"></path></svg>Duplicate transactions skipped automatically</div>
 <div class="bullet"><svg class="bk" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2.2" d="M5 13l4 4L19 7"></path></svg>Confirm or override any suggested match</div>
 </div>
 </div></div></div>
 
-<div class="divk"><span class="dl"></span><span class="dk">見</span><span class="dl"></span></div>
+
 
 <!-- Estimates -->
 <div id="estimates" class="sec"><div class="wrap"><div class="fsec">
 <div>
-<span class="seyebrow"><span class="kj">見</span>Estimates</span>
-<h2 class="stt">Estimates your clients accept &amp; sign</h2>
-<p class="sdd">Share an estimate on a secure link — no login for them. They accept and sign right in the browser; you get their name, email, IP and a timestamp on record. One click turns the accepted quote into an invoice.</p>
+<span class="seyebrow">Estimates</span>
+<h2 class="stt">Quotes come back signed, not &ldquo;sounds good&rdquo;</h2>
+<p class="sdd">A secure link, no login for them. They sign in the browser, and one click turns it into an invoice.</p>
 <div class="bullet"><svg class="bk" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2.2" d="M5 13l4 4L19 7"></path></svg>Legally-tracked digital signature</div>
 <div class="bullet"><svg class="bk" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2.2" d="M5 13l4 4L19 7"></path></svg>Convert to invoice, keep the numbers</div>
 </div>
@@ -111,10 +166,10 @@
 </div>
 </div></div></div>
 
-<div class="divk"><span class="dl"></span><span class="dk">門</span><span class="dl"></span></div>
+
 
 <!-- Client portal -->
-<div class="sec sec-alt"><div class="wrap"><div class="fsec">
+<div class="sec sec-alt"><div class="wrap"><div class="fsec fsec-rev">
 <div class="panel">
 <div class="fx ac gap12" style="padding:18px 20px;border-bottom:1px solid var(--line2)"><span class="clogo" style="border-radius:9px">NS</span><div class="f1"><div class="rname" style="font-size:15px">Northwind Studio</div><div class="rsub">CLIENT PORTAL · ACME CO</div></div></div>
 <div style="display:grid;grid-template-columns:repeat(3,1fr)">
@@ -125,31 +180,20 @@
 <div class="fx ac jb" style="padding:14px 20px;border-top:1px solid var(--line2)"><span class="mono rsub">akinai.app/portal/7f3a…</span><span class="btn btn-ink" style="padding:8px 14px;font-size:12.5px">Open portal</span></div>
 </div>
 <div>
-<span class="seyebrow"><span class="kj">門</span>Client portal</span>
-<h2 class="stt">A branded home for every client</h2>
-<p class="sdd">Every client gets a private, logo-branded portal on a secure token link. They see every invoice, estimate and payment, download PDFs, and pay — without an account, a password, or an email to you asking "can you resend that?"</p>
+<span class="seyebrow">Client portal</span>
+<h2 class="stt">Clients stop emailing you for copies</h2>
+<p class="sdd">A private branded page per client: every invoice, estimate and payment. No account, no password, no &quot;can you resend that?&quot;</p>
 <div class="bullet"><svg class="bk" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2.2" d="M5 13l4 4L19 7"></path></svg>No login — just the link</div>
 <div class="bullet"><svg class="bk" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2.2" d="M5 13l4 4L19 7"></path></svg>Your logo, your business details</div>
 </div>
 </div></div></div>
 
-<div class="divk"><span class="dl"></span><span class="dk">世</span><span class="dl"></span></div>
 
-<!-- Global -->
-<div id="global" class="sec"><div class="wrap" style="text-align:center">
-<div class="fx jc"><span class="ficon"><svg width="24" height="24" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="1.8" d="M3 5h12M9 3v2m1.048 9.5A18 18 0 016.4 9m6.1 9h7M11 21l5-10 5 10M12.7 5C11.8 10.8 8 15.6 3 18"></path></svg></span></div>
-<div class="seyebrow" style="margin-top:16px;justify-content:center"><span class="kj">世</span>Global by default</div>
-<h2 class="stt" style="font-size:30px">Speaks eight languages. Bills in any currency.</h2>
-<p class="sdd" style="margin:16px auto 0;max-width:540px">Each client sees their invoice in their language and currency — and you choose the look with four ready PDF templates.</p>
-<div class="fx ac jc gap8" style="flex-wrap:wrap;margin-top:28px"><span class="langchip">EN English</span><span class="langchip">ES Español</span><span class="langchip">FR Français</span><span class="langchip">DE Deutsch</span><span class="langchip">ZH 中文</span><span class="langchip">VI Tiếng Việt</span></div>
-<div class="fx ac jc gap8" style="margin-top:14px;flex-wrap:wrap"><span class="langchip" style="font-family:var(--sans);text-transform:none">£ GBP</span><span class="langchip" style="font-family:var(--sans);text-transform:none">$ USD</span><span class="langchip" style="font-family:var(--sans);text-transform:none">€ EUR</span><span class="langchip" style="font-family:var(--sans);text-transform:none">₫ VND</span><span class="langchip" style="font-family:var(--sans);text-transform:none">¥ JPY</span></div>
-<div class="fx gap12" style="margin-top:30px;flex-wrap:wrap"><div class="tmpl"><div class="tmplbar" style="background:var(--ink)"></div><div class="tmplbody"><div class="tmplname">Minimal</div><div class="tmpltag">Clean · mono</div></div></div><div class="tmpl"><div class="tmplbar" style="background:var(--shu)"></div><div class="tmplbody"><div class="tmplname">Professional</div><div class="tmpltag">Default</div></div></div><div class="tmpl"><div class="tmplbar" style="background:var(--ai)"></div><div class="tmplbody"><div class="tmplname">Modern</div><div class="tmpltag">Bold accent</div></div></div><div class="tmpl"><div class="tmplbar" style="background:oklch(.42 .03 60)"></div><div class="tmplbody"><div class="tmplname">Classic</div><div class="tmpltag">Traditional</div></div></div></div>
-</div></div>
 
 <!-- Pricing — reads the same catalogue the billing page and the entitlement
      checks use, so what is advertised here cannot drift from what is sold. -->
 <div id="pricing" class="sec"><div class="wrap" style="text-align:center">
-<div class="seyebrow" style="justify-content:center"><span class="kj">価</span>Pricing</div>
+<div class="seyebrow" style="justify-content:center">Pricing</div>
 <h2 class="stt" style="font-size:30px">Start free. Upgrade when it pays for itself.</h2>
 <p class="sdd" style="margin:16px auto 0;max-width:520px">No card to start. @(_free?.InvoicesPerMonth?.ToString() ?? "5") invoices a month free, forever — cross-border features when you need them.</p>
 
@@ -160,7 +204,7 @@
     <div class="pcard @(isPro ? "pcard-hl" : "")">
         @if (isPro)
         {
-            <div class="pbadge">Most popular</div>
+            <div class="pcard-badge">Most popular</div>
         }
         <div class="pname">@plan.Name</div>
         <div class="pprice">
@@ -201,16 +245,98 @@
 <div class="trust f1"><span class="tico"><svg width="17" height="17" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M3 8l7.89 5.26a2 2 0 002.22 0L21 8M5 19h14a2 2 0 002-2V7a2 2 0 00-2-2H5a2 2 0 00-2 2v10a2 2 0 002 2z"></path></svg></span><div><div class="rname">Confirmed email</div><div class="rsub">VERIFIED SENDING</div></div></div>
 </div></div></div>
 
+<!-- Founder note.
+
+     Where social proof would sit. There are no customers yet, so there are no
+     testimonials to show and inventing them would be the fastest way to lose
+     the credibility this product is sold on. This is the honest version. -->
+<div class="sec"><div class="wrap">
+<div class="fnote">
+<div class="fnseal">商</div>
+<div>
+<p class="fnp">I built Akinai because I was living in Vietnam, invoicing clients in three countries, and losing days to it — a wire returned for a missing code, an invoice ignored for a fortnight because the client's accountant could not read it, an evening a month matching bank lines by hand.</p>
+<p class="fnp">Every part of this is something that went wrong for me first. It is a small product built by one person, and if something is broken or missing you will get a reply from me rather than a ticket number.</p>
+<div class="fnby">Chris &middot; <span>Founder, working from Vietnam</span></div>
+</div>
+</div>
+</div></div>
+
+<!-- FAQ.
+
+     Native <details>, not a JS accordion: open/close then costs no script and
+     is keyboard- and screen-reader-correct for free.
+
+     Note it is NOT currently indexable. App.razor renders with
+     InteractiveAutoRenderMode(prerender: false), so the whole app — this page
+     included — ships an empty body and builds itself in the browser. A crawler
+     that does not execute JavaScript sees none of this. Turning prerendering on
+     would fix it, but it is an app-wide change and this page navigates away
+     during OnInitializedAsync for signed-in users, which prerendering does not
+     take kindly to. -->
+<div id="faq" class="sec sec-alt"><div class="wrap" style="max-width:760px">
+<div style="text-align:center">
+<span class="seyebrow">Questions</span>
+<h2 class="stt">Before you sign up</h2>
+</div>
+<div class="faqlist">
+
+<details class="faq">
+<summary>What happens to my invoices if I stop paying?</summary>
+<div class="faqa"><p>Nothing is deleted. Your account moves to the Free plan and every invoice, estimate, client and time entry stays exactly where it is. Links you have already sent keep working, so a client can still open and pay an invoice you issued while on Pro. What changes is what you can create next.</p></div>
+</details>
+
+<details class="faq">
+<summary>Can I get my data out?</summary>
+<div class="faqa"><p>Yes, whenever you like, without asking us. Account → Personal data → Download gives you a copy. The same screen deletes your account and data outright if you would rather leave entirely.</p></div>
+</details>
+
+<details class="faq">
+<summary>What counts towards the free plan's @FreeInvoiceLimit invoices a month?</summary>
+<div class="faqa"><p>Invoices you create in a calendar month. The counter resets on the 1st. Clients, projects, jobs, timesheets and expenses are unlimited on every plan — the limit is only on invoices.</p></div>
+</details>
+
+<details class="faq">
+<summary>How good is the translation, really?</summary>
+<div class="faqa">
+<p>It is two different things, and the difference matters.</p>
+<p>The fixed furniture of an invoice — Subtotal, Amount Due, Bill To, Payment Options — is written into Akinai for each language, so it is always the term a local accountant expects, it renders instantly, and it costs nothing.</p>
+<p>The text <em>you</em> wrote — job descriptions, notes, terms — is machine-translated. That is good enough for a client to understand what they are being billed for, and we would not tell you it is good enough for a contract. If a line carries an obligation, read it before you send it.</p>
+</div>
+</details>
+
+<details class="faq">
+<summary>Do I need a Vietnamese bank account?</summary>
+<div class="faqa"><p>Only for VietQR, which needs Vietnamese bank details to generate the code. Everything else works from anywhere — bank transfer with IBAN and SWIFT, PayPal, Wise and Revolut — and you set payment details separately per currency, so a VND client can see VietQR while a EUR client sees your euro account.</p></div>
+</details>
+
+<details class="faq">
+<summary>Does my client need an account?</summary>
+<div class="faqa"><p>No, and they never will. They open a link and see the invoice in their language, or accept an estimate, or use the client portal. No signup, no password, nothing to install.</p></div>
+</details>
+
+<details class="faq">
+<summary>Can I bill in a currency I don't hold?</summary>
+<div class="faqa"><p>Yes, on Pro. Invoice in your client's currency with live exchange rates, and give them the account details for whichever currency you actually want to be paid in. The Free plan is single-currency.</p></div>
+</details>
+
+<details class="faq">
+<summary>How does the subscription work?</summary>
+<div class="faqa"><p>Card payment through Stripe, renewing monthly or annually until you stop it. Cancelling keeps you on Pro until the end of the period you have already paid for, then moves you to Free — no partial refund, and nothing removed. Full detail is in the <a href="terms">terms</a>.</p></div>
+</details>
+
+</div>
+</div></div>
+
 <!-- CTA -->
 <div class="sec" style="padding-top:60px;padding-bottom:60px"><div class="wrap"><div class="cta" style="padding-top:44px">
 <span class="cseal">商</span>
-<h2 class="cta-h" style="margin-top:14px">Your first localized, on-any-rail invoice is two minutes away.</h2>
+<h2 class="cta-h" style="margin-top:14px">Your first invoice, in your client's language and currency, is two minutes away.</h2>
 <p class="cta-p">Free to start, no card required. Add your business, pick a template, and send.</p>
 <div class="fx ac jc gap12" style="margin-top:30px"><a class="btn btn-paper btn-lg" href="account/register">Create your free account</a><a class="btn btn-ghost-w btn-lg" href="account/login">Sign in</a></div>
 </div></div></div>
 
 <!-- Footer -->
-<div class="ft"><div class="brand"><span class="hanko" style="width:30px;height:30px;font-size:17px;border-radius:6px">商</span><span class="wordmark" style="font-size:17px">Akin<span class="wm-ai">ai</span><span class="jp">あきない</span></span></div><span class="ts">© @DateTime.Now.Year Akinai. All rights reserved.</span></div>
+<div class="ft"><div class="brand"><span class="hanko" style="width:30px;height:30px;font-size:17px;border-radius:6px">商</span><span class="wordmark" style="font-size:17px">Akin<span class="wm-ai">ai</span></span></div><div class="ftlinks"><a href="privacy">Privacy</a><a href="terms">Terms</a><a href="contact">Contact</a></div><span class="ts">© @DateTime.Now.Year Akinai. All rights reserved.</span></div>
 
 </div>
 
@@ -220,6 +346,12 @@
     // because a marketing page with no prices is worse than slightly stale ones.
     private IReadOnlyList<PlanDefinition> _plans = Plans.All;
     private PlanDefinition? _free => _plans.FirstOrDefault(p => !p.IsPaid);
+
+    /// <summary>
+    /// The free plan's monthly invoice cap, read from the catalogue so the FAQ
+    /// cannot quote a number the entitlement check does not enforce.
+    /// </summary>
+    private string FreeInvoiceLimit => _free?.InvoicesPerMonth?.ToString() ?? "a limited number of";
 
     [CascadingParameter] private Task<AuthenticationState>? AuthState { get; set; }
 

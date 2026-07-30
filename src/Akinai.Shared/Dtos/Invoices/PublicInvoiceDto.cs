@@ -49,4 +49,14 @@ public record PublicInvoiceDto(
     /// labels and date format. Defaults to English so an older cached response
     /// still renders.
     /// </summary>
-    string Language = "English");
+    string Language = "English",
+    /// <summary>
+    /// Whether to show the "Created with Akinai" line in the footer.
+    ///
+    /// Resolved server-side from the plan of the account that issued the
+    /// document, never from whoever is looking at it — the viewer is an
+    /// anonymous client with no plan of their own. Defaults to true so that a
+    /// failure to resolve leaves the branding on rather than silently granting
+    /// a paid perk.
+    /// </summary>
+    bool ShowBranding = true);

@@ -42,4 +42,11 @@ public class UpdateInvoice : IPut
     /// </summary>
     [BodyParam]
     public string? Language { get; init; }
+
+    /// <summary>
+    /// The template this invoice renders with. Null means "no template of its
+    /// own" — the account's default template is applied at render time.
+    /// </summary>
+    [BodyParam]
+    public Guid? TemplateId { get; init; }
 }

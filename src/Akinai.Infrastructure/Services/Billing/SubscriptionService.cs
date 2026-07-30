@@ -3,6 +3,7 @@ using Akinai.Domain.Enums;
 using Akinai.Infrastructure.Data;
 using Akinai.Infrastructure.Hubs;
 using Microsoft.AspNetCore.SignalR;
+using Akinai.Shared.Api;
 using Akinai.Shared.Billing;
 using Akinai.Shared.Dtos.Billing;
 using Akinai.Shared.Services;
@@ -32,17 +33,41 @@ public class SubscriptionService(
         return await ToDto(user, cancellationToken);
     }
 
-    public async Task<IReadOnlyList<SubscriptionEventDto>> GetHistoryAsync(
-        string userId, CancellationToken cancellationToken = default)
+    public async Task<PaginatedResponse<SubscriptionEventDto>> GetHistoryAsync(
+        string userId, int page = 1, int pageSize = 10, CancellationToken cancellationToken = default)
     {
+        // Clamped rather than trusted: these arrive from the query string, and an
+        // unbounded page size would let a caller pull the whole table in one go.
+        page = Math.Max(1, page);
+        pageSize = Math.Clamp(pageSize, 1, 100);
+
         await using var db = await dbFactory.CreateDbContextAsync(cancellationToken);
-        return await db.SubscriptionEvents
+
+        var query = db.SubscriptionEvents
             .AsNoTracking()
-            .Where(e => e.UserId == userId)
+            .Where(e => e.UserId == userId);
+
+        var total = await query.CountAsync(cancellationToken);
+
+        var items = await query
+            // Id breaks ties: renewals and their originating events can share a
+            // timestamp to the second, and an unstable sort would let the same
+            // row appear on two pages while another never appears at all.
             .OrderByDescending(e => e.OccurredAtUtc)
+            .ThenByDescending(e => e.Id)
+            .Skip((page - 1) * pageSize)
+            .Take(pageSize)
             .Select(e => new SubscriptionEventDto(
                 e.OccurredAtUtc, e.Type, e.FromPlan, e.ToPlan, e.Amount, e.Currency, e.Simulated, e.Note))
             .ToListAsync(cancellationToken);
+
+        return new PaginatedResponse<SubscriptionEventDto>
+        {
+            Items = items,
+            Page = page,
+            PageSize = pageSize,
+            TotalCount = total,
+        };
     }
 
     public async Task<CheckoutSessionDto> StartCheckoutAsync(
@@ -324,6 +349,111 @@ public class SubscriptionService(
             definition.Currency,
             definition.CurrencySymbol,
             provider.IsSimulated,
-            provider.Name);
+            provider.Name,
+            provider.RenewsAutomatically);
+    }
+
+    public async Task LinkProviderSubscriptionAsync(
+        string userId, string providerSubscriptionId, CancellationToken cancellationToken = default)
+    {
+        await using var db = await dbFactory.CreateDbContextAsync(cancellationToken);
+        var user = await db.Users.FirstOrDefaultAsync(u => u.Id == userId, cancellationToken);
+        if (user is null) return;
+
+        user.ProviderSubscriptionId = providerSubscriptionId;
+        await db.SaveChangesAsync(cancellationToken);
+    }
+
+    public async Task RecordRenewalAsync(
+        string providerSubscriptionId, DateTime periodEndUtc, decimal amount, string currency,
+        CancellationToken cancellationToken = default)
+    {
+        await using var db = await dbFactory.CreateDbContextAsync(cancellationToken);
+        var user = await db.Users.FirstOrDefaultAsync(
+            u => u.ProviderSubscriptionId == providerSubscriptionId, cancellationToken);
+
+        if (user is null)
+        {
+            logger.LogWarning("Renewal for unknown subscription {SubscriptionId}.", providerSubscriptionId);
+            return;
+        }
+
+        // The provider decides when the period ends — it knows about proration,
+        // retries and billing-cycle anchors that we would only approximate.
+        user.CurrentPeriodEndUtc = periodEndUtc;
+        user.SubscriptionStatus = SubscriptionStatus.Active;
+
+        db.SubscriptionEvents.Add(SubscriptionEvent.Create(
+            user.Id, type: "Renewed",
+            fromPlan: user.Plan.ToString(), toPlan: user.Plan.ToString(),
+            cycle: user.BillingCycle?.ToString() ?? BillingCycle.Monthly.ToString(),
+            amount: amount, currency: currency, simulated: false,
+            note: $"Renewed until {periodEndUtc:yyyy-MM-dd}."));
+
+        await db.SaveChangesAsync(cancellationToken);
+
+        logger.LogInformation("Subscription renewed for {UserId} until {PeriodEnd}.", user.Id, periodEndUtc);
+
+        // Renewals are the one charge the account holder did not initiate — no
+        // checkout, no redirect, just a card billed while they were elsewhere.
+        // Telling them is what makes it a subscription rather than a surprise.
+        var definition = await catalog.ForAsync(user.Plan, cancellationToken);
+        await AnnounceAsync(user.Id,
+            $"{definition.Name} renewed",
+            $"{definition.CurrencySymbol}{amount:0.##} was charged. Your subscription runs until {periodEndUtc:d MMMM yyyy}.",
+            cancellationToken);
+    }
+
+    public async Task MarkPastDueAsync(string providerSubscriptionId, CancellationToken cancellationToken = default)
+    {
+        await using var db = await dbFactory.CreateDbContextAsync(cancellationToken);
+        var user = await db.Users.FirstOrDefaultAsync(
+            u => u.ProviderSubscriptionId == providerSubscriptionId, cancellationToken);
+        if (user is null) return;
+
+        user.SubscriptionStatus = SubscriptionStatus.PastDue;
+
+        db.SubscriptionEvents.Add(SubscriptionEvent.Create(
+            user.Id, type: "PaymentFailed",
+            fromPlan: user.Plan.ToString(), toPlan: user.Plan.ToString(),
+            cycle: user.BillingCycle?.ToString() ?? BillingCycle.Monthly.ToString(),
+            amount: 0m, currency: "GBP", simulated: false,
+            note: "A recurring payment failed."));
+
+        await db.SaveChangesAsync(cancellationToken);
+
+        // Nothing is deleted — the account keeps its data and can pay to resume.
+        await AnnounceAsync(user.Id,
+            "We could not take your payment",
+            "Your card was declined, so Akinai has moved to the free plan. Update your card to restore Pro.",
+            cancellationToken);
+    }
+
+    public async Task EndSubscriptionAsync(string providerSubscriptionId, CancellationToken cancellationToken = default)
+    {
+        await using var db = await dbFactory.CreateDbContextAsync(cancellationToken);
+        var user = await db.Users.FirstOrDefaultAsync(
+            u => u.ProviderSubscriptionId == providerSubscriptionId, cancellationToken);
+        if (user is null) return;
+
+        var fromPlan = user.Plan;
+        user.Plan = BillingPlan.Free;
+        user.SubscriptionStatus = SubscriptionStatus.Expired;
+        user.CurrentPeriodEndUtc = null;
+        user.BillingCycle = null;
+        user.ProviderSubscriptionId = null;
+
+        db.SubscriptionEvents.Add(SubscriptionEvent.Create(
+            user.Id, type: "Ended",
+            fromPlan: fromPlan.ToString(), toPlan: BillingPlan.Free.ToString(),
+            cycle: null, amount: 0m, currency: "GBP", simulated: false,
+            note: "The subscription ended at the provider."));
+
+        await db.SaveChangesAsync(cancellationToken);
+
+        await AnnounceAsync(user.Id,
+            "Your subscription has ended",
+            "Akinai is now on the free plan. Everything you've created is still here.",
+            cancellationToken);
     }
 }

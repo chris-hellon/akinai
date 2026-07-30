@@ -1,0 +1,38 @@
+@inherits LayoutComponentBase
+
+@*
+    Chrome for the public standalone pages — privacy, terms, contact.
+
+    Its own layout rather than the landing page's, because Home.razor's styling
+    is CSS-isolated to Home.razor: reusing those class names elsewhere renders
+    unstyled markup, since the generated scope attribute would not match. The
+    palette here is copied deliberately so the pages still read as the same
+    site, and the prose rules use ::deep so they reach page content rendered
+    into @Body.
+*@
+
+<div class="legal">
+    <header class="lgnav">
+        <a class="lgbrand" href="">
+            <span class="lghanko">商</span>
+            <span class="lgword">Akin<span class="wm-ai">ai</span></span>
+        </a>
+        <nav class="lgnavlinks">
+            <a href="account/login">Sign in</a>
+            <a class="lgcta" href="account/register">Get started</a>
+        </nav>
+    </header>
+
+    <main class="lgmain">
+        @Body
+    </main>
+
+    <footer class="lgft">
+        <span class="lgts">© @DateTime.Now.Year Akinai. All rights reserved.</span>
+        <nav class="lgftlinks">
+            <a href="privacy">Privacy</a>
+            <a href="terms">Terms</a>
+            <a href="contact">Contact</a>
+        </nav>
+    </footer>
+</div>

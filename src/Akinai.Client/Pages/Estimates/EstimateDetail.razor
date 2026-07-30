@@ -8,6 +8,7 @@
 @inject ICall<ConvertEstimateToInvoice, Guid> ConvertEstimateCall
 @inject ICall<DeleteEstimate> DeleteEstimateCall
 @inject IJSRuntime JS
+@inject EntitlementState Entitlements
 
 <PageTitle>Estimate Details - Akinai</PageTitle>
 
@@ -86,6 +87,7 @@
                         EstimateNumber="@_estimate.EstimateNumber"
                         Status="@_estimate.Status"
                         Currency="@_estimate.Currency"
+                        ShowBranding="@ShowBranding"
                         EstimateDate="@_estimate.EstimateDate"
                         ExpiryDate="@_estimate.ExpiryDate"
                         AcceptedDate="@_estimate.AcceptedDate"
@@ -217,6 +219,15 @@
 <ErrorAlert Message="@_errorMessage" />
 
 @code {
+
+    /// <summary>
+    /// Whether the preview shows the Akinai footer line.
+    ///
+    /// Deliberately not EntitlementState.Allows, which fails open: an
+    /// unresolved plan here would hide the branding and show the owner a
+    /// preview their client will not get. Unknown means show.
+    /// </summary>
+    private bool ShowBranding => !(Entitlements.Current?.RemoveBranding ?? false);
     [Parameter]
     public Guid Id { get; set; }
 
@@ -232,6 +243,10 @@
 
     protected override async Task OnInitializedAsync()
     {
+        // Needed before the preview renders, or the owner briefly sees a
+        // branding line their plan has removed.
+        await Entitlements.EnsureLoadedAsync();
+
         _breadcrumbs =
         [
             new PageHeader.BreadcrumbItem("Time & Billing", "/time-billing"),

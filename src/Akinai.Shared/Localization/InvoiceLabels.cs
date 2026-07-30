@@ -60,7 +60,14 @@ public record InvoiceLabelSet(
     string PayWithWise,
     string PayWithRevolut,
     /// <summary>Footer line. {0} is the due date, already formatted for the culture.</summary>
-    string ThanksAndDueBy)
+    string ThanksAndDueBy,
+    /// <summary>
+    /// Branding line, shown only on plans without RemoveBranding. Translated
+    /// like everything else here: the whole point of the document is that it
+    /// reads in the client's language, and one stray English sentence at the
+    /// foot of it undoes that. "Akinai" itself is a proper noun and stays.
+    /// </summary>
+    string CreatedWith)
 {
     /// <summary>
     /// The culture to format this invoice's dates and numbers with.
@@ -120,7 +127,8 @@ public static class InvoiceLabels
         PayWithPayPal: "Pay with PayPal",
         PayWithWise: "Pay with Wise",
         PayWithRevolut: "Pay with Revolut",
-        ThanksAndDueBy: "Thank you for your business. Payment is due by {0}.");
+        ThanksAndDueBy: "Thank you for your business. Payment is due by {0}.",
+        CreatedWith: "Created with Akinai");
 
     private static readonly IReadOnlyDictionary<SupportedLanguage, InvoiceLabelSet> Sets =
         new Dictionary<SupportedLanguage, InvoiceLabelSet>
@@ -165,7 +173,8 @@ public static class InvoiceLabels
                 PayWithPayPal: "Pagar con PayPal",
                 PayWithWise: "Pagar con Wise",
                 PayWithRevolut: "Pagar con Revolut",
-                ThanksAndDueBy: "Gracias por su confianza. El pago vence el {0}."),
+                ThanksAndDueBy: "Gracias por su confianza. El pago vence el {0}.",
+                CreatedWith: "Creado con Akinai"),
 
             [SupportedLanguage.French] = new(
                 CultureName: "fr-FR",
@@ -205,7 +214,8 @@ public static class InvoiceLabels
                 PayWithPayPal: "Payer avec PayPal",
                 PayWithWise: "Payer avec Wise",
                 PayWithRevolut: "Payer avec Revolut",
-                ThanksAndDueBy: "Merci de votre confiance. Le paiement est dû le {0}."),
+                ThanksAndDueBy: "Merci de votre confiance. Le paiement est dû le {0}.",
+                CreatedWith: "Créé avec Akinai"),
 
             [SupportedLanguage.German] = new(
                 CultureName: "de-DE",
@@ -245,7 +255,8 @@ public static class InvoiceLabels
                 PayWithPayPal: "Mit PayPal bezahlen",
                 PayWithWise: "Mit Wise bezahlen",
                 PayWithRevolut: "Mit Revolut bezahlen",
-                ThanksAndDueBy: "Vielen Dank für Ihren Auftrag. Zahlbar bis {0}."),
+                ThanksAndDueBy: "Vielen Dank für Ihren Auftrag. Zahlbar bis {0}.",
+                CreatedWith: "Erstellt mit Akinai"),
 
             [SupportedLanguage.Chinese] = new(
                 CultureName: "zh-CN",
@@ -285,7 +296,8 @@ public static class InvoiceLabels
                 PayWithPayPal: "使用 PayPal 支付",
                 PayWithWise: "使用 Wise 支付",
                 PayWithRevolut: "使用 Revolut 支付",
-                ThanksAndDueBy: "感谢您的惠顾。付款截止日期为 {0}。"),
+                ThanksAndDueBy: "感谢您的惠顾。付款截止日期为 {0}。",
+                CreatedWith: "由 Akinai 创建"),
 
             [SupportedLanguage.Vietnamese] = new(
                 CultureName: "vi-VN",
@@ -325,7 +337,8 @@ public static class InvoiceLabels
                 PayWithPayPal: "Thanh toán bằng PayPal",
                 PayWithWise: "Thanh toán bằng Wise",
                 PayWithRevolut: "Thanh toán bằng Revolut",
-                ThanksAndDueBy: "Cảm ơn quý khách. Hạn thanh toán là {0}."),
+                ThanksAndDueBy: "Cảm ơn quý khách. Hạn thanh toán là {0}.",
+                CreatedWith: "Được tạo bằng Akinai"),
 
             [SupportedLanguage.Russian] = new(
                 CultureName: "ru-RU",
@@ -365,7 +378,8 @@ public static class InvoiceLabels
                 PayWithPayPal: "Оплатить через PayPal",
                 PayWithWise: "Оплатить через Wise",
                 PayWithRevolut: "Оплатить через Revolut",
-                ThanksAndDueBy: "Благодарим за сотрудничество. Оплата до {0}."),
+                ThanksAndDueBy: "Благодарим за сотрудничество. Оплата до {0}.",
+                CreatedWith: "Создано в Akinai"),
 
             [SupportedLanguage.Korean] = new(
                 CultureName: "ko-KR",
@@ -405,7 +419,8 @@ public static class InvoiceLabels
                 PayWithPayPal: "PayPal로 결제",
                 PayWithWise: "Wise로 결제",
                 PayWithRevolut: "Revolut로 결제",
-                ThanksAndDueBy: "거래해 주셔서 감사합니다. 결제 기한은 {0}입니다."),
+                ThanksAndDueBy: "거래해 주셔서 감사합니다. 결제 기한은 {0}입니다.",
+                CreatedWith: "Akinai로 작성됨"),
         };
 
     /// <summary>

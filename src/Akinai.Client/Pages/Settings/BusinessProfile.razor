@@ -2,6 +2,10 @@
 
 @inject ICall<GetBusinessProfile, BusinessProfileDto> GetBusinessProfileCall
 @inject ICall<SaveBusinessProfile> SaveBusinessProfileCall
+@inject ICall<GetBusinessLogo, byte[]?> GetBusinessLogoCall
+@inject ICall<SaveBusinessLogo> SaveBusinessLogoCall
+@inject ICall<DeleteBusinessLogo> DeleteBusinessLogoCall
+@inject EntitlementState Entitlements
 
 <PageTitle>Business Profile - Akinai</PageTitle>
 
@@ -128,6 +132,70 @@
                 <PrimaryButton ButtonType="submit" Text="Save Changes" IsLoading="_isSaving" />
             </div>
         </EditForm>
+
+        @* Its own card, outside the form: the logo has a dedicated endpoint and
+           saves the moment a file is chosen, so it must not wait on — or be
+           reset by — the profile's "Save Changes". Gated to Pro, because a
+           branded invoice is a paid feature. *@
+        <Card Title="Company Logo">
+            @if (_logoEntitled)
+            {
+                <div class="flex flex-col sm:flex-row sm:items-center gap-5">
+                    <div class="w-32 h-32 shrink-0 rounded-xl border border-gray-200 dark:border-slate-700 bg-gray-50 dark:bg-slate-800 flex items-center justify-center overflow-hidden">
+                        @if (_logoDataUrl is not null)
+                        {
+                            <img src="@_logoDataUrl" alt="Company logo" class="max-w-full max-h-full object-contain" />
+                        }
+                        else
+                        {
+                            <svg class="w-10 h-10 text-gray-300 dark:text-slate-600" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                                <path stroke-linecap="round" stroke-linejoin="round" stroke-width="1.5" d="M4 16l4.586-4.586a2 2 0 012.828 0L16 16m-2-2l1.586-1.586a2 2 0 012.828 0L20 14m-6-6h.01M6 20h12a2 2 0 002-2V6a2 2 0 00-2-2H6a2 2 0 00-2 2v12a2 2 0 002 2z" />
+                            </svg>
+                        }
+                    </div>
+
+                    <div class="flex-1 space-y-2">
+                        <p class="text-sm text-gray-600 dark:text-slate-400">
+                            Shown on your invoices and estimates when the template has the logo enabled. PNG, JPG, SVG or WebP, up to 2&nbsp;MB.
+                        </p>
+                        <div class="flex flex-wrap items-center gap-3">
+                            <label class="inline-flex items-center gap-2 px-4 py-2 text-sm font-medium text-white rounded-lg brand-mark cursor-pointer @(_logoBusy ? "opacity-60 pointer-events-none" : "")">
+                                <svg class="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                                    <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M4 16v1a3 3 0 003 3h10a3 3 0 003-3v-1m-4-8l-4-4m0 0L8 8m4-4v12" />
+                                </svg>
+                                <span>@(_logoDataUrl is null ? "Upload logo" : "Replace")</span>
+                                <InputFile OnChange="OnLogoSelected" accept="image/png,image/jpeg,image/svg+xml,image/webp" class="hidden" />
+                            </label>
+                            @if (_logoDataUrl is not null)
+                            {
+                                <button type="button" @onclick="RemoveLogoAsync" disabled="@_logoBusy"
+                                        class="text-sm text-red-600 dark:text-red-400 hover:underline disabled:opacity-50">
+                                    Remove
+                                </button>
+                            }
+                            @if (_logoBusy)
+                            {
+                                <span class="text-xs text-gray-400 dark:text-slate-500">Saving…</span>
+                            }
+                        </div>
+                        @if (_logoError is not null)
+                        {
+                            <p class="text-xs text-red-600 dark:text-red-400">@_logoError</p>
+                        }
+                    </div>
+                </div>
+            }
+            else
+            {
+                <div class="flex items-center gap-3">
+                    <span class="text-[10px] font-bold tracking-wider uppercase text-primary-700 dark:text-primary-300 bg-primary-100 dark:bg-primary-900/50 px-1.5 py-0.5 rounded">Pro</span>
+                    <p class="text-sm text-gray-600 dark:text-slate-400">
+                        Put your own logo on every invoice and estimate.
+                        <a href="settings/billing" class="text-primary-600 dark:text-primary-400 hover:underline font-medium">Upgrade to Pro</a>.
+                    </p>
+                </div>
+            }
+        </Card>
     }
 </div>
 
@@ -145,9 +213,110 @@
 
     private InputModel Input { get; init; } = new();
 
+    // --- Logo -------------------------------------------------------------
+    private bool _logoEntitled;              // Pro — CustomTemplates covers branding
+    private string? _logoDataUrl;            // current logo as a data: URL, or null
+    private bool _logoBusy;
+    private string? _logoError;
+
+    // Client-side mirror of the server's limits, so most bad files are caught
+    // before an upload. The handler enforces the same rules regardless.
+    private const long MaxLogoBytes = 2 * 1024 * 1024;
+    private static readonly string[] AllowedLogoTypes =
+        ["image/png", "image/jpeg", "image/svg+xml", "image/webp"];
+
     protected override async Task OnInitializedAsync()
     {
+        await Entitlements.EnsureLoadedAsync();
+        _logoEntitled = Entitlements.Current?.CustomTemplates ?? false;
+
         await LoadProfileAsync();
+
+        if (_logoEntitled)
+            await LoadLogoAsync();
+    }
+
+    private async Task LoadLogoAsync()
+    {
+        try
+        {
+            var bytes = await GetBusinessLogoCall.Call(new GetBusinessLogo());
+            // The endpoint returns the raw image with no content type, so guess
+            // a broadly-safe one for the preview; the real type is stored server
+            // side and used on the actual documents.
+            _logoDataUrl = bytes is { Length: > 0 }
+                ? $"data:image/png;base64,{Convert.ToBase64String(bytes)}"
+                : null;
+        }
+        catch
+        {
+            // A missing logo is the normal case, not an error worth showing.
+            _logoDataUrl = null;
+        }
+    }
+
+    private async Task OnLogoSelected(InputFileChangeEventArgs e)
+    {
+        _logoError = null;
+        var file = e.File;
+
+        if (file is null) return;
+
+        if (!AllowedLogoTypes.Contains(file.ContentType, StringComparer.OrdinalIgnoreCase))
+        {
+            _logoError = "Please choose a PNG, JPG, SVG or WebP image.";
+            return;
+        }
+        if (file.Size > MaxLogoBytes)
+        {
+            _logoError = "That image is over 2 MB. Please choose a smaller one.";
+            return;
+        }
+
+        _logoBusy = true;
+        try
+        {
+            using var stream = file.OpenReadStream(MaxLogoBytes);
+            using var ms = new MemoryStream();
+            await stream.CopyToAsync(ms);
+            var bytes = ms.ToArray();
+
+            await SaveBusinessLogoCall.Call(new SaveBusinessLogo
+            {
+                Logo = bytes,
+                ContentType = file.ContentType,
+            });
+
+            // Preview from what we just uploaded, using the real content type.
+            _logoDataUrl = $"data:{file.ContentType};base64,{Convert.ToBase64String(bytes)}";
+        }
+        catch (Exception ex)
+        {
+            _logoError = $"Could not upload the logo: {ex.Message}";
+        }
+        finally
+        {
+            _logoBusy = false;
+        }
+    }
+
+    private async Task RemoveLogoAsync()
+    {
+        _logoBusy = true;
+        _logoError = null;
+        try
+        {
+            await DeleteBusinessLogoCall.Call(new DeleteBusinessLogo());
+            _logoDataUrl = null;
+        }
+        catch (Exception ex)
+        {
+            _logoError = $"Could not remove the logo: {ex.Message}";
+        }
+        finally
+        {
+            _logoBusy = false;
+        }
     }
 
     private async Task LoadProfileAsync()

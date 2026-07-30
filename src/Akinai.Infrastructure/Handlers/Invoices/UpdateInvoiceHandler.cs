@@ -28,12 +28,12 @@ public class UpdateInvoiceHandler(
         if (!InvoiceLanguageRequest.TryResolve(request.Language, entitlements, out var language))
             return HttpResult.Forbidden();
 
-        // TemplateId is passed back explicitly. UpdateDetails takes it as an
-        // optional parameter, so omitting it silently set the column to null and
-        // every edit stripped the invoice's template.
+        // The template chosen in the editor. Null is a deliberate choice — "use
+        // my default" — not an accident, so it is honoured rather than falling
+        // back to whatever the invoice previously had.
         invoice.UpdateDetails(
             request.IssueDate, request.DueDate, request.TaxRate, request.Notes,
-            invoice.TemplateId, language);
+            request.TemplateId, language);
 
         // Remove time entries
         if (request.RemovedTimeEntryIds?.Count > 0)

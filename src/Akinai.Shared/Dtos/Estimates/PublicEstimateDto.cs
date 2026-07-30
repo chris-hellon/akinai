@@ -38,4 +38,17 @@ public record PublicEstimateDto(
     bool ShowLogo,
     string? HeaderLayout,
     string? ItemsLayout,
-    string? FooterLayout);
+    string? FooterLayout,
+    /// <summary>
+    /// The language this estimate is written in, as a <c>SupportedLanguage</c>
+    /// name. Freeform text above has already been translated into it
+    /// server-side; the renderer uses this only to pick the matching fixed
+    /// labels and date format.
+    /// </summary>
+    string Language = "English",
+    /// <summary>
+    /// Whether to show the "Created with Akinai" line in the footer. Resolved
+    /// from the issuing account's plan, never the viewer's. Defaults to true so
+    /// a failure to resolve leaves branding on rather than granting a paid perk.
+    /// </summary>
+    bool ShowBranding = true);

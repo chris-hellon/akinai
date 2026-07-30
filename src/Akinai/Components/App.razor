@@ -21,6 +21,36 @@
     <meta charset="utf-8"/>
     <meta name="viewport" content="width=device-width, initial-scale=1.0"/>
     <base href="/"/>
+
+    @* Social preview. Without these, the site pasted into Slack, WhatsApp or a
+       tweet renders as a bare URL — which matters for a product that spreads by
+       one freelancer recommending it to another.
+
+       Static rather than per-page: the pages worth sharing are the public ones,
+       and everything behind the login is a private document nobody should be
+       generating a preview card for. Suppressed on print routes, where the only
+       consumer is headless Chromium. *@
+    @if (!IsPrintRoute)
+    {
+        <meta name="description" content="@MetaDescription"/>
+
+        <meta property="og:type" content="website"/>
+        <meta property="og:site_name" content="Akinai"/>
+        <meta property="og:title" content="@MetaTitle"/>
+        <meta property="og:description" content="@MetaDescription"/>
+        <meta property="og:image" content="@AbsoluteUrl("og-image.png")"/>
+        <meta property="og:image:width" content="1200"/>
+        <meta property="og:image:height" content="630"/>
+        <meta property="og:url" content="@CurrentUrl"/>
+
+        @* summary_large_image, not summary: the card art is a 1200x630 banner,
+           and the small variant would crop it to a square thumbnail. *@
+        <meta name="twitter:card" content="summary_large_image"/>
+        <meta name="twitter:title" content="@MetaTitle"/>
+        <meta name="twitter:description" content="@MetaDescription"/>
+        <meta name="twitter:image" content="@AbsoluteUrl("og-image.png")"/>
+    }
+
     <ResourcePreloader/>
     @if (!IsPrintRoute)
     {
@@ -108,14 +138,79 @@
     [CascadingParameter] private HttpContext HttpContext { get; set; } = null!;
 
     private IComponentRenderMode? PageRenderMode =>
-        HttpContext.AcceptsInteractiveRouting() ? new InteractiveAutoRenderMode(false) : null;
+        HttpContext.AcceptsInteractiveRouting()
+            ? new InteractiveAutoRenderMode(prerender: IsPublicPage)
+            : null;
 
     /// <summary>
-    /// The headless-Chromium print route. It renders static HTML and is thrown
-    /// away after one screenshot, so every script on it is wasted work — and
-    /// worse, work the renderer blocks on.
+    /// The public marketing and legal pages, which are prerendered so their
+    /// content exists in the served HTML.
+    ///
+    /// Everything else ships an empty body and builds itself in the browser.
+    /// That is the right default for the app — those pages are behind a login,
+    /// so there is nothing to index, and prerendering them would mean rendering
+    /// each one twice and paying for a database round trip whose result the
+    /// client immediately re-fetches.
+    ///
+    /// These four are the opposite case: nobody is signed in, the content is
+    /// the product pitch, and a crawler that does not execute JavaScript would
+    /// otherwise see a blank page.
+    ///
+    /// Matched exactly rather than by prefix. A prefix would quietly pull in
+    /// anything nested underneath a marketing path later on.
+    /// </summary>
+    private bool IsPublicPage
+    {
+        get
+        {
+            var path = HttpContext.Request.Path.Value?.TrimEnd('/');
+
+            return string.IsNullOrEmpty(path)          // "/" — the landing page
+                || string.Equals(path, "/privacy", StringComparison.OrdinalIgnoreCase)
+                || string.Equals(path, "/terms", StringComparison.OrdinalIgnoreCase)
+                || string.Equals(path, "/contact", StringComparison.OrdinalIgnoreCase);
+        }
+    }
+
+    /// <summary>
+    /// The headless-Chromium print routes. They render static HTML and are
+    /// thrown away after one screenshot, so every script on them is wasted work
+    /// — and worse, work the renderer blocks on.
+    ///
+    /// Both document types are listed. Adding a print route without adding it
+    /// here silently costs seconds per PDF: blazor.web.js pulls the WebAssembly
+    /// runtime onto the page and the renderer waits for it.
     /// </summary>
     private bool IsPrintRoute =>
-        HttpContext.Request.Path.StartsWithSegments("/invoice/print");
+        HttpContext.Request.Path.StartsWithSegments("/invoice/print")
+        || HttpContext.Request.Path.StartsWithSegments("/estimate/print");
 
+    // --- Social preview ---------------------------------------------------
+
+    private const string MetaTitle = "Akinai — Invoicing for freelancers with clients abroad";
+
+    private const string MetaDescription =
+        "Invoicing software for people billing clients in more than one country. "
+        + "Each client gets an invoice in their own language, priced in their own "
+        + "currency, payable by bank transfer, VietQR, PayPal, Wise or Revolut.";
+
+    /// <summary>The URL being served, for og:url.</summary>
+    private string CurrentUrl
+    {
+        get
+        {
+            var request = HttpContext.Request;
+            return $"{request.Scheme}://{request.Host}{request.Path}";
+        }
+    }
+
+    /// <summary>
+    /// Absolute URL for a wwwroot asset. Scrapers do not resolve relative paths,
+    /// so a relative og:image is simply no image.
+    /// </summary>
+    private string AbsoluteUrl(string path)
+    {
+        var request = HttpContext.Request;
+        return $"{request.Scheme}://{request.Host}/{path.TrimStart('/')}";
+    }
 }

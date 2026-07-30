@@ -19,6 +19,7 @@ public sealed class ApplicationDbContext : IdentityDbContext<ApplicationUser>
     public DbSet<TimeEntry> TimeEntries => Set<TimeEntry>();
     public DbSet<Invoice> Invoices => Set<Invoice>();
     public DbSet<InvoiceLineItem> InvoiceLineItems => Set<InvoiceLineItem>();
+    public DbSet<InvoiceServiceLine> InvoiceServiceLines => Set<InvoiceServiceLine>();
     public DbSet<InvoiceCurrencyTotal> InvoiceCurrencyTotals => Set<InvoiceCurrencyTotal>();
     public DbSet<BusinessProfile> BusinessProfiles => Set<BusinessProfile>();
     public DbSet<CurrencyPaymentSettings> CurrencyPaymentSettings => Set<CurrencyPaymentSettings>();

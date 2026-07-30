@@ -1,0 +1,188 @@
+@using Akinai.Shared.Enums
+@using Akinai.Shared.Localization
+@using System.Globalization
+
+@*
+    The product's central claim, made testable in one click.
+
+    This is not a mockup. It renders from InvoiceLabels — the same table the
+    real invoices, the public link and the PDF all read from — so if a heading
+    is wrong here it is wrong on a real document too, and fixing one fixes
+    both. The currency, payment rail and date format switch with the language
+    because that is what actually happens when you send to that client.
+
+    Prerenders in English, then becomes interactive when the page hydrates.
+*@
+
+<div class="demo">
+    <div class="demochips" role="tablist" aria-label="Preview language">
+        @foreach (var option in Options)
+        {
+            <button type="button"
+                    role="tab"
+                    aria-selected="@(option.Language == _selected)"
+                    class="demochip @(option.Language == _selected ? "on" : "")"
+                    @onclick="() => Select(option.Language)">
+                <span class="dcflag">@option.Marker</span>@option.Native
+            </button>
+        }
+    </div>
+
+    <div class="demoframe">
+        <div class="demopaper" key="@_selected">
+            <div class="dhead">
+                <div>
+                    <div class="dnum">INV-0231</div>
+                    <div class="dkind">@L.Invoice</div>
+                </div>
+                <div class="dmeta">
+                    <div><span>@L.Issued</span> @Issued.ToString("d MMM yyyy", Culture)</div>
+                    <div><span>@L.Due</span> @Due.ToString("d MMM yyyy", Culture)</div>
+                </div>
+            </div>
+
+            <div class="dbill">
+                <div class="dlabel">@L.BillTo</div>
+                <div class="dclient">@Current.ClientName</div>
+                <div class="dcity">@Current.City</div>
+            </div>
+
+            <table class="dtable">
+                <thead>
+                    <tr>
+                        <th>@L.Description</th>
+                        <th class="num">@L.Hours</th>
+                        <th class="num">@L.Rate</th>
+                        <th class="num">@L.Amount</th>
+                    </tr>
+                </thead>
+                <tbody>
+                    <tr>
+                        <td>@Current.LineOne</td>
+                        <td class="num">12.00</td>
+                        <td class="num">@Money(Current.RateMinor)</td>
+                        <td class="num">@Money(Current.RateMinor * 12)</td>
+                    </tr>
+                    <tr>
+                        <td>@Current.LineTwo</td>
+                        <td class="num">6.50</td>
+                        <td class="num">@Money(Current.RateMinor)</td>
+                        <td class="num">@Money(Current.RateMinor * 6.5m)</td>
+                    </tr>
+                </tbody>
+            </table>
+
+            <div class="dtotals">
+                <div class="drow"><span>@L.Subtotal</span><span>@Money(Subtotal)</span></div>
+                @* Interpolated rather than "@L.Tax (10%)": Razor treats the
+                   space-then-paren as part of the expression and eats it, so
+                   the label rendered as "Thuế(10%)". *@
+                <div class="drow"><span>@($"{L.Tax} (10%)")</span><span>@Money(Subtotal * 0.10m)</span></div>
+                <div class="drow dgrand"><span>@L.AmountDue</span><span>@Money(Subtotal * 1.10m)</span></div>
+            </div>
+
+            <div class="dpay">
+                <div class="dlabel">@L.PaymentOptions</div>
+                <div class="drails">
+                    @foreach (var rail in Current.Rails)
+                    {
+                        <span class="drail">@RailLabel(rail)</span>
+                    }
+                </div>
+            </div>
+
+            <div class="dfoot">@L.CreatedWith</div>
+        </div>
+    </div>
+
+    <p class="demonote">
+        Every heading above is drawn from the same translation table your real
+        invoices use — not a picture of one.
+    </p>
+</div>
+
+@code {
+    private SupportedLanguage _selected = SupportedLanguage.English;
+
+    private InvoiceLabelSet L => InvoiceLabels.For(_selected);
+    private CultureInfo Culture => L.Culture;
+    private Locale Current => Options.First(o => o.Language == _selected);
+
+    private static readonly DateOnly Issued = new(2026, 6, 9);
+    private static readonly DateOnly Due = new(2026, 7, 9);
+
+    private decimal Subtotal => Current.RateMinor * 18.5m;
+
+    private void Select(SupportedLanguage language) => _selected = language;
+
+    /// <summary>
+    /// Formats in the invoice's own culture. VND and KRW carry no minor units,
+    /// which is a real formatting difference and not a rounding shortcut —
+    /// ₫1,200,000 with two decimals would look wrong to the client reading it.
+    /// </summary>
+    private string Money(decimal amount)
+        => Current.Symbol + amount.ToString(Current.NoMinorUnits ? "N0" : "N2", Culture);
+
+    private string RailLabel(string rail) => rail switch
+    {
+        "bank" => L.BankTransfer,
+        "vietqr" => L.ScanWithBankingApp,
+        "paypal" => L.PayWithPayPal,
+        "wise" => L.PayWithWise,
+        "revolut" => L.PayWithRevolut,
+        _ => rail,
+    };
+
+    /// <summary>
+    /// One plausible client per language, so the demo reads as a real document
+    /// rather than the same invoice with the words swapped. Rates are chosen
+    /// to land near the same real value across currencies.
+    /// </summary>
+    private sealed record Locale(
+        SupportedLanguage Language,
+        string Native,
+        string Marker,
+        string ClientName,
+        string City,
+        string Symbol,
+        decimal RateMinor,
+        bool NoMinorUnits,
+        string LineOne,
+        string LineTwo,
+        string[] Rails);
+
+    private static readonly Locale[] Options =
+    [
+        new(SupportedLanguage.English, "English", "EN", "Harbour & Co.", "LONDON · UK", "£", 60m, false,
+            "Brand identity and design system", "Front-end build",
+            ["bank", "paypal", "wise"]),
+
+        new(SupportedLanguage.Vietnamese, "Tiếng Việt", "VI", "Công ty Anh Minh", "HÀ NỘI · VN", "₫", 1_800_000m, true,
+            "Bộ nhận diện thương hiệu và hệ thống thiết kế", "Xây dựng giao diện người dùng",
+            ["vietqr", "bank", "wise"]),
+
+        new(SupportedLanguage.German, "Deutsch", "DE", "Nordlicht GmbH", "BERLIN · DE", "€", 70m, false,
+            "Markenidentität und Designsystem", "Frontend-Entwicklung",
+            ["bank", "revolut", "wise"]),
+
+        new(SupportedLanguage.Spanish, "Español", "ES", "Estudio Marea S.L.", "MADRID · ES", "€", 68m, false,
+            "Identidad de marca y sistema de diseño", "Desarrollo front-end",
+            ["bank", "paypal", "wise"]),
+
+        new(SupportedLanguage.French, "Français", "FR", "Atelier Rivage", "PARIS · FR", "€", 72m, false,
+            "Identité de marque et système de design", "Développement front-end",
+            ["bank", "revolut", "wise"]),
+
+        new(SupportedLanguage.Chinese, "中文", "ZH", "远景设计有限公司", "上海 · CN", "¥", 520m, false,
+            "品牌识别与设计系统", "前端开发",
+            ["bank", "wise"]),
+
+        new(SupportedLanguage.Russian, "Русский", "RU", "Студия Вектор", "МОСКВА · RU", "₽", 6_400m, false,
+            "Фирменный стиль и дизайн-система", "Фронтенд-разработка",
+            ["bank", "wise"]),
+
+        new(SupportedLanguage.Korean, "한국어", "KO", "한빛 스튜디오", "서울 · KR", "₩", 95_000m, true,
+            "브랜드 아이덴티티 및 디자인 시스템", "프런트엔드 개발",
+            ["bank", "wise", "paypal"]),
+    ];
+}

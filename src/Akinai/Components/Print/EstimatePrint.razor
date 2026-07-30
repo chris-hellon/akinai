@@ -1,0 +1,141 @@
+@page "/estimate/print/{Token:guid}"
+@attribute [AllowAnonymous]
+@attribute [ExcludeFromInteractiveRouting]
+@layout EmptyLayout
+
+@using BlazorUtils.EasyApi
+@using Microsoft.AspNetCore.Authorization
+@using Akinai.Client.Components
+@using Akinai.Shared.Api.Estimates
+@using Akinai.Shared.Dtos.Estimates
+
+@inject ICall<GetPublicEstimate, PublicEstimateDto?> GetPublicEstimateCall
+
+@*
+    The estimate as the PDF renderer sees it — the counterpart to
+    InvoicePrint.razor, and deliberately built the same way.
+
+    ExcludeFromInteractiveRouting makes this render as static server HTML, so
+    the markup is complete in the first response and the headless browser never
+    has to guess when hydration finished. The public estimate view is
+    Interactive Auto and cannot offer that.
+
+    Same data and the same EstimateViewContent component as the public page, so
+    the PDF cannot say anything the client's link does not — which is the whole
+    reason for rendering the PDF from HTML rather than rebuilding it.
+
+    Authorised by the unguessable token, as the public view is. The renderer
+    fetches it over loopback with no cookies.
+*@
+
+<PageTitle>@(_estimate?.EstimateNumber ?? "Estimate")</PageTitle>
+
+@if (_estimate is not null)
+{
+    <div class="print-sheet">
+        <EstimateViewContent
+            EstimateNumber="@_estimate.EstimateNumber"
+            Status="@_estimate.Status"
+            Currency="@_estimate.Currency"
+            Language="@_estimate.Language"
+            ShowBranding="@_estimate.ShowBranding"
+            EstimateDate="@_estimate.EstimateDate"
+            ExpiryDate="@_estimate.ExpiryDate"
+            AcceptedDate="@_estimate.AcceptedDate"
+            RejectedDate="@_estimate.RejectedDate"
+            BusinessName="@_estimate.BusinessName"
+            BusinessAddress="@BusinessAddress"
+            BusinessEmail="@_estimate.BusinessEmail"
+            BusinessPhone="@_estimate.BusinessPhone"
+            BusinessLogo="@_estimate.BusinessLogo"
+            TaxNumber="@_estimate.TaxNumber"
+            RegistrationNumber="@_estimate.RegistrationNumber"
+            ClientName="@_estimate.ClientName"
+            ClientCompanyName="@_estimate.ClientCompanyName"
+            ClientAddress="@_estimate.ClientAddress"
+            ClientEmail="@_estimate.ClientEmail"
+            Subtotal="@_estimate.Subtotal"
+            TaxRate="@_estimate.TaxRate"
+            TaxAmount="@_estimate.TaxAmount"
+            Total="@_estimate.Total"
+            Notes="@_estimate.Notes"
+            Terms="@_estimate.Terms"
+            LineItems="@_estimate.LineItems"
+            PrimaryColor="@PrimaryColor"
+            AccentColor="@AccentColor"
+            ShowLogo="@_estimate.ShowLogo"
+            HeaderLayout="@HeaderLayout"
+            ItemsLayout="@ItemsLayout"
+            FooterLayout="@FooterLayout" />
+    </div>
+
+    @* Belt and braces with the renderer's media emulation: strip dark mode even
+       if a stored preference or the OS would otherwise apply it, so opening
+       this route in a normal browser prints correctly too. *@
+    <script>document.documentElement.classList.remove('dark');</script>
+
+    @* Tells the renderer the document is ready. It waits for this rather than a
+       fixed delay, so a slow first paint cannot truncate the PDF. *@
+    <div id="print-ready" style="display:none"></div>
+}
+else
+{
+    @* An unknown, revoked or mistyped token. The call throws rather than
+       returning null, so this is the caught case — a plain line beats a 500
+       and a stack trace on a URL anyone can hit. *@
+    <div style="font-family: system-ui, sans-serif; padding: 48px; text-align: center; color: #6b7280;">
+        <p>This estimate link is no longer valid.</p>
+    </div>
+}
+
+@code {
+    [Parameter] public Guid Token { get; set; }
+
+    private PublicEstimateDto? _estimate;
+
+    private string PrimaryColor => _estimate?.PrimaryColor ?? "#0e5c66";
+    private string AccentColor => _estimate?.AccentColor ?? "#059669";
+    private string HeaderLayout => _estimate?.HeaderLayout?.ToLowerInvariant() ?? "standard";
+    private string ItemsLayout => _estimate?.ItemsLayout?.ToLowerInvariant() ?? "standard";
+    private string FooterLayout => _estimate?.FooterLayout?.ToLowerInvariant() ?? "standard";
+
+    /// <summary>
+    /// The estimate DTO carries the business address in parts, while the view
+    /// component takes one preformatted block — same shape the public estimate
+    /// page builds, kept identical so the two render the same address.
+    /// </summary>
+    private string? BusinessAddress
+    {
+        get
+        {
+            if (_estimate is null) return null;
+
+            var parts = new List<string>();
+            if (!string.IsNullOrEmpty(_estimate.BusinessStreet)) parts.Add(_estimate.BusinessStreet);
+
+            var cityLine = string.Join(", ", new[]
+            {
+                _estimate.BusinessCity,
+                _estimate.BusinessState,
+                _estimate.BusinessPostalCode,
+            }.Where(s => !string.IsNullOrEmpty(s)));
+            if (!string.IsNullOrEmpty(cityLine)) parts.Add(cityLine);
+
+            if (!string.IsNullOrEmpty(_estimate.BusinessCountry)) parts.Add(_estimate.BusinessCountry);
+
+            return parts.Count > 0 ? string.Join("\n", parts) : null;
+        }
+    }
+
+    protected override async Task OnInitializedAsync()
+    {
+        try
+        {
+            _estimate = await GetPublicEstimateCall.Call(new GetPublicEstimate { Token = Token });
+        }
+        catch
+        {
+            _estimate = null;
+        }
+    }
+}

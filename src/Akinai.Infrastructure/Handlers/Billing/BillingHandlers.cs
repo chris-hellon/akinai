@@ -1,6 +1,7 @@
 using BlazorUtils.EasyApi;
 using BlazorUtils.EasyApi.Server;
 using Akinai.Infrastructure.Data;
+using Akinai.Shared.Api;
 using Akinai.Shared.Api.Billing;
 using Akinai.Shared.Billing;
 using Akinai.Shared.Dtos.Billing;
@@ -37,16 +38,19 @@ public class GetSubscriptionHandler(
 
 public class GetBillingHistoryHandler(
     ICurrentUserService currentUserService,
-    ISubscriptionService subscriptions) : IHandle<GetBillingHistory, List<SubscriptionEventDto>>
+    ISubscriptionService subscriptions) : IHandle<GetBillingHistory, PaginatedResponse<SubscriptionEventDto>>
 {
-    public async Task<HttpResult<List<SubscriptionEventDto>>> Handle(
+    public async Task<HttpResult<PaginatedResponse<SubscriptionEventDto>>> Handle(
         GetBillingHistory request, CancellationToken cancellationToken)
     {
         var userId = currentUserService.UserId;
-        if (string.IsNullOrEmpty(userId)) return HttpResult<List<SubscriptionEventDto>>.Unauthorized();
+        if (string.IsNullOrEmpty(userId))
+            return HttpResult<PaginatedResponse<SubscriptionEventDto>>.Unauthorized();
 
-        var history = await subscriptions.GetHistoryAsync(userId, cancellationToken);
-        return HttpResult<List<SubscriptionEventDto>>.Ok(history.ToList());
+        var history = await subscriptions.GetHistoryAsync(
+            userId, request.Page, request.PageSize, cancellationToken);
+
+        return HttpResult<PaginatedResponse<SubscriptionEventDto>>.Ok(history);
     }
 }
 
@@ -100,15 +104,29 @@ public class GetCheckoutHandler(
     }
 }
 
+/// <summary>
+/// Completes a checkout from the browser.
+///
+/// Only valid for the simulated provider, where the "payment page" is our own
+/// and clicking it IS the payment. With a real provider this endpoint would be
+/// a free upgrade: anyone signed in could post their own session id and grant
+/// themselves a paid plan without paying. Real payments are confirmed by the
+/// provider's signed webhook, never by the customer's browser.
+/// </summary>
 public class CompleteCheckoutHandler(
     ICurrentUserService currentUserService,
-    ISubscriptionService subscriptions) : IHandle<CompleteCheckout, CheckoutResultDto>
+    ISubscriptionService subscriptions,
+    Services.Billing.IBillingProvider provider) : IHandle<CompleteCheckout, CheckoutResultDto>
 {
     public async Task<HttpResult<CheckoutResultDto>> Handle(
         CompleteCheckout request, CancellationToken cancellationToken)
     {
         var userId = currentUserService.UserId;
         if (string.IsNullOrEmpty(userId)) return HttpResult<CheckoutResultDto>.Unauthorized();
+
+        // Not "is it simulated" — a real provider must own completion outright.
+        if (provider is not Services.Billing.SimulatedBillingProvider)
+            return HttpResult<CheckoutResultDto>.Forbidden();
 
         var result = await subscriptions.CompleteCheckoutAsync(userId, request.SessionId, cancellationToken);
         return HttpResult<CheckoutResultDto>.Ok(result);

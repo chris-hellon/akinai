@@ -46,8 +46,25 @@ public record EntitlementsDto(
     /// <summary>Null when unlimited.</summary>
     public int? InvoicesRemaining => InvoicesPerMonth is int cap ? Math.Max(0, cap - InvoicesUsedThisMonth) : null;
 
+    /// <summary>
+    /// True when the plan includes AI at all, regardless of what is left.
+    ///
+    /// Separate from <see cref="CanUseAi"/> because the two failures need
+    /// different words. A Free account has no allowance and should be offered
+    /// an upgrade; a Pro account that has spent this month's should be told it
+    /// resets on the 1st. Collapsing them tells a Free user their allowance is
+    /// "used up" when they never had one.
+    /// </summary>
+    public bool HasAiFeatures => AiSpendLimitUsd is > 0;
+
     /// <summary>True when the plan includes AI features and budget remains.</summary>
     public bool CanUseAi => AiSpendLimitUsd is decimal limit && limit > 0 && AiSpentUsd < limit;
+
+    /// <summary>
+    /// On a plan with AI, but this month's allowance is gone. The one case
+    /// where waiting fixes it.
+    /// </summary>
+    public bool AiAllowanceExhausted => HasAiFeatures && !CanUseAi;
 
     public bool CanCreateInvoice => InvoicesPerMonth is not int cap || InvoicesUsedThisMonth < cap;
 }
@@ -64,7 +81,12 @@ public record SubscriptionDto(
     string Currency,
     string CurrencySymbol,
     bool IsSimulated,
-    string ProviderName);
+    string ProviderName,
+    /// <summary>
+    /// The provider renews this on its own. Distinct from IsSimulated: a
+    /// test-mode provider takes no money but still renews.
+    /// </summary>
+    bool RenewsAutomatically = false);
 
 /// <summary>
 /// A started checkout. <see cref="RedirectUrl"/> is where the browser should

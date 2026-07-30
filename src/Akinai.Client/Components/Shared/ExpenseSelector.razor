@@ -159,7 +159,9 @@ else
     private DateOnly filterStartDate;
     private DateOnly filterEndDate;
     private string filterCategory = "";
-    private readonly DateOnly defaultStartDate = DateOnly.FromDateTime(DateTime.Today.AddMonths(-3));
+    // The current month to date is the common case when raising an invoice; a
+    // three-month look-back pulled in already-billed work.
+    private readonly DateOnly defaultStartDate = new(DateTime.Today.Year, DateTime.Today.Month, 1);
     private readonly DateOnly defaultEndDate = DateOnly.FromDateTime(DateTime.Today);
 
     // UI state

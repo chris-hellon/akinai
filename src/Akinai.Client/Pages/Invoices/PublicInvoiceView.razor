@@ -42,6 +42,7 @@
                     Status="@_invoice.Status"
                     Currency="@_invoice.Currency"
                     Language="@_invoice.Language"
+                    ShowBranding="@_invoice.ShowBranding"
                     IssueDate="@_invoice.IssueDate"
                     DueDate="@_invoice.DueDate"
                     PaidDate="@_invoice.PaidDate"
@@ -79,12 +80,17 @@
                     CurrencyPaymentSettings="@_invoice.CurrencyPaymentSettings" />
             </div>
             
-            <!-- Powered by footer -->
-            <div class="mt-6 text-center">
-                <p class="text-xs text-gray-400 dark:text-slate-500">
-                    Powered by <span class="font-semibold font-display">Akin<span class="wm-ai">ai</span></span> <span class="text-primary-500">商</span>
-                </p>
-            </div>
+            @* Page-level branding, separate from the "Created with Akinai" line
+               inside the document itself. Both must honour RemoveBranding — this
+               one was missed, so a Pro account's client still saw it. *@
+            @if (_invoice.ShowBranding)
+            {
+                <div class="mt-6 text-center">
+                    <p class="text-xs text-gray-400 dark:text-slate-500">
+                        Powered by <span class="font-semibold font-display">Akin<span class="wm-ai">ai</span></span> <span class="text-primary-500">商</span>
+                    </p>
+                </div>
+            }
         }
     </div>
 </div>

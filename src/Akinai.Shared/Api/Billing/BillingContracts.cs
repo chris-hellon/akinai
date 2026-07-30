@@ -12,9 +12,19 @@ public class GetEntitlements : IGet<EntitlementsDto>;
 [Route("api/billing/subscription")]
 public class GetSubscription : IGet<SubscriptionDto>;
 
-/// <summary>The account's billing history.</summary>
+/// <summary>
+/// The account's billing history, most recent first.
+///
+/// Paged rather than returned whole: this grows by a row every renewal, so a
+/// long-lived monthly account accumulates them indefinitely.
+/// </summary>
 [Route("api/billing/history")]
-public class GetBillingHistory : IGet<List<SubscriptionEventDto>>;
+public class GetBillingHistory : IGet<PaginatedResponse<SubscriptionEventDto>>
+{
+    [QueryStringParam] public int Page { get; set; } = 1;
+
+    [QueryStringParam] public int PageSize { get; set; } = 10;
+}
 
 /// <summary>
 /// Opens a checkout for a paid plan and returns where to send the browser.

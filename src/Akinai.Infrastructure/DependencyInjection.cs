@@ -72,7 +72,30 @@ public static class DependencyInjection
         // Billing. Swapping SimulatedBillingProvider for a Stripe implementation
         // is the whole of "going live" — nothing above this line knows which
         // provider is in use.
-        services.AddScoped<Services.Billing.IBillingProvider, Services.Billing.SimulatedBillingProvider>();
+        // Stripe when it is configured, the simulator otherwise. Chosen at
+        // startup so a half-configured deployment cannot take money it has no
+        // way to confirm — StripeOptions.IsConfigured requires the webhook
+        // secret as well as the API key.
+        services.Configure<Services.Billing.StripeOptions>(
+            configuration.GetSection(Services.Billing.StripeOptions.SectionName));
+
+        // Where the public contact form delivers. Unset means the form reports a
+        // send failure rather than silently swallowing messages.
+        services.Configure<Handlers.Contact.ContactOptions>(
+            configuration.GetSection(Handlers.Contact.ContactOptions.SectionName));
+
+        var stripe = configuration.GetSection(Services.Billing.StripeOptions.SectionName)
+            .Get<Services.Billing.StripeOptions>();
+
+        if (stripe?.IsConfigured == true)
+        {
+            services.AddScoped<Services.Billing.IBillingProvider, Services.Billing.StripeBillingProvider>();
+            services.AddScoped<Services.Billing.StripeWebhookHandler>();
+        }
+        else
+        {
+            services.AddScoped<Services.Billing.IBillingProvider, Services.Billing.SimulatedBillingProvider>();
+        }
         services.AddScoped<ISubscriptionService, Services.Billing.SubscriptionService>();
         // Plan catalogue reads from the database, cached, with the compiled
         // Plans class as its seed and its fallback.
@@ -87,6 +110,17 @@ public static class DependencyInjection
         services.AddHttpClient<ITranslationService, Services.Translation.AzureTranslatorService>();
         services.AddScoped<IAiBudgetService, AiBudgetService>();
         services.AddScoped<IInvoiceTranslator, Services.Translation.InvoiceTranslator>();
+
+        // Anthropic. Unset key means every AI feature that needs it reports
+        // itself unconfigured rather than failing at call time.
+        services.Configure<Services.Ai.ClaudeOptions>(
+            configuration.GetSection(Services.Ai.ClaudeOptions.SectionName));
+
+        // The client cache is the singleton; the service using it is scoped,
+        // because it depends on the scoped budget service. Registering the
+        // service itself as a singleton would capture that scoped dependency.
+        services.AddSingleton<Services.Ai.ClaudeClientFactory>();
+        services.AddScoped<ITimesheetSummariser, Services.Ai.ClaudeTimesheetSummariser>();
         services.AddHostedService<InvoiceTotalBackfillService>();
 
 

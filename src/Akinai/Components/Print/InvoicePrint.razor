@@ -38,6 +38,7 @@
             Status="@_invoice.Status"
             Currency="@_invoice.Currency"
             Language="@_invoice.Language"
+            ShowBranding="@_invoice.ShowBranding"
             IssueDate="@_invoice.IssueDate"
             DueDate="@_invoice.DueDate"
             PaidDate="@_invoice.PaidDate"
@@ -84,6 +85,15 @@
        fixed delay, so a slow first paint cannot truncate the PDF. *@
     <div id="print-ready" style="display:none"></div>
 }
+else
+{
+    @* An unknown, revoked or mistyped token. The call throws rather than
+       returning null, so this is the caught case — a plain line beats a 500
+       and a stack trace on a URL anyone can hit. *@
+    <div style="font-family: system-ui, sans-serif; padding: 48px; text-align: center; color: #6b7280;">
+        <p>This invoice link is no longer valid.</p>
+    </div>
+}
 
 @code {
     [Parameter] public Guid Token { get; set; }
@@ -99,5 +109,16 @@
     private string FooterLayout => _invoice?.Template?.FooterLayout?.ToLowerInvariant() ?? "standard";
 
     protected override async Task OnInitializedAsync()
-        => _invoice = await GetPublicInvoiceCall.Call(new GetPublicInvoice { Token = Token });
+    {
+        try
+        {
+            _invoice = await GetPublicInvoiceCall.Call(new GetPublicInvoice { Token = Token });
+        }
+        catch
+        {
+            // Missing or unreadable: rendered as "not valid" below. Never a 500 —
+            // this route is reachable by anyone holding a guessable-looking URL.
+            _invoice = null;
+        }
+    }
 }

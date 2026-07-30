@@ -1,0 +1,235 @@
+/* Interactive localisation demo.
+
+   Carries its own palette rather than inheriting the landing page's: this is
+   CSS-isolated to the component, so Home.razor.css's tokens are not in scope
+   here. Same values, declared locally. */
+
+.demo {
+    --paper: oklch(.972 .009 83);
+    --paper2: oklch(.988 .006 83);
+    --ink: oklch(.245 .012 55);
+    --ink2: oklch(.44 .012 55);
+    --ink3: oklch(.60 .012 60);
+    --line: oklch(.885 .013 75);
+    --line2: oklch(.928 .01 78);
+    --shu: #0e5c66;
+    --serif: 'Shippori Mincho', serif;
+    --mono: 'IBM Plex Mono', ui-monospace, monospace;
+
+    /* Noto Sans first, exactly as the real invoice does. The landing page's
+       body font is Zen Kaku Gothic New, which claims enough coverage that
+       per-glyph fallback never fires but has no stacked Vietnamese diacritics
+       — so inheriting it rendered "thiết kế" as "thiêt kêˊ". A demo whose
+       whole point is that the client can read their own language must not
+       reproduce that. */
+    font-family: 'Noto Sans', 'Zen Kaku Gothic New', system-ui, -apple-system, sans-serif;
+}
+
+/* --- language chips --------------------------------------------------- */
+
+.demochips {
+    display: flex;
+    flex-wrap: wrap;
+    gap: 8px;
+    justify-content: center;
+    margin-bottom: 26px;
+}
+
+.demochip {
+    display: inline-flex;
+    align-items: center;
+    gap: 8px;
+    padding: 8px 15px;
+    font: inherit;
+    font-size: 13.5px;
+    font-weight: 500;
+    color: var(--ink2);
+    background: var(--paper2);
+    border: 1px solid var(--line);
+    border-radius: 999px;
+    cursor: pointer;
+    transition: background .16s ease, border-color .16s ease, color .16s ease;
+}
+
+.demochip:hover { border-color: var(--ink3); color: var(--ink); }
+
+.demochip.on {
+    background: var(--shu);
+    border-color: var(--shu);
+    color: #fff;
+}
+
+.dcflag {
+    font-family: var(--mono);
+    font-size: 10.5px;
+    font-weight: 600;
+    letter-spacing: .1em;
+    opacity: .65;
+}
+
+/* --- the document ----------------------------------------------------- */
+
+.demoframe {
+    /* Fixed floor so switching to a language with shorter line items does not
+       make the whole page jump upward under the reader. */
+    min-height: 560px;
+    display: flex;
+    justify-content: center;
+}
+
+.demopaper {
+    width: 100%;
+    max-width: 620px;
+    background: var(--paper2);
+    border: 1px solid var(--line);
+    border-radius: 14px;
+    box-shadow: 0 26px 60px -42px rgba(20, 15, 10, .45);
+    padding: 30px 32px 26px;
+    animation: dfade .32s ease both;
+}
+
+/* Re-runs on each switch because the key changes, so the new language reads
+   as a new document arriving rather than text mutating in place. */
+@keyframes dfade {
+    from { opacity: 0; transform: translateY(6px); }
+    to   { opacity: 1; transform: none; }
+}
+
+@media (prefers-reduced-motion: reduce) {
+    .demopaper { animation: none; }
+}
+
+.dhead {
+    display: flex;
+    align-items: flex-start;
+    justify-content: space-between;
+    gap: 20px;
+    padding-bottom: 20px;
+    border-bottom: 1px solid var(--line2);
+}
+
+.dnum {
+    font-family: var(--mono);
+    font-size: 19px;
+    font-weight: 600;
+    color: var(--ink);
+    letter-spacing: .02em;
+}
+
+.dkind {
+    font-family: var(--mono);
+    font-size: 10.5px;
+    font-weight: 600;
+    letter-spacing: .16em;
+    text-transform: uppercase;
+    color: var(--shu);
+    margin-top: 5px;
+}
+
+.dmeta { text-align: right; font-size: 12.5px; color: var(--ink2); line-height: 1.75; }
+.dmeta span { color: var(--ink3); }
+
+.dbill { padding: 18px 0; border-bottom: 1px solid var(--line2); }
+
+.dlabel {
+    font-family: var(--mono);
+    font-size: 10px;
+    font-weight: 600;
+    letter-spacing: .16em;
+    text-transform: uppercase;
+    color: var(--ink3);
+    margin-bottom: 7px;
+}
+
+.dclient { font-size: 15px; font-weight: 600; color: var(--ink); }
+.dcity { font-family: var(--mono); font-size: 11px; color: var(--ink3); margin-top: 3px; }
+
+.dtable { width: 100%; border-collapse: collapse; margin: 18px 0 4px; }
+
+.dtable th {
+    font-family: var(--mono);
+    font-size: 9.5px;
+    font-weight: 600;
+    letter-spacing: .14em;
+    text-transform: uppercase;
+    color: var(--ink3);
+    text-align: left;
+    padding-bottom: 9px;
+    border-bottom: 1px solid var(--line2);
+}
+
+.dtable td {
+    font-size: 13.5px;
+    color: var(--ink2);
+    padding: 11px 0;
+    border-bottom: 1px solid var(--line2);
+    line-height: 1.5;
+}
+
+.dtable .num { text-align: right; white-space: nowrap; padding-left: 14px; }
+.dtable td.num { font-family: var(--mono); font-size: 12.5px; color: var(--ink); }
+
+.dtotals { margin: 16px 0 4px; margin-left: auto; max-width: 260px; }
+
+.drow {
+    display: flex;
+    justify-content: space-between;
+    gap: 20px;
+    font-size: 13px;
+    color: var(--ink2);
+    padding: 5px 0;
+}
+
+.drow span:last-child { font-family: var(--mono); color: var(--ink); }
+
+.dgrand {
+    margin-top: 8px;
+    padding-top: 11px;
+    border-top: 1px solid var(--line);
+    font-size: 14px;
+    font-weight: 600;
+    color: var(--ink);
+}
+
+.dgrand span:last-child { font-size: 17px; color: var(--shu); font-weight: 600; }
+
+.dpay { margin-top: 20px; padding-top: 18px; border-top: 1px solid var(--line2); }
+
+.drails { display: flex; flex-wrap: wrap; gap: 7px; }
+
+.drail {
+    font-size: 12px;
+    color: var(--ink2);
+    background: var(--paper);
+    border: 1px solid var(--line);
+    border-radius: 7px;
+    padding: 6px 11px;
+}
+
+.dfoot {
+    margin-top: 20px;
+    padding-top: 14px;
+    border-top: 1px solid var(--line2);
+    text-align: center;
+    font-size: 11px;
+    color: var(--ink3);
+}
+
+.demonote {
+    margin: 22px auto 0;
+    max-width: 460px;
+    text-align: center;
+    font-size: 13px;
+    line-height: 1.6;
+    color: var(--ink3);
+}
+
+@media (max-width: 640px) {
+    .demoframe { min-height: 0; }
+    .demopaper { padding: 22px 18px 20px; }
+    .dhead { flex-direction: column; gap: 12px; }
+    .dmeta { text-align: left; }
+    .dtotals { max-width: none; }
+    .dtable th:nth-child(2), .dtable td:nth-child(2),
+    .dtable th:nth-child(3), .dtable td:nth-child(3) { display: none; }
+}

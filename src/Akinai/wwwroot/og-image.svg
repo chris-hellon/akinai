@@ -1,0 +1,59 @@
+<svg xmlns="http://www.w3.org/2000/svg" width="1200" height="630" viewBox="0 0 1200 630">
+  <!-- Social card. Rasterised with sips, so it stays to plain shapes and text:
+       no filters, no webfonts, no foreignObject. Colours are the landing
+       page's paper and shu teal. -->
+
+  <rect width="1200" height="630" fill="#F7F4EE"/>
+
+  <!-- Hairline rule top and bottom, echoing the site's section borders -->
+  <rect x="0" y="0" width="1200" height="6" fill="#0e5c66"/>
+
+  <!-- Hanko -->
+  <rect x="90" y="86" width="86" height="86" rx="14" fill="#0e5c66"/>
+  <text x="133" y="146" font-family="Hiragino Mincho ProN, Songti SC, serif"
+        font-size="52" fill="#ffffff" text-anchor="middle">商</text>
+
+  <!-- Wordmark. Two <text> elements rather than a coloured <tspan>: the
+       rasteriser ignores fill on tspan and renders the whole word black. -->
+  <text x="196" y="148" font-family="Helvetica Neue, Helvetica, Arial, sans-serif"
+        font-size="56" font-weight="700" fill="#1a1712">Akin</text>
+  <text x="300" y="148" font-family="Helvetica Neue, Helvetica, Arial, sans-serif"
+        font-size="56" font-weight="700" fill="#33969f">ai</text>
+
+  <!-- Headline -->
+  <text x="90" y="300" font-family="Hiragino Mincho ProN, Georgia, serif"
+        font-size="72" font-weight="600" fill="#1a1712">Bill in their language.</text>
+  <text x="90" y="386" font-family="Hiragino Mincho ProN, Georgia, serif"
+        font-size="72" font-weight="600" fill="#0e5c66">Get paid on their rail.</text>
+
+  <!-- Supporting line -->
+  <text x="90" y="452" font-family="Helvetica Neue, Helvetica, Arial, sans-serif"
+        font-size="27" fill="#5c554b">Invoicing for freelancers and studios billing across borders.</text>
+
+  <!-- Chips: the eight languages, as the product's clearest single claim -->
+  <g font-family="Helvetica Neue, Helvetica, Arial, sans-serif" font-size="21" fill="#5c554b">
+    <rect x="90"  y="502" width="104" height="46" rx="23" fill="#EFEBE3" stroke="#DDD6CA"/>
+    <text x="142" y="531" text-anchor="middle">English</text>
+    <rect x="206" y="502" width="104" height="46" rx="23" fill="#EFEBE3" stroke="#DDD6CA"/>
+    <text x="258" y="531" text-anchor="middle">Español</text>
+    <rect x="322" y="502" width="110" height="46" rx="23" fill="#EFEBE3" stroke="#DDD6CA"/>
+    <text x="377" y="531" text-anchor="middle">Français</text>
+    <rect x="444" y="502" width="110" height="46" rx="23" fill="#EFEBE3" stroke="#DDD6CA"/>
+    <text x="499" y="531" text-anchor="middle">Deutsch</text>
+    <rect x="566" y="502" width="86"  height="46" rx="23" fill="#EFEBE3" stroke="#DDD6CA"/>
+    <text x="609" y="531" text-anchor="middle">中文</text>
+    <rect x="664" y="502" width="128" height="46" rx="23" fill="#EFEBE3" stroke="#DDD6CA"/>
+    <text x="728" y="531" text-anchor="middle">Tiếng Việt</text>
+    <rect x="804" y="502" width="106" height="46" rx="23" fill="#EFEBE3" stroke="#DDD6CA"/>
+    <text x="857" y="531" text-anchor="middle">Русский</text>
+    <rect x="922" y="502" width="94"  height="46" rx="23" fill="#EFEBE3" stroke="#DDD6CA"/>
+    <text x="969" y="531" text-anchor="middle">한국어</text>
+  </g>
+
+  <!-- Payment seal, top right -->
+  <g>
+    <circle cx="1062" cy="129" r="52" fill="none" stroke="#C9464A" stroke-width="4"/>
+    <text x="1062" y="150" font-family="Hiragino Mincho ProN, Songti SC, serif"
+          font-size="54" fill="#C9464A" text-anchor="middle">済</text>
+  </g>
+</svg>

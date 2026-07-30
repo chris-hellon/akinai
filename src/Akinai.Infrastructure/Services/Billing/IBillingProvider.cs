@@ -21,6 +21,16 @@ public interface IBillingProvider
     bool IsSimulated { get; }
 
     /// <summary>
+    /// True when the provider renews the subscription on its own.
+    ///
+    /// Deliberately separate from <see cref="IsSimulated"/>. A provider in test
+    /// mode takes no real money but still renews by itself, so conflating the
+    /// two put an "Extend by another month" button on a self-renewing plan —
+    /// which would have started a second subscription and billed twice.
+    /// </summary>
+    bool RenewsAutomatically { get; }
+
+    /// <summary>
     /// Where to send the browser to pay. The session has already been created
     /// and priced; the provider only decides where the user goes next.
     /// </summary>
@@ -42,6 +52,9 @@ public class SimulatedBillingProvider : IBillingProvider
     public string Name => "Simulated";
 
     public bool IsSimulated => true;
+
+    /// <summary>Periods are bought one at a time here; nothing renews on its own.</summary>
+    public bool RenewsAutomatically => false;
 
     public Task<string> CreateCheckoutUrlAsync(
         Guid sessionId, BillingPlan plan, BillingCycle cycle, decimal amount, string currency,
