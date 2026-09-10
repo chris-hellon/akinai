@@ -1,6 +1,6 @@
 @page "/jobs/{Id:guid}"
 
-@inject ICall<GetJob, JobDetailDto> GetJobCall
+@inject ICall<GetJob, JobDetailDto?> GetJobCall
 @inject ICall<CreateJobTask, JobTaskDto> CreateJobTaskCall
 @inject ICall<UpdateJobTask, JobTaskDto> UpdateJobTaskCall
 @inject ICall<DeleteJobTask> DeleteJobTaskCall
@@ -475,7 +475,6 @@
     private JobDetailDto? _job;
     private List<JobTaskDto> _tasks = [];
     private bool _isLoading = true;
-    private bool _isDeleting;
     private bool _isUpdatingStatus;
     private List<PageHeader.BreadcrumbItem> _breadcrumbs = [];
 

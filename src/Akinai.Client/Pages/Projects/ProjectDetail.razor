@@ -1,6 +1,6 @@
 @page "/projects/{Id:guid}"
 
-@inject ICall<GetProject, ProjectDetailDto> GetProjectCall
+@inject ICall<GetProject, ProjectDetailDto?> GetProjectCall
 @inject ICall<DeleteProject> DeleteProjectCall
 @inject NavigationManager NavigationManager
 
@@ -244,7 +244,6 @@
 
     private ProjectDetailDto? _project;
     private bool _isLoading = true;
-    private bool _isDeleting;
     private List<PageHeader.BreadcrumbItem> _breadcrumbs = [];
 
     protected override async Task OnInitializedAsync()

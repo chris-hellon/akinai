@@ -4,7 +4,7 @@
 @inject ICall<GetClients, PaginatedResponse<ClientDto>> GetClientsCall
 @inject ICall<GetProjects, PaginatedResponse<ProjectDto>> GetProjectsCall
 @inject ICall<GetProjectSections, List<ProjectSectionDto>> GetProjectSectionsCall
-@inject ICall<GetJob, JobDetailDto> GetJobCall
+@inject ICall<GetJob, JobDetailDto?> GetJobCall
 @inject ICall<CreateJob, Guid> CreateJobCall
 @inject ICall<UpdateJob> UpdateJobCall
 @inject ICall<CreateJobTask, JobTaskDto> CreateJobTaskCall

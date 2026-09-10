@@ -1,7 +1,7 @@
 @page "/products/new"
 @page "/products/{Id:guid}/edit"
 
-@inject ICall<GetProduct, ProductDetailDto> GetProductCall
+@inject ICall<GetProduct, ProductDetailDto?> GetProductCall
 @inject ICall<CreateProduct, Guid> CreateProductCall
 @inject ICall<UpdateProduct> UpdateProductCall
 @inject ICall<DeleteProduct> DeleteProductCall

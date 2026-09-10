@@ -1,6 +1,6 @@
 @page "/recurring-invoices/{Id:guid}"
 
-@inject ICall<GetRecurringInvoice, RecurringInvoiceDetailDto> GetRecurringInvoiceCall
+@inject ICall<GetRecurringInvoice, RecurringInvoiceDetailDto?> GetRecurringInvoiceCall
 @inject ICall<DeleteRecurringInvoice> DeleteRecurringInvoiceCall
 @inject ICall<PauseRecurringInvoice> PauseRecurringInvoiceCall
 @inject ICall<ResumeRecurringInvoice> ResumeRecurringInvoiceCall

@@ -131,7 +131,6 @@
 
                 <ProductSelector Products="_availableProducts"
                                  Currency="@ClientCurrency"
-                                 IsLoading="_isLoadingProducts"
                                  LineItems="_productLineItems"
                                  LineItemsChanged="OnProductLineItemsChanged" />
             </div>
@@ -331,7 +330,6 @@
     private bool _isLoading = true;
     private bool _isLoadingEntries;
     private bool _isLoadingExpenses;
-    private bool _isLoadingProducts;
     private bool _isCreating;
     private string? _errorMessage;
 

@@ -1,6 +1,6 @@
 @page "/invoices/{Id:guid}/edit"
 
-@inject ICall<GetInvoice, InvoiceDetailDto> GetInvoiceCall
+@inject ICall<GetInvoice, InvoiceDetailDto?> GetInvoiceCall
 @inject ICall<GetUnbilledTimeEntries, List<UnbilledTimeEntryDto>> GetUnbilledTimeEntriesCall
 @inject ICall<GetUnbilledExpenses, List<ExpenseSummaryDto>> GetUnbilledExpensesCall
 @inject ICall<GetProducts, PaginatedResponse<ProductDto>> GetProductsCall

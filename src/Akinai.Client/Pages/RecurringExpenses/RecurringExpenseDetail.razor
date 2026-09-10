@@ -1,10 +1,10 @@
 @page "/recurring-expenses/{Id:guid}"
 
-@inject ICall<GetRecurringExpense, RecurringExpenseDetailDto> GetRecurringExpenseCall
+@inject ICall<GetRecurringExpense, RecurringExpenseDetailDto?> GetRecurringExpenseCall
 @inject ICall<DeleteRecurringExpense> DeleteRecurringExpenseCall
 @inject ICall<PauseRecurringExpense> PauseRecurringExpenseCall
 @inject ICall<ResumeRecurringExpense> ResumeRecurringExpenseCall
-@inject ICall<GenerateExpensesNow, ExpenseSummaryDto> GenerateExpensesNowCall
+@inject ICall<GenerateExpensesNow, ExpenseSummaryDto?> GenerateExpensesNowCall
 
 <PageTitle>@(_expense != null ? _expense.MerchantName : "Recurring Expense") - Akinai</PageTitle>
 

@@ -206,6 +206,6 @@ _NCrunch_*
 CLAUDE.md
 
 .fake
-# PDF fonts — fetched by InvoiceSoftware/fetch-fonts.sh at build time rather
+# PDF fonts — fetched by src/fetch-fonts.sh at build time rather
 # than committed. ~24 MB of binaries that would sit in git history forever.
 src/Akinai.Infrastructure/Fonts/*.ttf

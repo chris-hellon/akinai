@@ -1,6 +1,6 @@
 @page "/expenses/{Id:guid}"
 
-@inject ICall<GetExpense, ExpenseDetailDto> GetExpenseCall
+@inject ICall<GetExpense, ExpenseDetailDto?> GetExpenseCall
 @inject ICall<DeleteExpense> DeleteExpenseCall
 
 <PageTitle>@(_expense != null ? _expense.MerchantName : "Expense") - Akinai</PageTitle>

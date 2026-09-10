@@ -3,7 +3,7 @@
 
 @inject ICall<GetClients, PaginatedResponse<ClientDto>> GetClientsCall
 @inject ICall<GetProjects, PaginatedResponse<ProjectDto>> GetProjectsCall
-@inject ICall<GetRecurringExpense, RecurringExpenseDetailDto> GetRecurringExpenseCall
+@inject ICall<GetRecurringExpense, RecurringExpenseDetailDto?> GetRecurringExpenseCall
 @inject ICall<CreateRecurringExpense, Guid> CreateRecurringExpenseCall
 @inject ICall<UpdateRecurringExpense> UpdateRecurringExpenseCall
 @inject ICall<DeleteRecurringExpense> DeleteRecurringExpenseCall

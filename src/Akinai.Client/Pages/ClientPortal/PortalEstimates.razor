@@ -113,7 +113,9 @@
             {
                 <div class="mt-6">
                     <Pagination CurrentPage="_response.Page"
-                                TotalPages="_response.TotalPages"
+                                TotalItems="_response.TotalCount"
+                                PageSize="_response.PageSize"
+                                ItemName="estimates"
                                 OnPageChanged="OnPageChanged" />
                 </div>
             }

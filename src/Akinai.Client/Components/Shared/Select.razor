@@ -204,7 +204,7 @@
                 if (_highlight >= 0 && _highlight < _filtered.Count) await Choose(_filtered[_highlight]);
                 break;
             case "Escape":
-                Close();
+                await Close();
                 break;
         }
     }

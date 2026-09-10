@@ -1,6 +1,6 @@
 @page "/clients/{Id:guid}"
 
-@inject ICall<GetClient, ClientDetailDto> GetClientCall
+@inject ICall<GetClient, ClientDetailDto?> GetClientCall
 @inject ICall<GetProjects, PaginatedResponse<ProjectDto>> GetProjectsCall
 @inject ICall<DeleteClient> DeleteClientCall
 
@@ -209,7 +209,6 @@
     private ClientDetailDto? _client;
     private List<ProjectDto>? _projects;
     private bool _isLoading = true;
-    private bool _isDeleting;
     private List<PageHeader.BreadcrumbItem> _breadcrumbs = [];
 
     private bool HasAddress => (_client != null && !string.IsNullOrEmpty(_client.Street)) ||

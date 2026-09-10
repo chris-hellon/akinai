@@ -1,0 +1,48 @@
+@* Neutral counterpart to PrimaryButton, for actions that sit beside the main one. *@
+
+@if (!string.IsNullOrEmpty(Href))
+{
+    <a href="@Href" class="@ButtonClass">@Text</a>
+}
+else
+{
+    <button type="@ButtonType" disabled="@(IsLoading || Disabled)"
+            @onclick="OnClick"
+            class="@ButtonClass">
+        @if (IsLoading)
+        {
+            <div class="w-4 h-4 border-2 border-gray-300 dark:border-slate-600 border-t-gray-600 dark:border-t-slate-300 rounded-full animate-spin"></div>
+        }
+        @(IsLoading && !string.IsNullOrEmpty(LoadingText) ? LoadingText : Text)
+    </button>
+}
+
+@code {
+    private const string ButtonClass =
+        "inline-flex items-center justify-center gap-2 px-4 py-2.5 text-sm font-medium " +
+        "text-gray-700 dark:text-slate-300 bg-white dark:bg-slate-800 " +
+        "border border-gray-200 dark:border-slate-600 rounded-xl " +
+        "hover:bg-gray-50 dark:hover:bg-slate-700 transition-all duration-200 " +
+        "disabled:opacity-50 disabled:cursor-not-allowed";
+
+    [Parameter, EditorRequired]
+    public string Text { get; set; } = "";
+
+    [Parameter]
+    public string? Href { get; set; }
+
+    [Parameter]
+    public string ButtonType { get; set; } = "button";
+
+    [Parameter]
+    public bool IsLoading { get; set; }
+
+    [Parameter]
+    public bool Disabled { get; set; }
+
+    [Parameter]
+    public string? LoadingText { get; set; }
+
+    [Parameter]
+    public EventCallback OnClick { get; set; }
+}

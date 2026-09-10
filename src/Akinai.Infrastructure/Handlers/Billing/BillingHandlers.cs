@@ -75,7 +75,6 @@ public class StartCheckoutHandler(
 public class GetCheckoutHandler(
     IDbContextFactory<ApplicationDbContext> dbFactory,
     ICurrentUserService currentUserService,
-    Services.Billing.IBillingProvider provider,
     IPlanCatalog catalog) : IHandle<GetCheckout, CheckoutSessionDto>
 {
     public async Task<HttpResult<CheckoutSessionDto>> Handle(GetCheckout request, CancellationToken cancellationToken)

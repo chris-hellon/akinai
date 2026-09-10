@@ -2,7 +2,7 @@
 @page "/projects/{Id:guid}/edit"
 
 @inject ICall<GetClients, PaginatedResponse<ClientDto>> GetClientsCall
-@inject ICall<GetProject, ProjectDetailDto> GetProjectCall
+@inject ICall<GetProject, ProjectDetailDto?> GetProjectCall
 @inject ICall<CreateProject, Guid> CreateProjectCall
 @inject ICall<UpdateProject> UpdateProjectCall
 @inject ICall<DeleteProject> DeleteProjectCall

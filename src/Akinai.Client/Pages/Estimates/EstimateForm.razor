@@ -1,7 +1,7 @@
 @page "/estimates/new"
 @page "/estimates/{Id:guid}/edit"
 
-@inject ICall<GetEstimate, EstimateDetailDto> GetEstimateCall
+@inject ICall<GetEstimate, EstimateDetailDto?> GetEstimateCall
 @inject ICall<GetClients, PaginatedResponse<ClientDto>> GetClientsCall
 @inject ICall<GetProducts, PaginatedResponse<ProductDto>> GetProductsCall
 @inject ICall<GetInvoiceTemplates, List<InvoiceTemplateDto>> GetTemplatesCall

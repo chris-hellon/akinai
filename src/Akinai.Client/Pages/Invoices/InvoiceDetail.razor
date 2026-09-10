@@ -1,14 +1,14 @@
 @page "/invoices/{Id:guid}"
 
-@inject ICall<GetInvoice, InvoiceDetailDto> GetInvoiceCall
+@inject ICall<GetInvoice, InvoiceDetailDto?> GetInvoiceCall
 @inject ICall<GetInvoicePdf, byte[]> GetInvoicePdfCall
 @inject ICall<MarkInvoicePaid> MarkInvoicePaidCall
 @inject ICall<MarkInvoiceSent> MarkInvoiceSentCall
 @inject ICall<DeleteInvoice> DeleteInvoiceCall
 @inject ICall<SendInvoice> SendInvoiceCall
-@inject ICall<GetBusinessProfile, BusinessProfileDto> GetBusinessProfileCall
-@inject ICall<GetBusinessLogo, byte[]> GetBusinessLogoCall
-@inject ICall<GetCurrencyPaymentSettings, CurrencyPaymentSettingsDto> GetCurrencyPaymentSettingsCall
+@inject ICall<GetBusinessProfile, BusinessProfileDto?> GetBusinessProfileCall
+@inject ICall<GetBusinessLogo, byte[]?> GetBusinessLogoCall
+@inject ICall<GetCurrencyPaymentSettings, CurrencyPaymentSettingsDto?> GetCurrencyPaymentSettingsCall
 @inject ICall<GetInvoiceBankTransactions, List<BankTransactionDto>> GetInvoiceBankTransactionsCall
 @inject ICall<SaveInvoiceServiceLines> SaveServiceLinesCall
 @inject ICall<SummariseTimesheet, TimesheetSummaryDto> SummariseCall
@@ -407,7 +407,6 @@
     private bool _isDownloading;
     private bool _isMarkingPaid;
     private bool _isMarkingSent;
-    private bool _isDeleting;
     private bool _isSending;
     private string? _errorMessage;
     /// <summary>"2 hours ago" reads better than a timestamp for something you

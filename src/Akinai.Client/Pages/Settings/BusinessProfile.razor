@@ -1,6 +1,6 @@
 @page "/settings/business"
 
-@inject ICall<GetBusinessProfile, BusinessProfileDto> GetBusinessProfileCall
+@inject ICall<GetBusinessProfile, BusinessProfileDto?> GetBusinessProfileCall
 @inject ICall<SaveBusinessProfile> SaveBusinessProfileCall
 @inject ICall<GetBusinessLogo, byte[]?> GetBusinessLogoCall
 @inject ICall<SaveBusinessLogo> SaveBusinessLogoCall
