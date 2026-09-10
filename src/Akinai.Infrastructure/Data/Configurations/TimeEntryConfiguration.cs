@@ -40,8 +40,14 @@ public class TimeEntryConfiguration : IEntityTypeConfiguration<TimeEntry>
             .HasMaxLength(450)
             .IsRequired();
 
-        // IsBilled is now a computed property, so we ignore it
+        // The rate frozen when the entry was invoiced. Nullable: an unbilled entry
+        // has no billed rate and prices at the job's current one.
+        builder.Property(te => te.BilledHourlyRate)
+            .HasPrecision(18, 2);
+
+        // Computed properties, not columns.
         builder.Ignore(te => te.IsBilled);
+        builder.Ignore(te => te.BillingRate);
 
         builder.HasIndex(te => te.JobId);
         builder.HasIndex(te => te.Date);

@@ -24,7 +24,7 @@ public class InvoiceTotalService(IExchangeRateService exchangeRates) : IInvoiceT
         foreach (var te in invoice.TimeEntries)
             // Bill to the nearest quarter-hour, matching every customer-facing total
             // (invoice view, PDF, email). Raw hours here made the stored total drift.
-            subtotal += te.BillableHours * te.Job.GetEffectiveHourlyRate();
+            subtotal += te.BillableHours * te.BillingRate;
         foreach (var li in invoice.LineItems)
             subtotal += li.LineTotal.Amount;
 

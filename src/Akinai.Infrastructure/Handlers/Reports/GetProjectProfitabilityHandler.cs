@@ -67,7 +67,7 @@ public class GetProjectProfitabilityHandler(
             .GroupBy(te => te.Job.ProjectId)
             .ToDictionary(
                 g => g.Key,
-                g => (Revenue: g.Sum(te => te.Hours.Value * te.Job.GetEffectiveHourlyRate()),
+                g => (Revenue: g.Sum(te => te.Hours.Value * te.BillingRate),
                       Hours: g.Sum(te => (double)te.Hours.Value)));
 
         // Expenses tagged to a project, in the reporting currency, dated in the window.

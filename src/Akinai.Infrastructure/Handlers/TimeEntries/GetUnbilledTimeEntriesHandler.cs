@@ -33,7 +33,7 @@ public class GetUnbilledTimeEntriesHandler(IDbContextFactory<ApplicationDbContex
             e.Job.Section?.Name,
             e.Date,
             e.Hours.Value,
-            e.Job.GetEffectiveHourlyRate(),
+            e.BillingRate,
             e.Job.Project.Client.Currency)).ToList();
 
         return HttpResult<List<UnbilledTimeEntryDto>>.Ok(result);

@@ -57,14 +57,8 @@ public class GetTopClientsHandler(IDbContextFactory<ApplicationDbContext> dbFact
 
             foreach (var invoice in invoices)
             {
-                var timeEntries = invoice.TimeEntries.ToList();
-                decimal subtotal = 0;
-                foreach (var te in timeEntries)
-                {
-                    var hourlyRate = te.Job.GetEffectiveHourlyRate();
-                    subtotal += te.Hours.Value * hourlyRate;
-                }
-                var total = subtotal + (subtotal * invoice.TaxRate / 100);
+                // The stored total, so reported revenue matches what was invoiced.
+                var total = invoice.Total;
 
                 if (invoice.Status == InvoiceStatus.Paid &&
                     invoice.PaidDate.HasValue &&

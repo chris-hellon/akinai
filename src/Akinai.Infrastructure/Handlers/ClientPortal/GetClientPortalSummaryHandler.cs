@@ -29,10 +29,6 @@ public class GetClientPortalSummaryHandler(IDbContextFactory<ApplicationDbContex
 
         // Get invoices for this client
         var invoices = await db.Invoices
-            .Include(i => i.TimeEntries)
-                .ThenInclude(te => te.Job)
-                    .ThenInclude(j => j.Project)
-                        .ThenInclude(p => p.Client)
             .Where(i => i.ClientId == client.Id &&
                        (i.Status == InvoiceStatus.Sent ||
                         i.Status == InvoiceStatus.Overdue ||
@@ -43,17 +39,12 @@ public class GetClientPortalSummaryHandler(IDbContextFactory<ApplicationDbContex
         var unpaidInvoices = invoices.Count(i => i.Status != InvoiceStatus.Paid);
 
         // Calculate outstanding amount
-        decimal totalOutstanding = 0;
-        foreach (var invoice in invoices.Where(i => i.Status != InvoiceStatus.Paid))
-        {
-            decimal subtotal = 0;
-            foreach (var te in invoice.TimeEntries)
-            {
-                var hourlyRate = te.Job.GetEffectiveHourlyRate();
-                subtotal += te.Hours.Value * hourlyRate;
-            }
-            totalOutstanding += subtotal + (subtotal * invoice.TaxRate / 100);
-        }
+        // Stored totals — what the client was actually invoiced. Deriving them here
+        // from raw hours understated the balance: no quarter-hour billing rounding,
+        // and neither expenses nor product line items counted.
+        decimal totalOutstanding = invoices
+            .Where(i => i.Status != InvoiceStatus.Paid)
+            .Sum(i => i.Total);
 
         // Get pending estimates
         var pendingEstimates = await db.Estimates

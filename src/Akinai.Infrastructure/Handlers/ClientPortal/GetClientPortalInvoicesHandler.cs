@@ -25,10 +25,6 @@ public class GetClientPortalInvoicesHandler(IDbContextFactory<ApplicationDbConte
             return HttpResult<PaginatedResponse<ClientPortalInvoiceDto>>.NotFound();
 
         var query = db.Invoices
-            .Include(i => i.TimeEntries)
-                .ThenInclude(te => te.Job)
-                    .ThenInclude(j => j.Project)
-                        .ThenInclude(p => p.Client)
             .Where(i => i.ClientId == client.Id);
 
         // Only show sent, overdue, and paid invoices (not drafts)
@@ -52,14 +48,10 @@ public class GetClientPortalInvoicesHandler(IDbContextFactory<ApplicationDbConte
 
         var items = invoices.Select(i =>
         {
-            decimal subtotal = 0;
-            foreach (var te in i.TimeEntries)
-            {
-                var hourlyRate = te.Job.GetEffectiveHourlyRate();
-                subtotal += te.Hours.Value * hourlyRate;
-            }
-            var tax = subtotal * i.TaxRate / 100;
-            var total = subtotal + tax;
+            // The stored total — the figure the client was actually invoiced. Deriving
+            // it here from raw hours understated it: it missed the quarter-hour billing
+            // rounding, and counted neither expenses nor product line items.
+            var total = i.Total;
 
             return new ClientPortalInvoiceDto(
                 i.Id,

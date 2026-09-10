@@ -63,13 +63,18 @@ public class CreateInvoiceHandler(
         // Link time entries
         if (request.TimeEntryIds.Count > 0)
         {
+            // Job → Project → Client loaded because the effective rate cascades through
+            // all three, and it is captured on the entry as we link it.
             var entries = await db.TimeEntries
+                .Include(e => e.Job)
+                    .ThenInclude(j => j.Project)
+                        .ThenInclude(p => p.Client)
                 .Where(e => request.TimeEntryIds.Contains(e.Id))
                 .ToListAsync(cancellationToken);
 
             foreach (var entry in entries)
             {
-                entry.LinkToInvoice(invoice.Id);
+                entry.LinkToInvoice(invoice.Id, entry.Job.GetEffectiveHourlyRate());
             }
         }
 

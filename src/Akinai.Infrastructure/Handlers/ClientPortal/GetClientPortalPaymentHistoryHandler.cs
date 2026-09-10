@@ -26,10 +26,6 @@ public class GetClientPortalPaymentHistoryHandler(IDbContextFactory<ApplicationD
 
         // Get paid invoices as payment history
         var query = db.Invoices
-            .Include(i => i.TimeEntries)
-                .ThenInclude(te => te.Job)
-                    .ThenInclude(j => j.Project)
-                        .ThenInclude(p => p.Client)
             .Where(i => i.ClientId == client.Id && i.Status == InvoiceStatus.Paid && i.PaidDate != null);
 
         var totalCount = await query.CountAsync(cancellationToken);
@@ -42,14 +38,10 @@ public class GetClientPortalPaymentHistoryHandler(IDbContextFactory<ApplicationD
 
         var items = invoices.Select(i =>
         {
-            decimal subtotal = 0;
-            foreach (var te in i.TimeEntries)
-            {
-                var hourlyRate = te.Job.GetEffectiveHourlyRate();
-                subtotal += te.Hours.Value * hourlyRate;
-            }
-            var tax = subtotal * i.TaxRate / 100;
-            var total = subtotal + tax;
+            // The stored total — what the client actually paid. Deriving it from raw
+            // hours understated it: no quarter-hour billing rounding, and neither
+            // expenses nor product line items counted.
+            var total = i.Total;
 
             return new PaymentHistoryDto(
                 i.Id,

@@ -80,7 +80,7 @@ public class GetDashboardMetricsHandler(IDbContextFactory<ApplicationDbContext> 
         var unbilledHours = unbilledTimeEntries.Sum(te => te.Hours.Value);
         // Bill at the quarter-hour rate so the "ready to bill" figure matches what these
         // hours will actually invoice at (see TimeEntry.BillableHours).
-        decimal unbilledAmount = unbilledTimeEntries.Sum(te => te.BillableHours * te.Job.GetEffectiveHourlyRate());
+        decimal unbilledAmount = unbilledTimeEntries.Sum(te => te.BillableHours * te.BillingRate);
 
         var billableTimeEntries = await db.TimeEntries
             .Where(te => te.UserId == userId && te.Date >= periodStart && te.Date <= periodEnd)

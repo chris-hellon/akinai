@@ -23,7 +23,7 @@ public static class InvoiceTotals
         // Legacy fallback (also includes line items, which the old handlers ignored).
         decimal subtotal = 0;
         foreach (var te in invoice.TimeEntries)
-            subtotal += te.BillableHours * te.Job.GetEffectiveHourlyRate();
+            subtotal += te.BillableHours * te.BillingRate;
         foreach (var li in invoice.LineItems)
             subtotal += li.LineTotal.Amount;
         return subtotal + (subtotal * invoice.TaxRate / 100m);

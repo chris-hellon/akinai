@@ -51,7 +51,7 @@ internal static class InvoiceTimesheet
         IEnumerable<Domain.Entities.TimeEntry> entries)
         => entries
             .Select(e => new TimesheetGrouping.BillableEntry(
-                e.Id, e.BillableHours, e.Job.GetEffectiveHourlyRate()))
+                e.Id, e.BillableHours, e.BillingRate))
             .ToList();
 }
 

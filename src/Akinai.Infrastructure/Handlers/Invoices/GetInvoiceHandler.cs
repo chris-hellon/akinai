@@ -77,7 +77,7 @@ public class GetInvoiceHandler(
             {
                 description = $"{projectName}: {description}";
             }
-            var hourlyRate = e.Job.GetEffectiveHourlyRate();
+            var hourlyRate = e.BillingRate;
             var billableHours = e.BillableHours;
             var lineTotal = billableHours * hourlyRate;
             var entryCurrency = e.Job.Project.Client.Currency;

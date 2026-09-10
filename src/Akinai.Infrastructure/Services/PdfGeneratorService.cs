@@ -118,7 +118,7 @@ public class PdfGeneratorService
             var footerLayout = template?.FooterLayout.ToString().ToLowerInvariant() ?? "standard";
 
             // Calculate totals from time entries (rounded to quarter hours for billing)
-            var timeEntriesSubtotal = timeEntries.Sum(e => e.BillableHours * e.Job.GetEffectiveHourlyRate());
+            var timeEntriesSubtotal = timeEntries.Sum(e => e.BillableHours * e.BillingRate);
 
             // Calculate totals from expenses
             var expensesSubtotal = expenses.Sum(e => e.GetTotalAmount());
@@ -136,7 +136,7 @@ public class PdfGeneratorService
                 var jobName = Tr(e.Job.Name);
                 var projectName = e.Job.Project?.Name;
                 var sectionName = e.Job.Section?.Name;
-                var hourlyRate = e.Job.GetEffectiveHourlyRate();
+                var hourlyRate = e.BillingRate;
                 var billableHours = e.BillableHours;
                 var lineTotal = billableHours * hourlyRate;
 

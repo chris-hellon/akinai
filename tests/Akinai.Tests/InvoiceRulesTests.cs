@@ -132,4 +132,63 @@ public class InvoiceRulesTests
     public void The_translation_cache_key_distinguishes_different_text()
         => TranslationCacheEntry.HashOf("Design work")
             .Should().NotBe(TranslationCacheEntry.HashOf("Design Work"));
+
+    // --- Billing rate is fixed at the moment of invoicing --------------------
+
+    private static TimeEntry UnbilledEntry() => TimeEntry.Create(
+        Guid.NewGuid(), new DateOnly(2026, 7, 1), hours: 2m, "Design work", "user-1");
+
+    [Fact]
+    public void Billing_an_entry_freezes_the_rate_it_was_billed_at()
+    {
+        var entry = UnbilledEntry();
+        entry.BilledHourlyRate.Should().BeNull("an unbilled entry has no billed rate");
+
+        entry.LinkToInvoice(Guid.NewGuid(), 85m);
+
+        entry.BilledHourlyRate.Should().Be(85m);
+        entry.BillingRate.Should().Be(85m);
+    }
+
+    [Fact]
+    public void A_billed_entry_never_reprices_when_the_job_rate_changes()
+    {
+        // The rate cascades job → project → client, so a later edit at any of
+        // those levels would otherwise restate an invoice the client already
+        // holds. Once billed, the entry must not consult the job at all: this
+        // entry's Job navigation is never loaded, so reading BillingRate would
+        // throw if the frozen rate were not being used.
+        var entry = UnbilledEntry();
+        entry.LinkToInvoice(Guid.NewGuid(), 85m);
+
+        var rate = () => entry.BillingRate;
+
+        rate.Should().NotThrow().Which.Should().Be(85m);
+    }
+
+    [Fact]
+    public void Taking_an_entry_off_an_invoice_releases_the_frozen_rate()
+    {
+        // Back to unbilled: it should price at whatever the job charges now, and
+        // re-freeze if it is billed onto another invoice.
+        var entry = UnbilledEntry();
+        entry.LinkToInvoice(Guid.NewGuid(), 85m);
+
+        entry.UnlinkFromInvoice();
+
+        entry.BilledHourlyRate.Should().BeNull();
+        entry.IsBilled.Should().BeFalse();
+    }
+
+    [Fact]
+    public void An_entry_cannot_be_billed_onto_a_second_invoice()
+    {
+        var entry = UnbilledEntry();
+        entry.LinkToInvoice(Guid.NewGuid(), 85m);
+
+        var relink = () => entry.LinkToInvoice(Guid.NewGuid(), 120m);
+
+        relink.Should().Throw<DomainException>();
+        entry.BilledHourlyRate.Should().Be(85m, "the failed attempt must not reprice it");
+    }
 }

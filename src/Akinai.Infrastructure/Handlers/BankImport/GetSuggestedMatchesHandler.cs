@@ -29,10 +29,6 @@ public class GetSuggestedMatchesHandler(IDbContextFactory<ApplicationDbContext> 
         // Get unpaid invoices
         var invoices = await db.Invoices
             .Include(i => i.Client)
-            .Include(i => i.TimeEntries)
-                .ThenInclude(te => te.Job)
-                    .ThenInclude(j => j.Project)
-                        .ThenInclude(p => p.Client)
             .Where(i => i.Client.UserId == userId &&
                        (i.Status == InvoiceStatus.Sent || i.Status == InvoiceStatus.Overdue))
             .ToListAsync(cancellationToken);
@@ -42,14 +38,10 @@ public class GetSuggestedMatchesHandler(IDbContextFactory<ApplicationDbContext> 
 
         foreach (var invoice in invoices)
         {
-            // Calculate invoice total
-            decimal invoiceTotal = 0;
-            foreach (var te in invoice.TimeEntries)
-            {
-                var hourlyRate = te.Job.GetEffectiveHourlyRate();
-                invoiceTotal += te.Hours.Value * hourlyRate;
-            }
-            invoiceTotal += invoiceTotal * invoice.TaxRate / 100;
+            // The stored total — the amount actually billed, so it is the amount a
+            // payment should match. Deriving it from raw hours missed the billing
+            // rounding, expenses and product lines, which threw off every match score.
+            var invoiceTotal = invoice.Total;
 
             // Calculate match confidence
             var amountDiff = Math.Abs(invoiceTotal - transactionAmount);

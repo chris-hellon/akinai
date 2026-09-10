@@ -92,7 +92,7 @@ public class GetPublicInvoiceHandler(IDbContextFactory<ApplicationDbContext> dbF
             var projectName = e.Job.Project.Name;
             var description = e.Description ?? e.Job.Name;
             var billedHours = e.BillableHours;
-            var rate = e.Job.GetEffectiveHourlyRate();
+            var rate = e.BillingRate;
 
             return new InvoiceLineItemDto(
                 e.Id,

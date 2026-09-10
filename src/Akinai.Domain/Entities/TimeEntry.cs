@@ -15,6 +15,17 @@ public class TimeEntry : BaseEntity, IAuditableEntity
     // Simple link to invoice - just the FK
     public Guid? InvoiceId { get; private set; }
 
+    /// <summary>
+    /// The hourly rate this entry was billed at, captured at the moment it was linked
+    /// to an invoice. Null while the entry is still unbilled.
+    ///
+    /// Frozen deliberately. The live rate cascades job override → project override →
+    /// client default, so without this snapshot a later edit at any of those three
+    /// levels would silently restate every invoice already sent — the same reason
+    /// <see cref="Update"/> refuses to touch a billed entry.
+    /// </summary>
+    public decimal? BilledHourlyRate { get; private set; }
+
     public Job Job { get; private set; } = null!;
     public Invoice? Invoice { get; private set; }
 
@@ -67,16 +78,37 @@ public class TimeEntry : BaseEntity, IAuditableEntity
     /// </summary>
     public decimal BillableHours => Math.Round(Hours.Value * 4m, MidpointRounding.AwayFromZero) / 4m;
 
-    public void LinkToInvoice(Guid invoiceId)
+    /// <summary>
+    /// The rate this entry bills at: the frozen rate once it is on an invoice, the
+    /// job's current rate while it is not. Every path that prices an entry — invoice
+    /// view, PDF, email, stored totals, client portal — must read this rather than
+    /// calling <c>Job.GetEffectiveHourlyRate()</c> itself, or a rate change will
+    /// reprice work that has already been billed.
+    /// </summary>
+    /// <remarks>Requires <see cref="Job"/> to be loaded for the unbilled case.</remarks>
+    public decimal BillingRate => BilledHourlyRate ?? Job.GetEffectiveHourlyRate();
+
+    /// <param name="hourlyRate">
+    /// The job's effective rate as of now. Captured so the invoice keeps billing at
+    /// this rate however the job, project or client rate changes afterwards.
+    /// </param>
+    public void LinkToInvoice(Guid invoiceId, decimal hourlyRate)
     {
         if (InvoiceId != null)
             throw new DomainException("Time entry is already linked to an invoice");
 
         InvoiceId = invoiceId;
+        BilledHourlyRate = hourlyRate;
     }
 
+    /// <summary>
+    /// Returns the entry to unbilled. The frozen rate is released with it — once the
+    /// entry is off the invoice it prices at the job's current rate again, and will
+    /// re-freeze if it is billed onto another one.
+    /// </summary>
     public void UnlinkFromInvoice()
     {
         InvoiceId = null;
+        BilledHourlyRate = null;
     }
 }
