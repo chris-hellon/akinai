@@ -1,6 +1,5 @@
 using BlazorUtils.EasyApi;
 using BlazorUtils.EasyApi.Server;
-using Akinai.Domain.Entities;
 using Akinai.Domain.Enums;
 using Akinai.Infrastructure.Data;
 using Akinai.Shared.Api;
@@ -46,40 +45,21 @@ public class GetInvoicesHandler(IDbContextFactory<ApplicationDbContext> dbFactor
             .Take(request.PageSize)
             .ToListAsync(cancellationToken);
 
-        var items = new List<InvoiceSummaryDto>();
-
-        foreach (var invoice in invoices)
-        {
-            var timeEntries = await db.TimeEntries
-                .Include(e => e.Job)
-                    .ThenInclude(j => j.Project)
-                        .ThenInclude(p => p.Client)
-                .Where(e => e.InvoiceId == invoice.Id)
-                .ToListAsync(cancellationToken);
-
-            var expenses = await db.Expenses
-                .Where(e => e.InvoiceId == invoice.Id)
-                .ToListAsync(cancellationToken);
-
-            var productLineItems = await db.InvoiceLineItems
-                .Where(li => li.InvoiceId == invoice.Id)
-                .ToListAsync(cancellationToken);
-
-            var (subtotal, taxAmount, total) = CalculateInvoiceTotals(timeEntries, expenses, productLineItems, invoice.TaxRate);
-
-            items.Add(new InvoiceSummaryDto(
-                invoice.Id,
-                invoice.InvoiceNumber,
-                invoice.ClientId,
-                invoice.Client.Name,
-                invoice.Currency,
-                invoice.IssueDate,
-                invoice.DueDate,
-                invoice.Status.ToString(),
-                subtotal,
-                taxAmount,
-                total));
-        }
+        // Totals come from the snapshot on the invoice, written by IInvoiceTotalService
+        // on create/update. Recomputing them per row meant three extra queries — one of
+        // them a four-level Include — for every invoice on the page.
+        var items = invoices.Select(invoice => new InvoiceSummaryDto(
+            invoice.Id,
+            invoice.InvoiceNumber,
+            invoice.ClientId,
+            invoice.Client.Name,
+            invoice.Currency,
+            invoice.IssueDate,
+            invoice.DueDate,
+            invoice.Status.ToString(),
+            invoice.Subtotal,
+            invoice.TaxAmount,
+            invoice.Total)).ToList();
 
         var result = new PaginatedResponse<InvoiceSummaryDto>
         {
@@ -91,17 +71,4 @@ public class GetInvoicesHandler(IDbContextFactory<ApplicationDbContext> dbFactor
 
         return HttpResult<PaginatedResponse<InvoiceSummaryDto>>.Ok(result);
     }
-
-    private static (decimal Subtotal, decimal TaxAmount, decimal Total) CalculateInvoiceTotals(
-        List<TimeEntry> timeEntries, List<Expense> expenses, List<InvoiceLineItem> productLineItems, decimal taxRate)
-    {
-        var timeSubtotal = timeEntries.Sum(e => e.BillableHours * e.Job.GetEffectiveHourlyRate());
-        var expenseSubtotal = expenses.Sum(e => e.GetTotalAmount());
-        var productSubtotal = productLineItems.Sum(p => p.LineTotal.Amount);
-        var subtotal = timeSubtotal + expenseSubtotal + productSubtotal;
-        var taxAmount = subtotal * (taxRate / 100);
-        var total = subtotal + taxAmount;
-        return (subtotal, taxAmount, total);
-    }
-
 }

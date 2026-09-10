@@ -49,7 +49,9 @@ public class SendInvoiceHandler(
             .OrderBy(li => li.Order)
             .ToListAsync(cancellationToken);
 
-        var total = CalculateInvoiceTotal(timeEntries, expenses, productLineItems, invoice.TaxRate);
+        // The snapshot total, so the figure in the email body matches the invoice
+        // everywhere else. The rows above are still needed to render the PDF.
+        var total = invoice.Total;
 
         // Resolve the sender's business profile (company name for the email,
         // plus branding/currency settings for the PDF).
@@ -113,16 +115,6 @@ public class SendInvoiceHandler(
             cancellationToken: cancellationToken);
 
         return HttpResult.NoContent();
-    }
-
-    private static decimal CalculateInvoiceTotal(List<TimeEntry> timeEntries, List<Expense> expenses, List<InvoiceLineItem> productLineItems, decimal taxRate)
-    {
-        var timeSubtotal = timeEntries.Sum(e => e.BillableHours * e.Job.GetEffectiveHourlyRate());
-        var expenseSubtotal = expenses.Sum(e => e.GetTotalAmount());
-        var lineItemSubtotal = productLineItems.Sum(li => li.LineTotal.Amount);
-        var subtotal = timeSubtotal + expenseSubtotal + lineItemSubtotal;
-        var taxAmount = subtotal * (taxRate / 100);
-        return subtotal + taxAmount;
     }
 
 }

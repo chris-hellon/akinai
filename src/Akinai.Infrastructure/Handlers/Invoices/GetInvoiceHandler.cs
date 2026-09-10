@@ -51,7 +51,12 @@ public class GetInvoiceHandler(
             .OrderBy(li => li.Order)
             .ToListAsync(cancellationToken);
 
-        var (subtotal, taxAmount, total) = CalculateInvoiceTotals(timeEntries, expenses, productLineItems, invoice.TaxRate);
+        // Totals come from the snapshot, not from recomputing the rows below, so the
+        // detail view agrees with the list, the dashboard and the PDF the client got.
+        // The entries are still loaded because the line items are built from them.
+        var subtotal = invoice.Subtotal;
+        var taxAmount = invoice.TaxAmount;
+        var total = invoice.Total;
 
         var clientAddress = invoice.Client.BillingAddress != null
             ? $"{invoice.Client.BillingAddress.Street1}, {invoice.Client.BillingAddress.City}, {invoice.Client.BillingAddress.State} {invoice.Client.BillingAddress.PostalCode}"
@@ -204,19 +209,6 @@ public class GetInvoiceHandler(
 
         return HttpResult<InvoiceDetailDto?>.Ok(result);
     }
-
-    private static (decimal Subtotal, decimal TaxAmount, decimal Total) CalculateInvoiceTotals(
-        List<TimeEntry> timeEntries, List<Expense> expenses, List<InvoiceLineItem> productLineItems, decimal taxRate)
-    {
-        var timeSubtotal = timeEntries.Sum(e => e.BillableHours * e.Job.GetEffectiveHourlyRate());
-        var expenseSubtotal = expenses.Sum(e => e.GetTotalAmount());
-        var productSubtotal = productLineItems.Sum(li => li.LineTotal.Amount);
-        var subtotal = timeSubtotal + expenseSubtotal + productSubtotal;
-        var taxAmount = subtotal * (taxRate / 100);
-        var total = subtotal + taxAmount;
-        return (subtotal, taxAmount, total);
-    }
-
 
     /// <summary>Domain enum to shared enum; both declare the same members in the same order.</summary>
     private static Shared.Enums.SupportedLanguage? ToShared(Domain.Enums.SupportedLanguage? language)

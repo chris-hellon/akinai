@@ -74,13 +74,12 @@ public class GetPublicInvoiceHandler(IDbContextFactory<ApplicationDbContext> dbF
         var currencySettings = await db.CurrencyPaymentSettings
             .FirstOrDefaultAsync(c => c.UserId == invoice.CreatedBy && c.CurrencyCode == invoice.Currency, cancellationToken);
 
-        // Calculate totals (same as in GetInvoiceHandler)
-        var timeEntriesSubtotal = timeEntries.Sum(e => e.BillableHours * e.Job.GetEffectiveHourlyRate());
-        var expensesSubtotal = expenses.Sum(e => e.GetTotalAmount());
-        var productsSubtotal = productLineItems.Sum(p => p.LineTotal.Amount);
-        var subtotal = timeEntriesSubtotal + expensesSubtotal + productsSubtotal;
-        var taxAmount = subtotal * (invoice.TaxRate / 100);
-        var total = subtotal + taxAmount;
+        // Totals come from the snapshot (same as in GetInvoiceHandler). This is what the
+        // client was billed; recomputing here would let a later rate change silently
+        // restate an invoice they have already been sent.
+        var subtotal = invoice.Subtotal;
+        var taxAmount = invoice.TaxAmount;
+        var total = invoice.Total;
 
         // Build line items. A saved summary replaces the per-entry rows — the
         // entries still drive the subtotal above, they just stop being what the
