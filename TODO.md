@@ -33,12 +33,10 @@ and the invoice totals/rate work landed in `d34be04`, `86c970d`, `0a0a23f`.
 
 ## Worth doing
 
-- [ ] **Integration test coverage.** 62 tests, all domain rules. Nothing exercises
-      handlers, the API layer, EF mappings or PDF generation — so a green run would not
-      have caught any of the three bugs fixed in `d34be04`/`86c970d` (list-vs-detail
-      totals divergence, the email total omitting product lines, the client portal
-      understating balances). Now that so much reads from the stored snapshot, a few
-      handler-level tests would pay for themselves.
+- [ ] **Extend handler test coverage.** The invoice-totals path now has six handler
+      tests against a real SQLite database (`InvoiceTestContext`). The same fixture
+      would serve estimates, recurring invoices, expenses and the PDF renderer, none of
+      which have any coverage.
 
 - [ ] **Tailwind is on v3.4.17**; v4 is out. Low priority, but the longer it waits the
       bigger the jump.
@@ -68,3 +66,7 @@ and the invoice totals/rate work landed in `d34be04`, `86c970d`, `0a0a23f`.
 - [x] **Client portal pagination threw whenever a client had more than one page** —
       `TotalPages` was passed as a parameter but is a private computed property on
       `Pagination`, and the required `TotalItems` was never passed.
+- [x] Handler-level tests for invoice totals, against a real SQLite database. Each was
+      verified by mutation — reintroducing the original bug makes the matching test
+      fail. Dropped the unused `EntityFrameworkCore.InMemory` package, which had pulled
+      EF Core to a version its SQLite provider could not run against.
