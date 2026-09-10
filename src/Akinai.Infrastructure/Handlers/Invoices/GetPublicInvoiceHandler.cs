@@ -51,12 +51,21 @@ public class GetPublicInvoiceHandler(IDbContextFactory<ApplicationDbContext> dbF
             .Include(e => e.Job)
                 .ThenInclude(j => j.Section)
             .Where(e => e.InvoiceId == invoice.Id)
+            // Chronological, so the services table reads as the work happened —
+            // and reads identically in the view, the PDF and the client's copy.
+            // CreatedAt breaks ties so same-day entries cannot come back in a
+            // different order from one query to the next.
+            .OrderBy(e => e.Date)
+            .ThenBy(e => e.CreatedAt)
             .ToListAsync(cancellationToken);
 
         // Get expenses for this invoice
         var expenses = await db.Expenses
             .Include(e => e.Project)
             .Where(e => e.InvoiceId == invoice.Id)
+            // Same chronological rule as the services rows above.
+            .OrderBy(e => e.ExpenseDate)
+            .ThenBy(e => e.CreatedAt)
             .ToListAsync(cancellationToken);
 
         // Get product line items for this invoice

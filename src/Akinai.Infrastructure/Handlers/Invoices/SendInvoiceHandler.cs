@@ -37,10 +37,19 @@ public class SendInvoiceHandler(
             .Include(e => e.Job)
                 .ThenInclude(j => j.Section)
             .Where(e => e.InvoiceId == request.Id)
+            // Chronological, so the services table reads as the work happened —
+            // and reads identically in the view, the PDF and the client's copy.
+            // CreatedAt breaks ties so same-day entries cannot come back in a
+            // different order from one query to the next.
+            .OrderBy(e => e.Date)
+            .ThenBy(e => e.CreatedAt)
             .ToListAsync(cancellationToken);
 
         var expenses = await db.Expenses
             .Where(e => e.InvoiceId == request.Id)
+            // Same chronological rule as the services rows above.
+            .OrderBy(e => e.ExpenseDate)
+            .ThenBy(e => e.CreatedAt)
             .ToListAsync(cancellationToken);
 
         var productLineItems = await db.InvoiceLineItems
