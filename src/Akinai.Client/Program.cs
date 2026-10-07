@@ -15,7 +15,7 @@ class Program
         var builder = WebAssemblyHostBuilder.CreateDefault(args);
 
         // Register HttpClient for API calls
-        builder.Services.AddScoped(sp => new HttpClient
+        builder.Services.AddScoped(_ => new HttpClient
         {
             BaseAddress = new Uri(builder.HostEnvironment.BaseAddress)
         });
