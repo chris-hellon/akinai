@@ -31,6 +31,55 @@ and the invoice totals/rate work landed in `d34be04`, `86c970d`, `0a0a23f`.
 - [ ] **Stale branch `claude/upbeat-gould-81088a`** (`e1722ab`, mid-July, 4 commits
       behind master). Worktree already pruned; the branch itself is still there.
 
+## Differentiators (cross-border)
+
+The payment rails are modelled thoroughly — IBAN, SWIFT, intermediary bank,
+`PaymentPurposeCode`, VietQR. What is missing is the legal layer and the
+did-the-money-actually-arrive layer, which is where cross-border billing actually hurts
+and where general-purpose invoicing tools cannot follow.
+
+- [ ] **Pre-flight payability check.** Validate IBAN (mod-97), BIC format, and whether the
+      corridor requires a purpose-of-payment code (CN, IN, VN, AE and others do) before an
+      invoice goes out. Every field already exists; nothing validates them. Prevents the
+      most expensive failure in cross-border billing — a wire returned ten days later with
+      fees deducted. No schema change.
+
+- [ ] **Corridor compliance engine.** `(seller country, buyer country, B2B/B2C)` →
+      required statements, required fields, tax treatment. EU B2B reverse charge needs both
+      VAT numbers plus an explicit statement on the invoice; without it the client's
+      accountant rejects it. Built as a compiled table in the spirit of `InvoiceLabels` —
+      instant, free, and in the terms a local accountant expects.
+
+- [ ] **Tax ID validation.** VIES for the EU (free), the UK VAT API, ABN for Australia.
+      Validate when a client is saved and store the response and timestamp: that record is
+      audit evidence, and being able to produce it is itself a selling point.
+
+- [ ] **Reconciliation that understands cross-border money.** Three unrelated causes make
+      the amount received differ from the amount invoiced, and every tool renders all three
+      as "short payment": FX spread, correspondent bank fees (the SHA/OUR/BEN charge
+      convention is not modelled even though the intermediary bank fields are), and
+      withholding tax. The third is legitimate — in India, the Philippines, Indonesia,
+      Japan and Brazil the payer withholds and remits, so the right response is to track a
+      certificate, not chase the client. Extends the existing bank import matching.
+
+- [ ] **Dunning in the client's language and business hours.** `OverdueInvoiceService`
+      only flips a status today; it sends nothing. The translation engine and Claude are
+      already wired. Tone needs calibrating per culture — a reminder pitched for a German
+      client is actively damaging sent to a Japanese one.
+
+- [ ] **Localized "how to pay me" walkthrough** per rail, not just account details.
+      Already done for VietQR; generalise it.
+
+- [ ] **Evidence pack.** `FirstViewedAtUtc`/`ViewCount` and `DigitalSignature` already
+      exist. A hash-stamped delivery and view trail, exportable, is real leverage in a
+      cross-jurisdiction dispute.
+
+### Not worth building
+
+More chart types, Slack, a mobile app, deeper time-tracking polish — competitors win those
+on budget and none of them are why anyone would choose Akinai. Likewise no AI for its own
+sake: the timesheet summariser earns its place by solving a real grouping problem.
+
 ## Worth doing
 
 - [ ] **Extend handler test coverage.** The invoice-totals path now has six handler

@@ -61,6 +61,7 @@ public class BusinessProfileConfiguration : IEntityTypeConfiguration<BusinessPro
             address.Property(a => a.State).HasColumnName("AddressState").HasMaxLength(50);
             address.Property(a => a.PostalCode).HasColumnName("AddressPostalCode").HasMaxLength(20);
             address.Property(a => a.Country).HasColumnName("AddressCountry").HasMaxLength(100);
+            address.Property(a => a.CountryCode).HasColumnName("AddressCountryCode").HasMaxLength(2);
         });
 
         builder.Property(bp => bp.TaxNumber)

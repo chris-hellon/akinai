@@ -131,4 +131,22 @@ public class BusinessProfile : AggregateRoot, IAuditableEntity
         Logo = logo;
         LogoContentType = contentType;
     }
+
+    /// <summary>
+    /// Records the ISO country code for an address captured before codes were stored.
+    /// Leaves every other part of the address, including the printed country, untouched.
+    /// </summary>
+    public void SetCountryCode(string countryCode)
+    {
+        if (Address is null) return;
+
+        Address = new Address(
+            Address.Street1,
+            Address.City,
+            Address.State,
+            Address.PostalCode,
+            Address.Country,
+            Address.Street2,
+            countryCode);
+    }
 }

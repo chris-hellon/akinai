@@ -123,6 +123,8 @@ public static class DependencyInjection
         services.AddScoped<ITimesheetSummariser, Services.Ai.ClaudeTimesheetSummariser>();
         services.AddHostedService<InvoiceTotalBackfillService>();
 
+        services.AddHostedService<CountryCodeBackfillService>();
+
 
         services.AddHostedService<RecurringExpenseGeneratorService>();
 

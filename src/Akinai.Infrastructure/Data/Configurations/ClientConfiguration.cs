@@ -50,6 +50,15 @@ public class ClientConfiguration : IEntityTypeConfiguration<Client>
                 .HasMaxLength(20);
         });
 
+        builder.Property(c => c.TaxNumber)
+            .HasMaxLength(64);
+
+        // True for existing rows as well as new ones. Every client captured before this
+        // column existed was a business, and defaulting them to consumer would silently
+        // suppress reverse charge on invoices that need it.
+        builder.Property(c => c.IsBusiness)
+            .HasDefaultValue(true);
+
         builder.OwnsOne(c => c.BillingAddress, address =>
         {
             address.Property(a => a.Street1).HasColumnName("BillingStreet1").HasMaxLength(200);
@@ -58,6 +67,7 @@ public class ClientConfiguration : IEntityTypeConfiguration<Client>
             address.Property(a => a.State).HasColumnName("BillingState").HasMaxLength(50);
             address.Property(a => a.PostalCode).HasColumnName("BillingPostalCode").HasMaxLength(20);
             address.Property(a => a.Country).HasColumnName("BillingCountry").HasMaxLength(100);
+            address.Property(a => a.CountryCode).HasColumnName("BillingCountryCode").HasMaxLength(2);
         });
 
         builder.OwnsOne(c => c.DefaultHourlyRate, rate =>

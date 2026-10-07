@@ -441,6 +441,11 @@ namespace Akinai.Infrastructure.Data.Migrations
                     b.Property<bool>("IsActive")
                         .HasColumnType("bit");
 
+                    b.Property<bool>("IsBusiness")
+                        .ValueGeneratedOnAdd()
+                        .HasColumnType("bit")
+                        .HasDefaultValue(true);
+
                     b.Property<DateTime?>("ModifiedAt")
                         .HasColumnType("datetime2");
 
@@ -458,6 +463,10 @@ namespace Akinai.Infrastructure.Data.Migrations
 
                     b.Property<Guid?>("PortalToken")
                         .HasColumnType("uniqueidentifier");
+
+                    b.Property<string>("TaxNumber")
+                        .HasMaxLength(64)
+                        .HasColumnType("nvarchar(64)");
 
                     b.Property<string>("UserId")
                         .IsRequired()
@@ -2443,6 +2452,11 @@ namespace Akinai.Infrastructure.Data.Migrations
                                 .HasColumnType("nvarchar(100)")
                                 .HasColumnName("AddressCountry");
 
+                            b1.Property<string>("CountryCode")
+                                .HasMaxLength(2)
+                                .HasColumnType("nvarchar(2)")
+                                .HasColumnName("AddressCountryCode");
+
                             b1.Property<string>("PostalCode")
                                 .IsRequired()
                                 .HasMaxLength(20)
@@ -2553,6 +2567,11 @@ namespace Akinai.Infrastructure.Data.Migrations
                                 .HasMaxLength(100)
                                 .HasColumnType("nvarchar(100)")
                                 .HasColumnName("BillingCountry");
+
+                            b1.Property<string>("CountryCode")
+                                .HasMaxLength(2)
+                                .HasColumnType("nvarchar(2)")
+                                .HasColumnName("BillingCountryCode");
 
                             b1.Property<string>("PostalCode")
                                 .IsRequired()
