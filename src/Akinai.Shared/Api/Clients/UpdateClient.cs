@@ -43,4 +43,13 @@ public class UpdateClient : IPut
 
     [BodyParam]
     public string? Country { get; init; }
+
+    [BodyParam]
+    public string? CountryCode { get; init; }
+
+    [BodyParam]
+    public string? TaxNumber { get; init; }
+
+    [BodyParam]
+    public bool IsBusiness { get; init; } = true;
 }

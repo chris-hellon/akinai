@@ -3,6 +3,7 @@ using BlazorUtils.EasyApi.Server;
 using Akinai.Domain.Entities;
 using Akinai.Domain.ValueObjects;
 using Akinai.Infrastructure.Data;
+using Akinai.Shared.Geography;
 using Akinai.Infrastructure.Services;
 using Akinai.Shared.Api.Clients;
 using Akinai.Shared.Services;
@@ -37,7 +38,8 @@ public class CreateClientHandler(
                 request.City ?? "",
                 request.State ?? "",
                 request.PostalCode ?? "",
-                request.Country ?? "");
+                request.Country ?? "",
+                countryCode: Countries.TryParse(request.CountryCode) ?? Countries.TryParse(request.Country));
         }
 
         var client = Client.Create(
@@ -48,7 +50,10 @@ public class CreateClientHandler(
             request.Currency,
             request.CompanyName,
             request.Phone,
-            billingAddress);
+            billingAddress,
+            notes: null,
+            taxNumber: request.TaxNumber,
+            isBusiness: request.IsBusiness);
 
         db.Clients.Add(client);
         await db.SaveChangesAsync(cancellationToken);

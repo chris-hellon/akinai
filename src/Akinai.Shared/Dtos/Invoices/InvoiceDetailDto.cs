@@ -20,6 +20,10 @@ public record InvoiceDetailDto(
     decimal TaxAmount,
     decimal Total,
     string? Notes,
+    /// <summary>Wording this invoice is required to carry, given the corridor it crosses.</summary>
+    List<string> RequiredStatements,
+    /// <summary>The tax treatment CorridorRules believes applies, for display.</summary>
+    string? TaxTreatment,
     List<InvoiceLineItemDto> LineItems,
     List<InvoiceExpenseLineItemDto> ExpenseLineItems,
     List<InvoiceProductLineItemDto> ProductLineItems,

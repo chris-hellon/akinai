@@ -151,6 +151,9 @@ public class GetPublicInvoiceHandler(IDbContextFactory<ApplicationDbContext> dbF
         // Only the freeform text the user wrote goes through the translator.
         // The document's fixed headings are picked from InvoiceLabels by the
         // renderer using the Language field below — no API call, no cost.
+        var compliance = await InvoiceCompliance.AssessAsync(
+            db, invoice.Id, invoice.CreatedBy, cancellationToken);
+
         var language = await translator.ResolveForInvoiceAsync(
             invoice.CreatedBy, invoice.ClientId, ToShared(invoice.Language), cancellationToken);
 
@@ -299,7 +302,8 @@ public class GetPublicInvoiceHandler(IDbContextFactory<ApplicationDbContext> dbF
             currencyPaymentDto,
             templateDto,
             language.ToString(),
-            await DocumentBranding.ShowForAsync(entitlements, invoice.CreatedBy, cancellationToken));
+            await DocumentBranding.ShowForAsync(entitlements, invoice.CreatedBy, cancellationToken),
+            compliance.RequiredStatements.ToList());
 
         return HttpResult<PublicInvoiceDto?>.Ok(result);
     }

@@ -85,7 +85,8 @@ public class PdfGeneratorService
 
     public Task<byte[]> GenerateInvoicePdfAsync(Invoice invoice, List<TimeEntry> timeEntries, List<Expense> expenses, List<InvoiceLineItem>? productLineItems = null, BusinessProfile? businessProfile = null, CurrencyPaymentSettings? currencySettings = null, InvoiceTemplate? template = null, decimal? vndToHomeCurrencyRate = null,
         string language = "English",
-        IReadOnlyDictionary<string, string>? translations = null)
+        IReadOnlyDictionary<string, string>? translations = null,
+        IReadOnlyList<string>? requiredStatements = null)
     {
         try
         {
@@ -189,6 +190,11 @@ public class PdfGeneratorService
 
                             // Totals - layout-aware
                             ComposeTotals(contentColumn, invoice, subtotal, taxAmount, total, currencySymbol, primaryColor, footerLayout, L, culture);
+
+                            // Wording the corridor legally requires. Printed before the
+                            // notes and never translated — the reverse-charge statement in
+                            // particular has prescribed wording.
+                            ComposeRequiredStatements(contentColumn, requiredStatements);
 
                             // Notes
                             ComposeNotes(contentColumn, invoice, businessProfile, L, Tr);
@@ -1098,6 +1104,17 @@ public class PdfGeneratorService
                     row.ConstantItem(120).AlignRight().Text($"{currencySymbol}{total:N2}").FontSize(20).Bold().FontColor(totalColor);
                 });
             }
+        });
+    }
+
+    private void ComposeRequiredStatements(ColumnDescriptor column, IReadOnlyList<string>? statements)
+    {
+        if (statements is null || statements.Count == 0) return;
+
+        column.Item().PaddingTop(10).Column(col =>
+        {
+            foreach (var statement in statements)
+                col.Item().Text(statement).FontSize(9).Bold();
         });
     }
 

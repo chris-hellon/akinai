@@ -14,5 +14,8 @@ public record ClientDetailDto(
     string? State,
     string? PostalCode,
     string? Country,
+    string? CountryCode,
+    string? TaxNumber,
+    bool IsBusiness,
     int ProjectCount,
     int ActiveProjectCount);

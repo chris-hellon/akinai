@@ -1,4 +1,5 @@
 using Akinai.Domain.Entities;
+using Akinai.Domain.ValueObjects;
 using Akinai.Infrastructure.Data;
 using Akinai.Infrastructure.Services;
 using Akinai.Shared.Services;
@@ -68,6 +69,18 @@ public sealed class InvoiceTestContext : IDisposable
         decimal clientRate = 100m,
         decimal taxRate = 20m,
         params (int Day, decimal Hours)[] entryDays)
+        => await SeedAsync(clientRate, taxRate, null, null, null, null, entryDays);
+
+    /// <param name="sellerCountry">ISO code for the business profile, or null for none.</param>
+    /// <param name="buyerCountry">ISO code for the client's billing address, or null for none.</param>
+    public async Task SeedAsync(
+        decimal clientRate,
+        decimal taxRate,
+        string? sellerCountry,
+        string? buyerCountry,
+        string? sellerTaxNumber,
+        string? buyerTaxNumber,
+        params (int Day, decimal Hours)[] entryDays)
     {
         if (entryDays.Length == 0) entryDays = [(1, 2m)];
 
@@ -75,8 +88,37 @@ public sealed class InvoiceTestContext : IDisposable
 
         db.Users.Add(new ApplicationUser { Id = UserId, UserName = "u@example.com", Email = "u@example.com" });
 
-        var client = Client.Create(UserId, "Acme", "acme@example.com", clientRate, "GBP");
+        var client = Client.Create(
+            UserId, "Acme", "acme@example.com", clientRate, "GBP",
+            billingAddress: buyerCountry is null
+                ? null
+                : new Address("1 High St", "Berlin", "", "10115",
+                    Akinai.Shared.Geography.Countries.NameOf(buyerCountry) ?? buyerCountry,
+                    countryCode: buyerCountry),
+            taxNumber: buyerTaxNumber);
         db.Clients.Add(client);
+
+        if (sellerCountry is not null || sellerTaxNumber is not null)
+        {
+            var profile = BusinessProfile.Create(UserId, "My Co", "me@example.com");
+            profile.Update(
+                "My Co", null, "me@example.com", null, null,
+                address: sellerCountry is null
+                    ? null
+                    : new Address("1 Main St", "London", "", "EC1A 1BB",
+                        Akinai.Shared.Geography.Countries.NameOf(sellerCountry) ?? sellerCountry,
+                        countryCode: sellerCountry),
+                taxNumber: sellerTaxNumber,
+                registrationNumber: null,
+                bankName: null, bankAccountName: null, bankAccountNumber: null,
+                bankSortCode: null, bankIban: null, bankSwift: null,
+                defaultCurrency: "GBP", defaultPaymentTermsDays: 30,
+                invoiceNotes: null, invoiceFooter: null,
+                invoiceEmailSubject: null, invoiceEmailBody: null,
+                payPalMeUsername: null, wiseEmail: null, revolutUsername: null,
+                vietQrBankCode: null);
+            db.BusinessProfiles.Add(profile);
+        }
 
         var project = Project.Create(client.Id, "Website");
         db.Projects.Add(project);

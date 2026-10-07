@@ -168,6 +168,10 @@ public class GetInvoiceHandler(
 
         // The language this invoice goes out in. Always resolved, so the
         // read-only view can label itself the way the client will see it.
+        // What this corridor requires the document to say. Assessed from stored data, so
+        // the view, the PDF and the client's copy all reach the same conclusion.
+        var compliance = await InvoiceCompliance.AssessAsync(db, invoice.Id, userId, cancellationToken);
+
         var language = await translator.ResolveForInvoiceAsync(userId, invoice.ClientId, ToShared(invoice.Language), cancellationToken);
         var notes = invoice.Notes;
 
@@ -202,6 +206,8 @@ public class GetInvoiceHandler(
             taxAmount,
             total,
             notes,
+            compliance.RequiredStatements.ToList(),
+            compliance.Treatment.ToString(),
             lineItems,
             expenseLineItems,
             productLineItemDtos,

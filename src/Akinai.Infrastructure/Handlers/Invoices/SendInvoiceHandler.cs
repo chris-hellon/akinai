@@ -58,6 +58,10 @@ public class SendInvoiceHandler(
             .OrderBy(li => li.Order)
             .ToListAsync(cancellationToken);
 
+        // Wording this corridor requires on the document. The emailed PDF is the copy the
+        // client actually holds, so it must carry it.
+        var compliance = await InvoiceCompliance.AssessAsync(db, invoice.Id, invoice.CreatedBy, cancellationToken);
+
         // The snapshot total, so the figure in the email body matches the invoice
         // everywhere else. The rows above are still needed to render the PDF.
         var total = invoice.Total;
@@ -103,7 +107,8 @@ public class SendInvoiceHandler(
         var attachments = new List<EmailAttachment>();
         var vndRate = await VndPaymentRate.GetAsync(exchangeRates, businessProfile?.DefaultCurrency, cancellationToken);
         var pdfBytes = await pdfService.GenerateInvoicePdfAsync(
-            invoice, timeEntries, expenses, productLineItems, businessProfile, currencySettings, invoice.Template, vndRate);
+            invoice, timeEntries, expenses, productLineItems, businessProfile, currencySettings, invoice.Template, vndRate,
+            requiredStatements: compliance.RequiredStatements.ToList());
         if (pdfBytes.Length > 0)
         {
             attachments.Add(new EmailAttachment($"{invoice.InvoiceNumber}.pdf", pdfBytes, "application/pdf"));

@@ -37,6 +37,9 @@ public class GetClientHandler(IDbContextFactory<ApplicationDbContext> dbFactory,
             client.BillingAddress?.State,
             client.BillingAddress?.PostalCode,
             client.BillingAddress?.Country,
+            client.BillingAddress?.CountryCode,
+            client.TaxNumber,
+            client.IsBusiness,
             client.Projects.Count,
             client.Projects.Count(p => p.Status == ProjectStatus.Active));
 

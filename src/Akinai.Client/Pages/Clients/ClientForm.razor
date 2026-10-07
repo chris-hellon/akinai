@@ -6,6 +6,7 @@
 @inject ICall<UpdateClient> UpdateClientCall
 @inject ICall<DeleteClient> DeleteClientCall
 
+@using Akinai.Shared.Geography
 @inject EntitlementState Entitlements
 
 <PageTitle>@(Id.HasValue ? "Edit Client" : "New Client") - Akinai</PageTitle>
@@ -133,8 +134,40 @@
 
                         <div class="col-span-2 sm:col-span-1">
                             <label for="country" class="block text-sm font-medium text-gray-700 mb-2">Country</label>
-                            <InputText id="country" @bind-Value="_model.Country"
-                                class="form-control" />
+                            <InputSelect id="country" @bind-Value="_model.CountryCode" class="form-control">
+                                <option value="">Select a country…</option>
+                                @foreach (var c in Countries.AllCountries.OrderBy(c => c.Name))
+                                {
+                                    <option value="@c.Code">@c.Name</option>
+                                }
+                            </InputSelect>
+                            @* The country drives the tax treatment of every invoice to this
+                               client, so it is worth saying why it is being asked for. *@
+                            <p class="mt-1 text-xs text-gray-500 dark:text-slate-400">
+                                Determines the tax treatment of invoices to this client.
+                            </p>
+                        </div>
+                    </div>
+
+                    <div class="grid grid-cols-2 gap-4 mt-4">
+                        <div class="col-span-2 sm:col-span-1">
+                            <label for="taxNumber" class="block text-sm font-medium text-gray-700 mb-2">VAT / tax number</label>
+                            <InputText id="taxNumber" @bind-Value="_model.TaxNumber"
+                                class="form-control" placeholder="DE123456789" />
+                            <p class="mt-1 text-xs text-gray-500 dark:text-slate-400">
+                                Required on the invoice for an EU cross-border supply to a business.
+                            </p>
+                        </div>
+
+                        <div class="col-span-2 sm:col-span-1">
+                            <label class="block text-sm font-medium text-gray-700 mb-2">This client is</label>
+                            <InputSelect @bind-Value="_model.IsBusiness" class="form-control">
+                                <option value="true">A business</option>
+                                <option value="false">A consumer</option>
+                            </InputSelect>
+                            <p class="mt-1 text-xs text-gray-500 dark:text-slate-400">
+                                A cross-border invoice is reverse charge to a business, ordinary VAT to a consumer.
+                            </p>
                         </div>
                     </div>
             </Card>
@@ -209,7 +242,10 @@
                         City = client.City,
                         State = client.State,
                         PostalCode = client.PostalCode,
-                        Country = client.Country
+                        Country = client.Country,
+                        CountryCode = client.CountryCode,
+                        TaxNumber = client.TaxNumber,
+                        IsBusiness = client.IsBusiness
                     };
                 }
             }
@@ -266,7 +302,10 @@
                     City = _model.City,
                     State = _model.State,
                     PostalCode = _model.PostalCode,
-                    Country = _model.Country
+                    Country = Countries.NameOf(_model.CountryCode) ?? _model.Country,
+                    CountryCode = _model.CountryCode,
+                    TaxNumber = _model.TaxNumber,
+                    IsBusiness = _model.IsBusiness
                 });
             }
             else
@@ -283,7 +322,10 @@
                     City = _model.City,
                     State = _model.State,
                     PostalCode = _model.PostalCode,
-                    Country = _model.Country
+                    Country = Countries.NameOf(_model.CountryCode) ?? _model.Country,
+                    CountryCode = _model.CountryCode,
+                    TaxNumber = _model.TaxNumber,
+                    IsBusiness = _model.IsBusiness
                 });
             }
             NavigationManager.NavigateTo("clients");
@@ -329,5 +371,8 @@
         public string? State { get; set; }
         public string? PostalCode { get; set; }
         public string? Country { get; set; }
+        public string? CountryCode { get; set; }
+        public string? TaxNumber { get; set; }
+        public bool IsBusiness { get; set; } = true;
     }
 }

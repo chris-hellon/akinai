@@ -410,6 +410,20 @@ else if (Status == "Void")
     </div>
 </div>
 
+@* Statements the corridor legally requires on the document — not a note and not
+   advice to the sender. An EU cross-border B2B invoice without the reverse-charge
+   wording is not a valid invoice, so this prints above the notes and is not
+   conditional on anything the user chose to write. *@
+@if (RequiredStatements is { Count: > 0 })
+{
+    <div class="px-8 py-5 border-t border-gray-100 dark:border-slate-700">
+        @foreach (var statement in RequiredStatements)
+        {
+            <div class="text-sm font-medium text-gray-700 dark:text-slate-300">@statement</div>
+        }
+    </div>
+}
+
 <!-- Notes Section -->
 @if (!string.IsNullOrEmpty(Notes))
 {
@@ -707,6 +721,9 @@ else if (Status == "Void")
     [Parameter] public decimal TaxAmount { get; set; }
     [Parameter] public decimal Total { get; set; }
     [Parameter] public string? Notes { get; set; }
+
+    /// <summary>Wording the corridor requires. Printed on the document, above any notes.</summary>
+    [Parameter] public List<string>? RequiredStatements { get; set; }
 
     // Line items
     [Parameter] public List<InvoiceLineItemDto>? LineItems { get; set; }

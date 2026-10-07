@@ -59,4 +59,5 @@ public record PublicInvoiceDto(
     /// failure to resolve leaves the branding on rather than silently granting
     /// a paid perk.
     /// </summary>
-    bool ShowBranding = true);
+    bool ShowBranding = true,
+    List<string>? RequiredStatements = null);

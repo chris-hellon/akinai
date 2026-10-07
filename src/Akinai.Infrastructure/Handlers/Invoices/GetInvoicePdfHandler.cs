@@ -130,7 +130,9 @@ public class GetInvoicePdfHandler(
         // an English-only PDF beats an error.
         var pdfBytes = await pdfService.GenerateInvoicePdfAsync(
             invoice, timeEntries, expenses, productLineItems, businessProfile, currencySettings,
-            invoice.Template, vndRate, language.ToString(), translations);
+            invoice.Template, vndRate, language.ToString(), translations,
+            requiredStatements: (await InvoiceCompliance.AssessAsync(
+                db, invoice.Id, invoice.CreatedBy, cancellationToken)).RequiredStatements.ToList());
 
         return pdfBytes.Length == 0 ? HttpResult<byte[]>.NotFound() : HttpResult<byte[]>.Ok(pdfBytes);
     }

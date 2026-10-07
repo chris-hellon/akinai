@@ -2,6 +2,7 @@ using BlazorUtils.EasyApi;
 using BlazorUtils.EasyApi.Server;
 using Akinai.Domain.ValueObjects;
 using Akinai.Infrastructure.Data;
+using Akinai.Shared.Geography;
 using Akinai.Infrastructure.Services;
 using Akinai.Shared.Api.Clients;
 using Akinai.Shared.Services;
@@ -40,7 +41,8 @@ public class UpdateClientHandler(IDbContextFactory<ApplicationDbContext> dbFacto
                 request.City ?? "",
                 request.State ?? "",
                 request.PostalCode ?? "",
-                request.Country ?? "");
+                request.Country ?? "",
+                countryCode: Countries.TryParse(request.CountryCode) ?? Countries.TryParse(request.Country));
         }
 
         client.Update(
@@ -50,7 +52,10 @@ public class UpdateClientHandler(IDbContextFactory<ApplicationDbContext> dbFacto
             request.Currency,
             request.CompanyName,
             request.Phone,
-            billingAddress);
+            billingAddress,
+            notes: null,
+            taxNumber: request.TaxNumber,
+            isBusiness: request.IsBusiness);
 
         if (request.IsActive)
             client.Activate();
