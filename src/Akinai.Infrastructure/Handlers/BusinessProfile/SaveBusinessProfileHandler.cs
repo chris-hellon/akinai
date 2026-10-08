@@ -41,7 +41,9 @@ public class SaveBusinessProfileHandler(IDbContextFactory<ApplicationDbContext> 
                 request.City ?? "",
                 request.State ?? "",
                 request.PostalCode ?? "",
-                request.Country ?? "");
+                request.Country ?? "",
+                countryCode: Akinai.Shared.Geography.Countries.TryParse(request.CountryCode)
+                             ?? Akinai.Shared.Geography.Countries.TryParse(request.Country));
         }
 
         if (profile is null)

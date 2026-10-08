@@ -71,6 +71,14 @@ public class BankTransactionConfiguration : IEntityTypeConfiguration<BankTransac
             .HasForeignKey(bt => bt.MatchedInvoiceId)
             .OnDelete(DeleteBehavior.SetNull);
 
+        builder.Property(bt => bt.SettlementCause)
+            .HasMaxLength(32);
+
+        builder.Property(bt => bt.WithholdingPercentage).HasPrecision(5, 4);
+        builder.Property(bt => bt.WithholdingAmount).HasPrecision(18, 2);
+        builder.Property(bt => bt.FxGainOrLoss).HasPrecision(18, 2);
+        builder.Property(bt => bt.UnexplainedAmount).HasPrecision(18, 2);
+
         builder.HasIndex(bt => bt.UserId);
         builder.HasIndex(bt => bt.TransactionDate);
         builder.HasIndex(bt => bt.MatchedInvoiceId);

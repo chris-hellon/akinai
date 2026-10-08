@@ -191,4 +191,70 @@ public class InvoiceRulesTests
         relink.Should().Throw<DomainException>();
         entry.BilledHourlyRate.Should().Be(85m, "the failed attempt must not reprice it");
     }
+
+    // --- Sending is two-phase ------------------------------------------------
+
+    [Fact]
+    public void An_in_flight_send_can_be_abandoned_back_to_draft()
+    {
+        // The status is committed before the document is rendered, so that the PDF shows
+        // "Sent". This is what puts it back when the render or the email then fails.
+        var invoice = Draft();
+        invoice.Send();
+
+        invoice.AbandonSend();
+
+        invoice.Status.Should().Be(InvoiceStatus.Draft);
+    }
+
+    [Fact]
+    public void A_delivered_invoice_cannot_be_abandoned()
+    {
+        // The guard that keeps AbandonSend from being a general un-send: once a delivery
+        // is recorded the email has gone and the client holds the document.
+        var invoice = Draft();
+        invoice.Send();
+        invoice.RecordDelivery(Now, "client@example.com", "abc123");
+
+        var abandon = () => invoice.AbandonSend();
+
+        abandon.Should().Throw<DomainException>();
+        invoice.Status.Should().Be(InvoiceStatus.Sent);
+    }
+
+    [Fact]
+    public void A_draft_invoice_cannot_be_abandoned()
+    {
+        var abandon = () => Draft().AbandonSend();
+
+        abandon.Should().Throw<DomainException>();
+    }
+
+    [Fact]
+    public void An_abandoned_invoice_can_be_sent_again()
+    {
+        // A failed send must leave the invoice in a state the user can retry from.
+        var invoice = Draft();
+        invoice.Send();
+        invoice.AbandonSend();
+
+        var resend = () => invoice.Send();
+
+        resend.Should().NotThrow();
+        invoice.Status.Should().Be(InvoiceStatus.Sent);
+    }
+
+    [Fact]
+    public void Abandoning_keeps_the_public_token_so_a_sent_link_never_changes()
+    {
+        // Send() mints the token. If abandoning cleared it, a retry would hand the client
+        // a different link from any earlier attempt.
+        var invoice = Draft();
+        invoice.Send();
+        var token = invoice.PublicAccessToken;
+
+        invoice.AbandonSend();
+
+        invoice.PublicAccessToken.Should().Be(token);
+    }
 }

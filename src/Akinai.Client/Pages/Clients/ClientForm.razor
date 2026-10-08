@@ -134,13 +134,9 @@
 
                         <div class="col-span-2 sm:col-span-1">
                             <label for="country" class="block text-sm font-medium text-gray-700 mb-2">Country</label>
-                            <InputSelect id="country" @bind-Value="_model.CountryCode" class="form-control">
-                                <option value="">Select a country…</option>
-                                @foreach (var c in Countries.AllCountries.OrderBy(c => c.Name))
-                                {
-                                    <option value="@c.Code">@c.Name</option>
-                                }
-                            </InputSelect>
+                            <Select TValue="string" @bind-Value="_model.CountryCode"
+                                Placeholder="Select a country…"
+                                Options="@CountryOptions" />
                             @* The country drives the tax treatment of every invoice to this
                                client, so it is worth saying why it is being asked for. *@
                             <p class="mt-1 text-xs text-gray-500 dark:text-slate-400">
@@ -161,10 +157,8 @@
 
                         <div class="col-span-2 sm:col-span-1">
                             <label class="block text-sm font-medium text-gray-700 mb-2">This client is</label>
-                            <InputSelect @bind-Value="_model.IsBusiness" class="form-control">
-                                <option value="true">A business</option>
-                                <option value="false">A consumer</option>
-                            </InputSelect>
+                            <Select TValue="bool" @bind-Value="_model.IsBusiness"
+                                Options="@BusinessOptions" />
                             <p class="mt-1 text-xs text-gray-500 dark:text-slate-400">
                                 A cross-border invoice is reverse charge to a business, ordinary VAT to a consumer.
                             </p>
@@ -197,6 +191,18 @@
 </div>
 
 @code {
+    private static readonly List<SelectOption<string>> CountryOptions =
+        Countries.AllCountries
+            .OrderBy(c => c.Name)
+            .Select(c => new SelectOption<string>(c.Code, c.Name))
+            .ToList();
+
+    private static readonly List<SelectOption<bool>> BusinessOptions =
+    [
+        new(true, "A business"),
+        new(false, "A consumer"),
+    ];
+
     private bool CurrencyRestricted => CurrencyChoices.IsRestricted(Entitlements);
 
     private IReadOnlyList<Currency> SelectableCurrencies() =>

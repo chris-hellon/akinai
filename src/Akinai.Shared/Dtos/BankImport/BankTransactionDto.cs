@@ -18,4 +18,13 @@ public record BankTransactionDto(
     DateTime ImportedAt,
     string SourceFileName,
     Guid? ExpenseId = null,
-    bool IsExpensed = false);
+    bool IsExpensed = false,
+
+    // --- Settlement analysis -------------------------------------------------
+    /// <summary>Why the amount received differs from the amount invoiced.</summary>
+    string? SettlementCause = null,
+    decimal? WithholdingPercentage = null,
+    decimal? WithholdingAmount = null,
+    bool WithholdingCertificateReceived = false,
+    decimal? FxGainOrLoss = null,
+    decimal? UnexplainedAmount = null);

@@ -96,7 +96,13 @@ public class GetBankTransactionsHandler(IDbContextFactory<ApplicationDbContext> 
             bt.ImportedAt,
             bt.SourceFileName,
             bt.ExpenseId,
-            bt.IsExpensed)).ToList();
+            bt.IsExpensed,
+            bt.SettlementCause,
+            bt.WithholdingPercentage,
+            bt.WithholdingAmount,
+            bt.WithholdingCertificateReceived,
+            bt.FxGainOrLoss,
+            bt.UnexplainedAmount)).ToList();
 
         return HttpResult<PaginatedResponse<BankTransactionDto>>.Ok(
             new PaginatedResponse<BankTransactionDto>

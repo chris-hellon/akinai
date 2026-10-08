@@ -1,6 +1,7 @@
 using BlazorUtils.EasyApi;
 using BlazorUtils.EasyApi.Server;
 using Akinai.Domain.Enums;
+using Akinai.Domain.Services;
 using Akinai.Infrastructure.Data;
 using Akinai.Infrastructure.Services;
 using Akinai.Shared.Api.BankImport;
@@ -12,7 +13,8 @@ namespace Akinai.Infrastructure.Handlers.BankImport;
 public class MatchTransactionHandler(
     IDbContextFactory<ApplicationDbContext> dbFactory,
     ICurrentUserService currentUserService,
-    INotificationService notifications)
+    INotificationService notifications,
+    IExchangeRateService exchangeRates)
     : IHandle<MatchTransaction>
 {
     public async Task<HttpResult> Handle(MatchTransaction request, CancellationToken cancellationToken)
@@ -41,6 +43,41 @@ public class MatchTransactionHandler(
         try
         {
             transaction.MatchToInvoice(request.InvoiceId, MatchConfidence.High, "Manually matched");
+
+            // --- Why is the amount different? ---------------------------------
+            // Classified and stored at the moment of matching, so a withheld payment is
+            // never mistaken for a short one. A credit is positive; a refund or reversal
+            // is not a settlement and is left unclassified.
+            var received = Math.Abs(transaction.Amount);
+            if (invoice.Total > 0 && received > 0)
+            {
+                // The rate as of now. The invoice was not booked against a stored rate, so
+                // this is a proxy — reasonable for a payment that has just arrived, and
+                // wrong for one being reconciled months later. Without it a cross-currency
+                // receipt classifies as RateUnknown, which asserts nothing.
+                decimal? expectedRate = null;
+                if (!string.Equals(invoice.Currency, transaction.Currency, StringComparison.OrdinalIgnoreCase))
+                {
+                    var converted = await exchangeRates.ConvertAsync(
+                        1m, invoice.Currency, transaction.Currency, cancellationToken);
+                    expectedRate = converted is > 0 ? converted : null;
+                }
+
+                var analysis = PaymentDifference.Classify(
+                    invoicedAmount: invoice.Total,
+                    invoiceCurrency: invoice.Currency,
+                    receivedAmount: received,
+                    receivedCurrency: transaction.Currency,
+                    expectedRate: expectedRate,
+                    payerCountryCode: invoice.Client.BillingAddress?.CountryCode);
+
+                transaction.RecordSettlement(
+                    analysis.Cause.ToString(),
+                    analysis.WithholdingPercentage,
+                    analysis.WithholdingAmountInInvoiceCurrency,
+                    analysis.FxGainOrLoss,
+                    analysis.UnexplainedAmountInInvoiceCurrency);
+            }
 
             // Only mark paid when it isn't already settled/void — linking a payment to an
             // already-paid invoice should just record the link, not throw.

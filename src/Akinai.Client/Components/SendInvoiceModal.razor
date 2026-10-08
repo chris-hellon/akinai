@@ -1,4 +1,6 @@
 @inject ICall<GetBusinessProfile, BusinessProfileDto?> GetBusinessProfileCall
+@inject ICall<GetInvoicePreflight, InvoicePreflightDto?> GetPreflightCall
+@using Akinai.Shared.Dtos.Preflight
 
 <div class="space-y-6">
     @if (_isLoading)
@@ -9,6 +11,92 @@
     }
     else
     {
+        @* What the checks found. Advisory by design — a blocking finding is styled to
+           stop someone scrolling past it, but Send is never disabled. The rules can be
+           wrong about a corridor, and being unable to invoice is worse than sending
+           something imperfect. *@
+        @if (_preflight is { IsClear: false })
+        {
+            var blocking = _preflight.Findings.Where(f => f.Severity == PreflightSeverity.Blocking).ToList();
+            var warnings = _preflight.Findings.Where(f => f.Severity == PreflightSeverity.Warning).ToList();
+            var others = _preflight.Findings.Where(f => f.Severity != PreflightSeverity.Blocking).ToList();
+
+            @* Three tiers, because they mean genuinely different things. Something is wrong
+               and the invoice will fail; something might go wrong; or nothing is wrong and
+               this is just context. Colouring the third like the second cries wolf, and an
+               invoice with nothing actually wrong should not show a warning-coloured box. *@
+            var tone = blocking.Count > 0 ? "danger" : warnings.Count > 0 ? "warn" : "info";
+
+            <div class="rounded-xl border @(tone switch {
+                    "danger" => "border-red-200 bg-red-50 dark:border-red-900 dark:bg-red-950/40",
+                    "warn" => "border-amber-200 bg-amber-50 dark:border-amber-900 dark:bg-amber-950/30",
+                    _ => "border-gray-200 bg-gray-50 dark:border-slate-700 dark:bg-slate-800/40",
+                }) p-4 space-y-3">
+                <div class="flex items-start gap-3">
+                    <svg class="w-5 h-5 shrink-0 mt-0.5 @(tone switch {
+                             "danger" => "text-red-500",
+                             "warn" => "text-amber-500",
+                             _ => "text-gray-400 dark:text-slate-500",
+                         })"
+                         fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                        @if (tone == "info")
+                        {
+                            <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2"
+                                  d="M13 16h-1v-4h-1m1-4h.01M21 12a9 9 0 11-18 0 9 9 0 0118 0z" />
+                        }
+                        else
+                        {
+                            <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2"
+                                  d="M12 9v2m0 4h.01m-6.938 4h13.856c1.54 0 2.502-1.667 1.732-3L13.732 4c-.77-1.333-2.694-1.333-3.464 0L3.34 16c-.77 1.333.192 3 1.732 3z" />
+                        }
+                    </svg>
+                    <div class="min-w-0">
+                        <div class="text-sm font-semibold @(tone switch {
+                                "danger" => "text-red-800 dark:text-red-200",
+                                "warn" => "text-amber-800 dark:text-amber-200",
+                                _ => "text-gray-700 dark:text-slate-300",
+                            })">
+                            @(tone switch {
+                                "danger" => "This invoice has problems worth fixing before you send it",
+                                "warn" => "Worth a look before you send",
+                                _ => "About this invoice",
+                            })
+                        </div>
+                        <ul class="mt-2 space-y-1.5">
+                            @foreach (var f in blocking.Concat(others))
+                            {
+                                <li class="text-sm text-gray-700 dark:text-slate-300 flex gap-2">
+                                    <span class="shrink-0 text-xs uppercase tracking-wide font-semibold mt-0.5
+                                                 @(f.Severity switch {
+                                                     PreflightSeverity.Blocking => "text-red-600",
+                                                     PreflightSeverity.Warning => "text-amber-600",
+                                                     _ => "text-gray-400 dark:text-slate-500",
+                                                 })">
+                                        @f.Area
+                                    </span>
+                                    <span>@f.Message</span>
+                                </li>
+                            }
+                        </ul>
+                    </div>
+                </div>
+            </div>
+        }
+        else if (_preflight is not null && _preflight.RequiredStatements.Count > 0)
+        {
+            @* Nothing wrong, but the invoice carries required wording — worth confirming
+               it is there rather than leaving the user to wonder. *@
+            <div class="rounded-xl border border-gray-200 dark:border-slate-700 p-4">
+                <div class="text-xs font-semibold uppercase tracking-wide text-gray-400 dark:text-slate-500">
+                    Tax treatment: @_preflight.TaxTreatment
+                </div>
+                @foreach (var s in _preflight.RequiredStatements)
+                {
+                    <div class="mt-1.5 text-sm text-gray-700 dark:text-slate-300">@s — included on the invoice.</div>
+                }
+            </div>
+        }
+
         <!-- Email Icon -->
         <div class="flex justify-center">
             <div class="w-16 h-16 rounded-full flex items-center justify-center bg-primary-50">
@@ -112,6 +200,7 @@
     public string Body { get; set; } = "";
 
     private bool _isLoading = true;
+    private InvoicePreflightDto? _preflight;
     private bool _isSending;
     private string _companyName = "Your Company";
 
@@ -119,7 +208,24 @@
     {
         Email = ClientEmail;
         await LoadEmailTemplate();
+        await LoadPreflight();
         _isLoading = false;
+    }
+
+    /// <summary>
+    /// Best-effort: the checks are useful, but failing to fetch them must never stop
+    /// someone sending an invoice.
+    /// </summary>
+    private async Task LoadPreflight()
+    {
+        try
+        {
+            _preflight = await GetPreflightCall.Call(new GetInvoicePreflight { Id = InvoiceId });
+        }
+        catch
+        {
+            _preflight = null;
+        }
     }
 
     private async Task LoadEmailTemplate()

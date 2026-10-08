@@ -12,6 +12,7 @@ public record BusinessProfileDto(
     string? State,
     string? PostalCode,
     string? Country,
+    string? CountryCode,
     string? TaxNumber,
     string? RegistrationNumber,
     string? BankName,

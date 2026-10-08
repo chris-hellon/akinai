@@ -3,6 +3,7 @@
 @inject ICall<ImportBankStatement, ImportResultDto> ImportStatementCall
 @inject ICall<GetBankTransactions, PaginatedResponse<BankTransactionDto>> GetTransactionsCall
 @inject ICall<MatchTransaction> MatchTransactionCall
+@inject ICall<RecordWithholdingCertificate> RecordCertificateCall
 @inject ICall<IgnoreTransaction> IgnoreTransactionCall
 @inject ICall<GetSuggestedMatches, List<TransactionMatchDto>> GetSuggestionsCall
 @inject ICall<CreateExpenseFromTransaction, Guid> CreateExpenseFromTransactionCall
@@ -208,6 +209,8 @@
                                 {
                                     <span class="ml-1 text-xs text-gray-500 dark:text-slate-400">(@transaction.MatchConfidence)</span>
                                 }
+                                <SettlementNote Transaction="transaction"
+                                                OnCertificateRecorded="RecordCertificateAsync" />
                             }
                             else if (transaction.IsIgnored && !string.IsNullOrEmpty(transaction.IgnoreReason))
                             {
@@ -287,6 +290,8 @@
                                 {
                                     <div class="mt-1 text-xs">
                                         <a href="@($"invoices/{transaction.MatchedInvoiceId}")" class="text-primary-600 dark:text-primary-400 hover:underline">@transaction.MatchedInvoiceNumber</a>
+                                        <SettlementNote Transaction="transaction"
+                                                        OnCertificateRecorded="RecordCertificateAsync" />
                                         @if (!string.IsNullOrEmpty(transaction.MatchConfidence))
                                         {
                                             <span class="ml-1 text-gray-500 dark:text-slate-400">(@transaction.MatchConfidence)</span>
@@ -737,6 +742,17 @@
     private async Task OnPageChanged(int page)
     {
         _currentPage = page;
+        await LoadTransactions();
+    }
+
+    /// <summary>
+    /// The client sent the certificate for tax withheld at source. Nothing about the money
+    /// changes — the invoice was already paid in full — this clears the paperwork that is
+    /// what lets the tax be credited at year end rather than written off.
+    /// </summary>
+    private async Task RecordCertificateAsync(Guid transactionId)
+    {
+        await RecordCertificateCall.Call(new RecordWithholdingCertificate { Id = transactionId });
         await LoadTransactions();
     }
 

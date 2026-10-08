@@ -31,7 +31,9 @@ public class GetInvoiceBankTransactionsHandler(
             bt.Id, bt.TransactionDate, bt.Description, bt.Amount, bt.Currency,
             bt.Reference, bt.BankAccountName, bt.MatchedInvoiceId, null,
             bt.MatchConfidence.ToString(), bt.MatchNotes, bt.IsMatched, bt.IsIgnored,
-            bt.IgnoreReason, bt.ImportedAt, bt.SourceFileName, bt.ExpenseId, bt.IsExpensed)).ToList();
+            bt.IgnoreReason, bt.ImportedAt, bt.SourceFileName, bt.ExpenseId, bt.IsExpensed,
+            bt.SettlementCause, bt.WithholdingPercentage, bt.WithholdingAmount,
+            bt.WithholdingCertificateReceived, bt.FxGainOrLoss, bt.UnexplainedAmount)).ToList();
 
         return HttpResult<List<BankTransactionDto>>.Ok(items);
     }

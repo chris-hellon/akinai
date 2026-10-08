@@ -98,41 +98,22 @@ public class GetInvoicePdfHandler(
                     invoice.CreatedBy, language, texts, cancellationToken);
         }
 
-        // --- Print the page, don't rebuild it -----------------------------
-        // The invoice already exists as HTML at /invoice/print/{token}: same
-        // component, same data, same translation as the link the client opens.
-        // Printing that is what keeps the two from disagreeing.
-        if (invoice.PublicAccessToken is Guid token)
-        {
-            var request2 = httpContextAccessor.HttpContext?.Request;
-            if (request2 is not null)
-            {
-                // Loopback, so the render never leaves the machine and no
-                // reverse proxy or auth layer sits in the way.
-                var origin = $"{request2.Scheme}://127.0.0.1:{request2.Host.Port ?? (request2.IsHttps ? 443 : 80)}";
-                var rendered = await htmlRenderer.RenderAsync($"{origin}/invoice/print/{token}", cancellationToken);
-                if (rendered is { Length: > 0 })
-                    return HttpResult<byte[]>.Ok(rendered);
-            }
-        }
+        var compliance = await InvoiceCompliance.AssessAsync(
+            db, invoice.Id, invoice.CreatedBy, cancellationToken);
 
-        // Reaching here means the HTML render did not produce a PDF. Logged as a
-        // warning, not swallowed: the fallback is a safety net, and a fallback
-        // that fires on every invoice — as a TLS or launch failure would — is a
-        // bug hiding behind an old-looking PDF, which is exactly how this went
-        // unnoticed once.
-        logger.LogWarning(
-            "Invoice {InvoiceId}: HTML PDF render produced nothing (token set: {HasToken}); using the QuestPDF fallback.",
-            invoice.Id, invoice.PublicAccessToken is not null);
-
-        // Fallback: the original QuestPDF generator. Kept because a missing or
-        // un-launchable Chromium must not stop someone downloading an invoice —
-        // an English-only PDF beats an error.
-        var pdfBytes = await pdfService.GenerateInvoicePdfAsync(
-            invoice, timeEntries, expenses, productLineItems, businessProfile, currencySettings,
-            invoice.Template, vndRate, language.ToString(), translations,
-            requiredStatements: (await InvoiceCompliance.AssessAsync(
-                db, invoice.Id, invoice.CreatedBy, cancellationToken)).RequiredStatements.ToList());
+        // Both PDF paths go through the one composer so the emailed copy and the
+        // downloaded copy cannot diverge.
+        var pdfBytes = await InvoicePdfComposition.RenderAsync(
+            invoice.Id,
+            invoice.PublicAccessToken,
+            htmlRenderer,
+            httpContextAccessor,
+            logger,
+            fallback: () => pdfService.GenerateInvoicePdfAsync(
+                invoice, timeEntries, expenses, productLineItems, businessProfile, currencySettings,
+                invoice.Template, vndRate, language.ToString(), translations,
+                requiredStatements: compliance.RequiredStatements.ToList()),
+            cancellationToken);
 
         return pdfBytes.Length == 0 ? HttpResult<byte[]>.NotFound() : HttpResult<byte[]>.Ok(pdfBytes);
     }

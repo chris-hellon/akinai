@@ -1,3 +1,4 @@
+@using Akinai.Shared.Geography
 @page "/settings/business"
 
 @inject ICall<GetBusinessProfile, BusinessProfileDto?> GetBusinessProfileCall
@@ -102,8 +103,14 @@
                         </div>
                         <div>
                             <label for="Country" class="block text-sm font-medium text-gray-700 dark:text-slate-300 mb-2">Country</label>
-                            <InputText @bind-Value="Input.Country" id="Country"
-                                class="form-control" />
+                            <Select TValue="string" @bind-Value="Input.CountryCode"
+                                Placeholder="Select a country…"
+                                Options="@CountryOptions" />
+                            @* Your own country is half of every corridor: without it no
+                               invoice can be assessed for tax treatment at all. *@
+                            <p class="mt-1 text-xs text-gray-500 dark:text-slate-400">
+                                Used with the client's country to decide how each invoice is taxed.
+                            </p>
                         </div>
                     </div>
                 </div>
@@ -202,6 +209,12 @@
 <ErrorAlert Message="@_errorMessage" />
 
 @code {
+    private static readonly List<SelectOption<string>> CountryOptions =
+        Countries.AllCountries
+            .OrderBy(c => c.Name)
+            .Select(c => new SelectOption<string>(c.Code, c.Name))
+            .ToList();
+
     private bool _isLoading = true;
     private bool _isSaving;
     private string? _statusMessage;
@@ -336,6 +349,7 @@
                 Input.State = _fullProfile.State;
                 Input.PostalCode = _fullProfile.PostalCode;
                 Input.Country = _fullProfile.Country;
+                Input.CountryCode = _fullProfile.CountryCode;
                 Input.TaxNumber = _fullProfile.TaxNumber;
                 Input.RegistrationNumber = _fullProfile.RegistrationNumber;
             }
@@ -377,7 +391,8 @@
                 City = Input.City,
                 State = Input.State,
                 PostalCode = Input.PostalCode,
-                Country = Input.Country,
+                Country = Countries.NameOf(Input.CountryCode) ?? Input.Country,
+                CountryCode = Input.CountryCode,
                 TaxNumber = Input.TaxNumber,
                 RegistrationNumber = Input.RegistrationNumber,
                 // Preserve invoice settings from the original profile
@@ -430,6 +445,7 @@
         public string? State { get; set; }
         public string? PostalCode { get; set; }
         public string? Country { get; set; }
+        public string? CountryCode { get; set; }
         public string? TaxNumber { get; set; }
         public string? RegistrationNumber { get; set; }
     }

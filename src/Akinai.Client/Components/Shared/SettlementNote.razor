@@ -1,0 +1,92 @@
+@using Akinai.Shared.Dtos.BankImport
+
+@* Says in one line why the amount received differs from the amount invoiced.
+
+   The distinction this exists to draw: an FX spread, a transit fee and tax withheld at
+   source are all "less money than the invoice says", and only the last column below is
+   actually owed. Chasing a withheld payment means chasing a client for tax they have
+   already paid to their own revenue on your behalf. *@
+
+@if (!string.IsNullOrEmpty(Transaction.SettlementCause) && Transaction.SettlementCause != "ExactMatch")
+{
+    <div class="mt-1 text-xs @ToneClass">
+        @Summary
+
+        @if (ShowCertificateAction)
+        {
+            <button type="button" @onclick="RecordCertificate" disabled="@_recording"
+                    class="ml-1 underline underline-offset-2 hover:no-underline disabled:opacity-50">
+                @(_recording ? "Saving…" : "Mark certificate received")
+            </button>
+        }
+    </div>
+}
+
+@code {
+    [Parameter, EditorRequired] public BankTransactionDto Transaction { get; set; } = null!;
+
+    /// <summary>Raised after the certificate is recorded so the caller can reload.</summary>
+    [Parameter] public EventCallback<Guid> OnCertificateRecorded { get; set; }
+
+    private bool _recording;
+
+    private bool IsWithholding =>
+        Transaction.SettlementCause is "WithholdingTax" or "WithholdingTaxAndBankFee";
+
+    private bool ShowCertificateAction =>
+        IsWithholding && !Transaction.WithholdingCertificateReceived && OnCertificateRecorded.HasDelegate;
+
+    /// <summary>
+    /// Only a genuine shortfall is coloured as a problem. Everything else is settled, and
+    /// colouring it amber would train the user to ignore the colour.
+    /// </summary>
+    private string ToneClass => Transaction.SettlementCause switch
+    {
+        "UnexplainedShortfall" => "text-amber-600 dark:text-amber-400",
+        "RateUnknown" => "text-gray-500 dark:text-slate-400",
+        _ => "text-gray-500 dark:text-slate-400",
+    };
+
+    private string Money(decimal? amount) =>
+        amount is null ? "" : $"{Transaction.Currency} {Math.Abs(amount.Value):N2}";
+
+    private string Summary => Transaction.SettlementCause switch
+    {
+        "WithholdingTax" or "WithholdingTaxAndBankFee" =>
+            Transaction.WithholdingCertificateReceived
+                ? $"Paid in full — {Pct} withheld at source ({Money(Transaction.WithholdingAmount)}), certificate received."
+                : $"Paid in full — {Pct} withheld at source ({Money(Transaction.WithholdingAmount)}). Certificate outstanding.",
+
+        "FxSpread" => Transaction.FxGainOrLoss is { } fx && fx != 0
+            ? $"Paid in full — {Money(fx)} {(fx < 0 ? "lost" : "gained")} on conversion."
+            : "Paid in full — the difference is currency conversion.",
+
+        "BankFee" => "Paid in full — a correspondent bank took a fee in transit.",
+
+        "Overpayment" => $"Overpaid by {Money(Transaction.UnexplainedAmount)}.",
+
+        "UnexplainedShortfall" =>
+            $"{Money(Transaction.UnexplainedAmount)} short, and no rule accounts for it — worth chasing.",
+
+        "RateUnknown" =>
+            "Received in another currency with no rate recorded, so this cannot be checked.",
+
+        _ => "",
+    };
+
+    private string Pct =>
+        Transaction.WithholdingPercentage is { } p ? $"{p * 100:0.##}%" : "tax";
+
+    private async Task RecordCertificate()
+    {
+        _recording = true;
+        try
+        {
+            await OnCertificateRecorded.InvokeAsync(Transaction.Id);
+        }
+        finally
+        {
+            _recording = false;
+        }
+    }
+}

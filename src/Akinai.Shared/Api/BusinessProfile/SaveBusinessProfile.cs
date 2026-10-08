@@ -35,6 +35,13 @@ public class SaveBusinessProfile : IPut
     [BodyParam]
     public string? Country { get; init; }
 
+    /// <summary>
+    /// ISO-3166 alpha-2 for your own country. Drives the tax treatment of every invoice
+    /// you raise, so it is captured as a code rather than inferred from free text.
+    /// </summary>
+    [BodyParam]
+    public string? CountryCode { get; init; }
+
     [BodyParam]
     public string? TaxNumber { get; init; }
 

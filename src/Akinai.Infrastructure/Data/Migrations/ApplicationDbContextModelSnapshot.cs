@@ -169,6 +169,10 @@ namespace Akinai.Infrastructure.Data.Migrations
                         .HasMaxLength(255)
                         .HasColumnType("nvarchar(255)");
 
+                    b.Property<decimal?>("FxGainOrLoss")
+                        .HasPrecision(18, 2)
+                        .HasColumnType("decimal(18,2)");
+
                     b.Property<string>("IgnoreReason")
                         .HasMaxLength(500)
                         .HasColumnType("nvarchar(500)");
@@ -201,6 +205,10 @@ namespace Akinai.Infrastructure.Data.Migrations
                         .HasMaxLength(100)
                         .HasColumnType("nvarchar(100)");
 
+                    b.Property<string>("SettlementCause")
+                        .HasMaxLength(32)
+                        .HasColumnType("nvarchar(32)");
+
                     b.Property<string>("SourceFileName")
                         .IsRequired()
                         .HasMaxLength(255)
@@ -212,10 +220,25 @@ namespace Akinai.Infrastructure.Data.Migrations
                     b.Property<DateOnly>("TransactionDate")
                         .HasColumnType("date");
 
+                    b.Property<decimal?>("UnexplainedAmount")
+                        .HasPrecision(18, 2)
+                        .HasColumnType("decimal(18,2)");
+
                     b.Property<string>("UserId")
                         .IsRequired()
                         .HasMaxLength(450)
                         .HasColumnType("nvarchar(450)");
+
+                    b.Property<decimal?>("WithholdingAmount")
+                        .HasPrecision(18, 2)
+                        .HasColumnType("decimal(18,2)");
+
+                    b.Property<bool>("WithholdingCertificateReceived")
+                        .HasColumnType("bit");
+
+                    b.Property<decimal?>("WithholdingPercentage")
+                        .HasPrecision(5, 4)
+                        .HasColumnType("decimal(5,4)");
 
                     b.HasKey("Id");
 
@@ -988,6 +1011,17 @@ namespace Akinai.Infrastructure.Data.Migrations
 
                     b.Property<Guid?>("PublicAccessToken")
                         .HasColumnType("uniqueidentifier");
+
+                    b.Property<DateTime?>("SentAtUtc")
+                        .HasColumnType("datetime2");
+
+                    b.Property<string>("SentDocumentSha256")
+                        .HasMaxLength(64)
+                        .HasColumnType("nvarchar(64)");
+
+                    b.Property<string>("SentToEmail")
+                        .HasMaxLength(320)
+                        .HasColumnType("nvarchar(320)");
 
                     b.Property<string>("Status")
                         .IsRequired()

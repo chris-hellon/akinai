@@ -7,6 +7,7 @@ using Akinai.Shared.Api.Invoices;
 using Akinai.Shared.Services;
 using Microsoft.AspNetCore.Http;
 using Microsoft.EntityFrameworkCore;
+using Microsoft.Extensions.Logging;
 
 namespace Akinai.Infrastructure.Handlers.Invoices;
 
@@ -18,7 +19,9 @@ public class SendInvoiceHandler(
     IExchangeRateService exchangeRates,
     IHttpContextAccessor httpContextAccessor,
     IInvoiceEmailSender emailSender,
-    INotificationService notifications) : IHandle<SendInvoice>
+    INotificationService notifications,
+    Services.Pdf.IHtmlPdfRenderer htmlRenderer,
+    Microsoft.Extensions.Logging.ILogger<SendInvoiceHandler> logger) : IHandle<SendInvoice>
 {
     public async Task<HttpResult> Handle(SendInvoice request, CancellationToken cancellationToken)
     {
@@ -93,28 +96,73 @@ public class SendInvoiceHandler(
             publicViewUrl = $"{baseUrl}/invoice/view/{invoice.PublicAccessToken}";
         }
 
-        // Mark as sent up front so the generated PDF reflects the "Sent" status.
-        // The change is only persisted after the email succeeds (below), so a
-        // send failure leaves the invoice as Draft.
+        // --- Sending, in two phases -----------------------------------------
+        // Phase one commits the status. It has to be committed rather than merely held in
+        // memory, because the PDF below is printed from the invoice's own page over a
+        // loopback request, and that request loads the invoice through a different context
+        // which cannot see an uncommitted change. Without this the client is emailed an
+        // invoice stamped "Draft".
+        //
+        // Phase two is the render and the email. If either fails the status is rolled back
+        // by AbandonSend, which is permitted precisely because no delivery has been
+        // recorded yet — so a failed attempt leaves no trace, exactly as before, while the
+        // emailed document is now the same one the client sees online.
         invoice.Send();
+        await db.SaveChangesAsync(cancellationToken);
 
-        // Render the user's message body through the template service so
-        // {InvoiceDetails} and line breaks become proper HTML.
-        var html = emailTemplateService.GenerateInvoiceEmailHtml(
-            invoice, total, companyName, request.Body, publicViewUrl);
-
-        // Generate the invoice PDF and attach it to the email.
-        var attachments = new List<EmailAttachment>();
-        var vndRate = await VndPaymentRate.GetAsync(exchangeRates, businessProfile?.DefaultCurrency, cancellationToken);
-        var pdfBytes = await pdfService.GenerateInvoicePdfAsync(
-            invoice, timeEntries, expenses, productLineItems, businessProfile, currencySettings, invoice.Template, vndRate,
-            requiredStatements: compliance.RequiredStatements.ToList());
-        if (pdfBytes.Length > 0)
+        byte[] pdfBytes;
+        try
         {
-            attachments.Add(new EmailAttachment($"{invoice.InvoiceNumber}.pdf", pdfBytes, "application/pdf"));
+            // Render the user's message body through the template service so
+            // {InvoiceDetails} and line breaks become proper HTML.
+            var html = emailTemplateService.GenerateInvoiceEmailHtml(
+                invoice, total, companyName, request.Body, publicViewUrl);
+
+            var vndRate = await VndPaymentRate.GetAsync(exchangeRates, businessProfile?.DefaultCurrency, cancellationToken);
+
+            // Print the page the client would open, falling back to rebuilding it. The
+            // same composer the download path uses, so the two cannot diverge — which is
+            // how a corridor-required tax statement once went out missing.
+            pdfBytes = await InvoicePdfComposition.RenderAsync(
+                invoice.Id,
+                invoice.PublicAccessToken,
+                htmlRenderer,
+                httpContextAccessor,
+                logger,
+                fallback: () => pdfService.GenerateInvoicePdfAsync(
+                    invoice, timeEntries, expenses, productLineItems, businessProfile, currencySettings,
+                    invoice.Template, vndRate,
+                    requiredStatements: compliance.RequiredStatements.ToList()),
+                cancellationToken);
+
+            var attachments = new List<EmailAttachment>();
+            if (pdfBytes.Length > 0)
+                attachments.Add(new EmailAttachment($"{invoice.InvoiceNumber}.pdf", pdfBytes, "application/pdf"));
+
+            await emailSender.SendEmailAsync(request.Email, request.Subject, html, attachments);
+        }
+        catch
+        {
+            // Nothing reached the client, so the invoice goes back to draft. Rolled back on
+            // its own context: the one above may be in an unusable state after a failure.
+            await using var rollback = await dbFactory.CreateDbContextAsync(cancellationToken);
+            var stale = await rollback.Invoices.FirstOrDefaultAsync(i => i.Id == request.Id, cancellationToken);
+            if (stale is not null && stale.SentAtUtc is null)
+            {
+                stale.AbandonSend();
+                await rollback.SaveChangesAsync(cancellationToken);
+            }
+
+            logger.LogWarning("Invoice {InvoiceId}: send failed and the invoice was returned to draft.", invoice.Id);
+            throw;
         }
 
-        await emailSender.SendEmailAsync(request.Email, request.Subject, html, attachments);
+        // Only now, after the send succeeded: a delivery record for an email that failed
+        // would be worse than none, because it would be believed.
+        invoice.RecordDelivery(
+            DateTime.UtcNow,
+            request.Email,
+            Akinai.Domain.Services.DocumentFingerprint.Of(pdfBytes));
 
         await db.SaveChangesAsync(cancellationToken);
 

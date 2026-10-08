@@ -35,6 +35,34 @@ public class BankTransaction : AggregateRoot, IAuditableEntity
 
     public Invoice? MatchedInvoice { get; private set; }
 
+    // --- Settlement analysis -------------------------------------------------
+    // Why the amount received differs from the amount invoiced. Recorded when the
+    // transaction is matched, because the three causes are unrelated and only one of them
+    // means the client still owes money: an FX spread and a bank fee are deductions in
+    // transit, and withholding tax is a complete payment whose remainder went to the
+    // payer's tax authority. Without this they all render as "short payment" and get
+    // chased, which in the withholding case means chasing a client for tax they have
+    // already remitted on your behalf.
+
+    /// <summary>The <c>PaymentDifference.Cause</c> this match was classified as.</summary>
+    public string? SettlementCause { get; private set; }
+
+    public decimal? WithholdingPercentage { get; private set; }
+    public decimal? WithholdingAmount { get; private set; }
+
+    /// <summary>
+    /// Whether the payer has supplied the certificate for tax withheld. The outstanding
+    /// item on a withheld payment is paperwork, not money, and it is worth real cash at
+    /// year end — it is what lets the tax be credited rather than lost.
+    /// </summary>
+    public bool WithholdingCertificateReceived { get; private set; }
+
+    /// <summary>Realised gain or loss on conversion, in the invoice currency.</summary>
+    public decimal? FxGainOrLoss { get; private set; }
+
+    /// <summary>The part no rule accounts for — the only figure it is ever right to chase.</summary>
+    public decimal? UnexplainedAmount { get; private set; }
+
     public DateTime CreatedAt { get; set; }
     public string CreatedBy { get; set; } = null!;
     public DateTime? ModifiedAt { get; set; }
@@ -109,8 +137,45 @@ public class BankTransaction : AggregateRoot, IAuditableEntity
         MatchNotes = notes;
     }
 
+    /// <summary>
+    /// Records what the classifier made of this payment. Separate from
+    /// <see cref="MatchToInvoice"/> so that re-running the analysis never disturbs the
+    /// match itself.
+    /// </summary>
+    public void RecordSettlement(
+        string cause,
+        decimal? withholdingPercentage,
+        decimal? withholdingAmount,
+        decimal? fxGainOrLoss,
+        decimal? unexplainedAmount)
+    {
+        SettlementCause = cause;
+        WithholdingPercentage = withholdingPercentage;
+        WithholdingAmount = withholdingAmount;
+        FxGainOrLoss = fxGainOrLoss;
+        UnexplainedAmount = unexplainedAmount;
+    }
+
+    /// <summary>The payer sent the withholding certificate; nothing further is outstanding.</summary>
+    public void MarkWithholdingCertificateReceived()
+    {
+        if (WithholdingPercentage is null)
+            throw new DomainException("No tax was withheld on this payment, so there is no certificate to record");
+
+        WithholdingCertificateReceived = true;
+    }
+
     public void UnmatchInvoice()
     {
+        // The analysis described this payment against that invoice. Kept after unmatching
+        // it would be stale, and worse, believed.
+        SettlementCause = null;
+        WithholdingPercentage = null;
+        WithholdingAmount = null;
+        WithholdingCertificateReceived = false;
+        FxGainOrLoss = null;
+        UnexplainedAmount = null;
+
         MatchedInvoiceId = null;
         MatchConfidence = MatchConfidence.None;
         MatchNotes = null;

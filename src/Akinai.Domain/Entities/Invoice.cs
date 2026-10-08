@@ -36,6 +36,21 @@ public class Invoice : AggregateRoot, IAuditableEntity
     /// list and the detail page would otherwise need a join for a badge.
     /// A per-view history can be added later without changing these.
     /// </summary>
+    // --- Delivery record ----------------------------------------------------
+    // What was sent, to whom, and when. Kept because a cross-border dispute is
+    // usually about the document rather than the amount, and because the client
+    // benefits from it as much as the sender: a stored hash proves the invoice was
+    // not altered after the fact by either party.
+
+    /// <summary>When the invoice was emailed, if it has been.</summary>
+    public DateTime? SentAtUtc { get; private set; }
+
+    /// <summary>The address it was sent to.</summary>
+    public string? SentToEmail { get; private set; }
+
+    /// <summary>SHA-256 of the PDF that was attached, as lower-case hex.</summary>
+    public string? SentDocumentSha256 { get; private set; }
+
     public DateTime? FirstViewedAtUtc { get; private set; }
     public DateTime? LastViewedAtUtc { get; private set; }
     public int ViewCount { get; private set; }
@@ -150,6 +165,33 @@ public class Invoice : AggregateRoot, IAuditableEntity
         PublicAccessToken ??= Guid.NewGuid();
     }
 
+    /// <summary>
+    /// Undoes a send that never reached anyone, returning the invoice to draft.
+    ///
+    /// Sending is two-phase: the status is committed before the document is rendered, so
+    /// that the PDF printed from the invoice's own page shows "Sent" rather than "Draft",
+    /// and this puts it back if the render or the email then fails.
+    ///
+    /// It is <em>not</em> a general un-send, and the guard is what makes that true: once
+    /// <see cref="SentAtUtc"/> is stamped the email has gone, the client holds the
+    /// document, and this throws. The invariant that matters — an invoice someone has
+    /// actually been sent cannot be walked back — is preserved exactly.
+    ///
+    /// A process that dies between the two phases leaves Status=Sent with no delivery
+    /// record. That state is wrong but detectable, and it is the safe direction: it
+    /// over-reports rather than silently losing a send.
+    /// </summary>
+    public void AbandonSend()
+    {
+        if (Status != InvoiceStatus.Sent)
+            throw new DomainException("Only an in-flight send can be abandoned");
+
+        if (SentAtUtc is not null)
+            throw new DomainException("This invoice has already been delivered and cannot be returned to draft");
+
+        Status = InvoiceStatus.Draft;
+    }
+
     public void MarkAsPaid(DateOnly paidDate)
     {
         if (Status == InvoiceStatus.Paid)
@@ -239,5 +281,16 @@ public class Invoice : AggregateRoot, IAuditableEntity
         Subtotal = Math.Round(subtotal, 2);
         TaxAmount = Math.Round(taxAmount, 2);
         Total = Math.Round(total, 2);
+    }
+
+    /// <summary>
+    /// Records what actually went out. Called after the email succeeds, so a failed send
+    /// leaves no delivery record claiming otherwise.
+    /// </summary>
+    public void RecordDelivery(DateTime sentAtUtc, string? toEmail, string? documentSha256)
+    {
+        SentAtUtc = sentAtUtc;
+        SentToEmail = toEmail;
+        SentDocumentSha256 = documentSha256;
     }
 }

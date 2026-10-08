@@ -10,6 +10,13 @@ public class InvoiceConfiguration : IEntityTypeConfiguration<Invoice>
     {
         builder.ToTable("Invoices");
 
+        builder.Property(i => i.SentToEmail)
+            .HasMaxLength(320);
+
+        // 64 hex characters for SHA-256; fixed length because it never varies.
+        builder.Property(i => i.SentDocumentSha256)
+            .HasMaxLength(64);
+
         builder.HasKey(i => i.Id);
 
         builder.Property(i => i.InvoiceNumber)

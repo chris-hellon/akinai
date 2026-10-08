@@ -38,10 +38,14 @@ public static class PayabilityCheck
         string? IntermediarySwift = null);
 
     /// <summary>
-    /// Destinations whose banks require a stated purpose of payment on inbound
-    /// cross-border credits. Sending without one is the most common cause of a payment
-    /// sitting in a compliance queue rather than being rejected outright — which is worse,
-    /// because nobody is told.
+    /// Countries whose exchange controls require the <em>payer</em> to state a purpose of
+    /// payment before money may leave. Keyed on where the payment starts, not where it
+    /// lands: these are outbound controls, so it is the client's country that decides
+    /// whether a code is needed, and the client who cannot send without one.
+    ///
+    /// Supplying the code on the invoice is what lets them pay at all. Without it the
+    /// payment is typically not rejected but parked in a compliance queue, which is worse
+    /// — nobody is told, and the first anyone knows is that the money never came.
     /// </summary>
     private static readonly Dictionary<string, string> PurposeCodeRequired = new(StringComparer.OrdinalIgnoreCase)
     {
@@ -64,11 +68,12 @@ public static class PayabilityCheck
     };
 
     /// <summary>
-    /// Runs every applicable rule. <paramref name="destinationCountryCode"/> is the
-    /// ISO-3166 alpha-2 code of the country the money is being sent to, or null when it
-    /// is not known yet — the country-specific rules are then skipped rather than guessed.
+    /// Runs every applicable rule. <paramref name="payerCountryCode"/> is the ISO-3166
+    /// alpha-2 code of the country the money is being sent <em>from</em> — the client's
+    /// country — or null when it is not known yet, in which case the country-specific
+    /// rules are skipped rather than guessed at.
     /// </summary>
-    public static IReadOnlyList<Finding> Run(Details details, string? destinationCountryCode = null)
+    public static IReadOnlyList<Finding> Run(Details details, string? payerCountryCode = null)
     {
         var findings = new List<Finding>();
 
@@ -109,12 +114,12 @@ public static class PayabilityCheck
                 "No SWIFT/BIC. Most banks will not route an international payment without one."));
         }
 
-        if (destinationCountryCode is not null
-            && PurposeCodeRequired.TryGetValue(destinationCountryCode, out var country)
+        if (payerCountryCode is not null
+            && PurposeCodeRequired.TryGetValue(payerCountryCode, out var country)
             && string.IsNullOrWhiteSpace(details.PurposeCode))
         {
             findings.Add(new Finding(Severity.Warning, nameof(Details.PurposeCode),
-                $"Banks in {country} require a stated purpose of payment on inbound transfers. Without one the payment can sit in a compliance queue for days with no notification."));
+                $"Paying from {country} requires a stated purpose of payment, and this invoice does not give one. Your client may be unable to send the money, or it may sit in a compliance queue for days with nobody told."));
         }
 
         return findings;

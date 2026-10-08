@@ -150,6 +150,21 @@ public sealed class InvoiceTestContext : IDisposable
         await RecalculateAsync();
     }
 
+    /// <summary>Payment details for the seeded invoice's currency, so the payability
+    /// check has something to inspect.</summary>
+    public async Task AddPaymentDetailsAsync(
+        string? iban = null, string? swift = null, string? purposeCode = null)
+    {
+        await using var db = NewContext();
+        var settings = CurrencyPaymentSettings.Create(UserId, "GBP");
+        settings.Update(
+            bankName: "Test Bank", bankAccountName: "My Co", bankAccountNumber: null,
+            bankSortCode: null, bankIban: iban, bankSwift: swift, vietQrBankCode: null,
+            paymentPurposeCode: purposeCode);
+        db.CurrencyPaymentSettings.Add(settings);
+        await db.SaveChangesAsync();
+    }
+
     /// <summary>Re-snapshots the invoice totals the way the write handlers do.</summary>
     public async Task RecalculateAsync()
     {
@@ -190,6 +205,37 @@ public sealed class InvoiceTestContext : IDisposable
     public sealed class NoHttpContext : Microsoft.AspNetCore.Http.IHttpContextAccessor
     {
         public Microsoft.AspNetCore.Http.HttpContext? HttpContext { get; set; }
+    }
+
+    /// <summary>A different signed-in user, for checking ownership scoping.</summary>
+    public sealed class OtherUser : ICurrentUserService
+    {
+        public string? UserId => "user-2";
+        public string? UserName => "other@example.com";
+        public string? Email => "other@example.com";
+        public bool IsAuthenticated => true;
+        public bool IsInRole(string role) => false;
+    }
+
+    /// <summary>Notifications are a side effect these tests do not assert on.</summary>
+    public sealed class NoNotifications : Akinai.Infrastructure.Services.INotificationService
+    {
+        public Task CreateAsync(
+            string? userId, Akinai.Domain.Enums.NotificationType type, string title, string message,
+            string? link = null, Akinai.Domain.Enums.LinkedEntityType? relatedEntityType = null,
+            Guid? relatedEntityId = null, CancellationToken cancellationToken = default)
+            => Task.CompletedTask;
+    }
+
+    /// <summary>A fixed 1:1 rate, so a cross-currency case is checkable without a network call.</summary>
+    public sealed class ParityRates : Akinai.Infrastructure.Services.IExchangeRateService
+    {
+        public Task<IReadOnlyDictionary<string, decimal>> GetUsdRatesAsync(CancellationToken ct = default)
+            => Task.FromResult<IReadOnlyDictionary<string, decimal>>(
+                new Dictionary<string, decimal> { ["USD"] = 1m });
+
+        public Task<decimal?> ConvertAsync(decimal amount, string from, string to, CancellationToken ct = default)
+            => Task.FromResult<decimal?>(amount);
     }
 
     private sealed class FakeCurrentUser(string? userId) : ICurrentUserService

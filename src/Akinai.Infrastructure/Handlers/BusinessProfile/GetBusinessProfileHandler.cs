@@ -35,6 +35,7 @@ public class GetBusinessProfileHandler(
             profile.Address?.State,
             profile.Address?.PostalCode,
             profile.Address?.Country,
+            profile.Address?.CountryCode,
             profile.TaxNumber,
             profile.RegistrationNumber,
             profile.BankName,

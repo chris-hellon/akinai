@@ -92,11 +92,11 @@ public class PayabilityCheckTests
     }
 
     [Fact]
-    public void Paying_into_Vietnam_without_a_purpose_code_is_flagged()
+    public void Paying_from_Vietnam_without_a_purpose_code_is_flagged()
     {
         var findings = Run(
             new Details(Iban: "GB82 WEST 1234 5698 7654 32", Swift: "DEUTDEFF"),
-            destinationCountryCode: "VN");
+            payerCountryCode: "VN");
 
         findings.Should().ContainSingle()
             .Which.Field.Should().Be(nameof(Details.PurposeCode));
@@ -107,7 +107,7 @@ public class PayabilityCheckTests
     {
         var findings = Run(
             new Details(Iban: "GB82 WEST 1234 5698 7654 32", Swift: "DEUTDEFF", PurposeCode: "GOODS"),
-            destinationCountryCode: "VN");
+            payerCountryCode: "VN");
 
         findings.Should().BeEmpty();
     }
@@ -117,17 +117,17 @@ public class PayabilityCheckTests
     {
         var findings = Run(
             new Details(Iban: "GB82 WEST 1234 5698 7654 32", Swift: "DEUTDEFF"),
-            destinationCountryCode: "DE");
+            payerCountryCode: "DE");
 
         findings.Should().BeEmpty();
     }
 
     [Fact]
-    public void An_unknown_destination_skips_country_rules_rather_than_guessing()
+    public void An_unknown_payer_country_skips_the_rule_rather_than_guessing()
     {
         var findings = Run(
             new Details(Iban: "GB82 WEST 1234 5698 7654 32", Swift: "DEUTDEFF"),
-            destinationCountryCode: null);
+            payerCountryCode: null);
 
         findings.Should().BeEmpty();
     }
