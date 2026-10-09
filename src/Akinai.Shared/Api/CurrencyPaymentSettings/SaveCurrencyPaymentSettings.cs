@@ -48,4 +48,16 @@ public class SaveCurrencyPaymentSettings : IPut
     /// <summary>Purpose-of-payment code some jurisdictions require on inbound FX.</summary>
     [BodyParam]
     public string? PaymentPurposeCode { get; init; }
+
+    /// <summary>India: a UPI virtual payment address, e.g. <c>name@bank</c>.</summary>
+    [BodyParam]
+    public string? UpiVpa { get; init; }
+
+    /// <summary>Brazil: a PIX key.</summary>
+    [BodyParam]
+    public string? PixKey { get; init; }
+
+    /// <summary>Thailand: a PromptPay ID.</summary>
+    [BodyParam]
+    public string? PromptPayId { get; init; }
 }

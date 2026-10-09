@@ -35,7 +35,10 @@ public class GetCurrencyPaymentSettingsHandler(IDbContextFactory<ApplicationDbCo
                 c.IntermediaryBankSwift,
                 c.IntermediaryAccountNumber,
                 c.BankAddress,
-                c.PaymentPurposeCode))
+                c.PaymentPurposeCode,
+                c.UpiVpa,
+                c.PixKey,
+                c.PromptPayId))
             .FirstOrDefaultAsync(cancellationToken);
 
         return HttpResult<CurrencyPaymentSettingsDto?>.Ok(settings);

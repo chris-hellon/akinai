@@ -263,6 +263,45 @@
                             </div>
                         </details>
 
+                        @* Each national instant-payment scheme addresses the payee its own
+                           way — none of them by IBAN — so the identifier is asked for only
+                           on the currency that scheme actually settles in. *@
+                        @if (_selectedCurrency == "INR")
+                        {
+                            <div class="pt-4 border-t border-gray-100 dark:border-slate-700">
+                                <label class="block text-sm font-medium text-gray-700 dark:text-slate-300 mb-2">UPI ID</label>
+                                <input type="text" @bind="settings.UpiVpa" @bind:event="oninput"
+                                       placeholder="yourname@okhdfcbank" class="form-control" />
+                                <p class="mt-1.5 text-xs text-gray-500 dark:text-slate-400">
+                                    Adds a UPI QR to rupee invoices, so your client pays by scanning in their banking app.
+                                </p>
+                            </div>
+                        }
+
+                        @if (_selectedCurrency == "BRL")
+                        {
+                            <div class="pt-4 border-t border-gray-100 dark:border-slate-700">
+                                <label class="block text-sm font-medium text-gray-700 dark:text-slate-300 mb-2">PIX key</label>
+                                <input type="text" @bind="settings.PixKey" @bind:event="oninput"
+                                       placeholder="CPF/CNPJ, email, phone, or a random key" class="form-control" />
+                                <p class="mt-1.5 text-xs text-gray-500 dark:text-slate-400">
+                                    Adds a PIX QR to real invoices. Any key registered to your account works.
+                                </p>
+                            </div>
+                        }
+
+                        @if (_selectedCurrency == "THB")
+                        {
+                            <div class="pt-4 border-t border-gray-100 dark:border-slate-700">
+                                <label class="block text-sm font-medium text-gray-700 dark:text-slate-300 mb-2">PromptPay ID</label>
+                                <input type="text" @bind="settings.PromptPayId" @bind:event="oninput"
+                                       placeholder="Mobile number, national/tax ID, or e-wallet ID" class="form-control" />
+                                <p class="mt-1.5 text-xs text-gray-500 dark:text-slate-400">
+                                    Adds a PromptPay QR to baht invoices.
+                                </p>
+                            </div>
+                        }
+
                         @if (_selectedCurrency == "VND")
                         {
                             <div class="pt-4 border-t border-gray-100 dark:border-slate-700">
@@ -428,6 +467,9 @@
                     BankIban = s.BankIban,
                     BankSwift = s.BankSwift,
                     VietQrBankCode = s.VietQrBankCode,
+                    UpiVpa = s.UpiVpa,
+                    PixKey = s.PixKey,
+                    PromptPayId = s.PromptPayId,
                     BankAddress = s.BankAddress,
                     IntermediaryBankName = s.IntermediaryBankName,
                     IntermediaryBankSwift = s.IntermediaryBankSwift,
@@ -529,6 +571,9 @@
                 BankIban = settings.BankIban,
                 BankSwift = settings.BankSwift,
                 VietQrBankCode = settings.VietQrBankCode,
+                UpiVpa = settings.UpiVpa,
+                PixKey = settings.PixKey,
+                PromptPayId = settings.PromptPayId,
                 BankAddress = settings.BankAddress,
                 IntermediaryBankName = settings.IntermediaryBankName,
                 IntermediaryBankSwift = settings.IntermediaryBankSwift,
@@ -571,6 +616,9 @@
         public string? BankIban { get; set; }
         public string? BankSwift { get; set; }
         public string? VietQrBankCode { get; set; }
+        public string? UpiVpa { get; set; }
+        public string? PixKey { get; set; }
+        public string? PromptPayId { get; set; }
         public string? BankAddress { get; set; }
         public string? IntermediaryBankName { get; set; }
         public string? IntermediaryBankSwift { get; set; }

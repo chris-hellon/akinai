@@ -1,3 +1,4 @@
+@using Akinai.Shared.Payments
 @using Akinai.Shared.Localization
 @{
     // The invoice's fixed headings in whatever language it was written in.
@@ -506,6 +507,42 @@ else if (Status == "Void")
             </div>
         }
 
+        @* Scan-to-pay, for whichever national rail settles this invoice's currency.
+
+           The client opens their banking app, scans, and the transfer is prefilled — payee,
+           amount and the invoice reference — so there is no account number to retype and no
+           reference to forget, which are the two commonest reasons a cross-border payment
+           goes astray. Generated on this machine rather than fetched from an image service,
+           so the amount and account never leave it and the code still prints into a PDF
+           with no connection. *@
+        @if (ScanToPay is { } scan)
+        {
+            <div class="@(HasOnlinePaymentButtons() ? "mt-6 pt-6 border-t border-gray-200 dark:border-slate-600" : "")">
+                <div class="text-xs font-semibold text-gray-500 dark:text-slate-400 uppercase tracking-wider mb-3">
+                    Scan to pay (@scan.RailName)
+                </div>
+                <div class="flex flex-col sm:flex-row items-start gap-4">
+                    <div class="bg-white p-2 rounded-lg shadow-sm border border-gray-100">
+                        <img src="@scan.ImageUri" alt="@scan.RailName payment QR code" class="w-48 h-48 object-contain" />
+                    </div>
+                    <div class="text-sm text-gray-600 dark:text-slate-400">
+                        <p class="font-medium text-gray-700 dark:text-slate-300 mb-2">@L.ScanWithBankingApp</p>
+                        <ul class="space-y-1.5">
+                            <li>Amount: @Currency @Total.ToString("N2")</li>
+                            @if (!string.IsNullOrEmpty(CurrencyPaymentSettings?.BankAccountName))
+                            {
+                                <li>To: @CurrencyPaymentSettings.BankAccountName</li>
+                            }
+                            @if (scan.ShowsReference)
+                            {
+                                <li>Reference: @InvoiceNumber</li>
+                            }
+                        </ul>
+                    </div>
+                </div>
+            </div>
+        }
+
         @* VietQR section - only for VND *@
         @if (HasVietQr())
         {
@@ -761,7 +798,56 @@ else if (Status == "Void")
 
     private bool HasPaymentOptions()
     {
-        return HasOnlinePaymentButtons() || HasVietQr() || HasBankTransferDetails();
+        // SEPA counts too. Without it, an invoice whose only payment route is a euro IBAN
+        // hides the entire payment section — including the QR that was the one way to pay.
+        return HasOnlinePaymentButtons() || HasVietQr() || HasBankTransferDetails() || ScanToPay is not null;
+    }
+
+    private sealed record ScanToPayQr(string RailName, string ImageUri, bool ShowsReference);
+
+    /// <summary>
+    /// The scan-to-pay code for this invoice, or null when no rail covers its currency or
+    /// the details on file are not good enough to encode.
+    ///
+    /// Null rather than a broken image on purpose: an unscannable QR on an invoice is worse
+    /// than none at all, because the client reaches for it first and only discovers it does
+    /// not work after the payment has failed.
+    ///
+    /// VietQR is deliberately not routed through here — it is still drawn by the existing
+    /// image service, because the EMV payload needs the acquirer's six-digit BIN and what
+    /// is stored is a short bank code. Guessing that mapping would produce a scannable code
+    /// pointing at the wrong bank, which is far worse than an extra network call.
+    /// </summary>
+    private ScanToPayQr? ScanToPay
+    {
+        get
+        {
+            if (CurrencyPaymentSettings is null) return null;
+
+            var (rail, account, railName, showsReference) = Currency?.ToUpperInvariant() switch
+            {
+                "EUR" => (PaymentRail.Epc, CurrencyPaymentSettings.BankIban, "SEPA", true),
+                "INR" => (PaymentRail.Upi, CurrencyPaymentSettings.UpiVpa, "UPI", true),
+                "BRL" => (PaymentRail.Pix, CurrencyPaymentSettings.PixKey, "PIX", true),
+                "THB" => (PaymentRail.PromptPay, CurrencyPaymentSettings.PromptPayId, "PromptPay", false),
+                _ => default,
+            };
+
+            if (string.IsNullOrWhiteSpace(account)) return null;
+
+            var result = PaymentQrPayload.Build(rail, new PaymentQrRequest(
+                PayeeName: CurrencyPaymentSettings.BankAccountName,
+                AccountIdentifier: account,
+                Amount: Total,
+                CurrencyCode: Currency,
+                Reference: InvoiceNumber,
+                BeneficiaryBic: CurrencyPaymentSettings.BankSwift));
+
+            if (!result.IsAvailable) return null;
+
+            var image = QrImage.DataUri(result.Payload);
+            return image is null ? null : new ScanToPayQr(railName, image, showsReference);
+        }
     }
 
     private bool HasVietQr()

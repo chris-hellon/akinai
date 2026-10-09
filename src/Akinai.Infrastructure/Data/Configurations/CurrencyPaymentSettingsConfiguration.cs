@@ -20,6 +20,10 @@ public class CurrencyPaymentSettingsConfiguration : IEntityTypeConfiguration<Cur
 
         builder.HasKey(c => c.Id);
 
+        builder.Property(c => c.UpiVpa).HasMaxLength(256);
+        builder.Property(c => c.PixKey).HasMaxLength(77);
+        builder.Property(c => c.PromptPayId).HasMaxLength(32);
+
         builder.HasIndex(c => new { c.UserId, c.CurrencyCode }).IsUnique();
 
         builder.Property(c => c.UserId)

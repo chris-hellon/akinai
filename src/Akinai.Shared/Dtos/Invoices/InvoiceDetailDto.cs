@@ -45,6 +45,7 @@ public record InvoiceDetailDto(
     /// </summary>
     string? InvoiceLanguage = null,
     /// <summary>When the client first and last opened the link, and how often.</summary>
+    DateTime? SentAtUtc = null,
     DateTime? FirstViewedAtUtc = null,
     DateTime? LastViewedAtUtc = null,
     int ViewCount = 0,

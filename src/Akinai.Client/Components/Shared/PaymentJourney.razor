@@ -1,0 +1,114 @@
+@using Akinai.Shared.Dtos.Timing
+
+@* Where this invoice has got to, and when the money is likely to arrive.
+
+   A status badge says "Sent" and stops there. The useful questions are whether the client
+   has actually opened it, and whether it is late by this client's standards rather than by
+   the calendar — a client who always pays a fortnight after the due date is not a problem
+   on day three, and one who always pays early is a problem on day one. *@
+
+<div class="space-y-3">
+    @foreach (var step in Steps)
+    {
+        <div class="flex items-start gap-3">
+            <div class="flex flex-col items-center shrink-0">
+                <div class="w-2.5 h-2.5 rounded-full mt-1.5 @(step.Done
+                    ? "bg-emerald-500"
+                    : step.Expected ? "bg-gray-300 dark:bg-slate-600 ring-2 ring-gray-200 dark:ring-slate-700" : "bg-gray-200 dark:bg-slate-700")"></div>
+                @if (!step.IsLast)
+                {
+                    <div class="w-px flex-1 min-h-[1.25rem] bg-gray-200 dark:bg-slate-700 my-1"></div>
+                }
+            </div>
+            <div class="min-w-0 pb-1">
+                <div class="text-sm @(step.Done ? "font-medium text-gray-900 dark:text-slate-100" : "text-gray-500 dark:text-slate-400")">
+                    @step.Label
+                </div>
+                @if (!string.IsNullOrEmpty(step.Detail))
+                {
+                    <div class="text-xs text-gray-500 dark:text-slate-400 mt-0.5">@step.Detail</div>
+                }
+            </div>
+        </div>
+    }
+</div>
+
+@if (Timing is { HasPrediction: false } t && !string.IsNullOrEmpty(t.Explanation))
+{
+    @* Said plainly rather than hidden. A prediction from one or two invoices is not a
+       prediction, and a confident-looking date drawn from nothing is worse than none. *@
+    <p class="mt-3 text-xs text-gray-400 dark:text-slate-500">@t.Explanation</p>
+}
+
+@code {
+    [Parameter] public string Status { get; set; } = "Draft";
+    [Parameter] public DateTime? SentAtUtc { get; set; }
+    [Parameter] public DateTime? FirstViewedAtUtc { get; set; }
+    [Parameter] public DateTime? LastViewedAtUtc { get; set; }
+    [Parameter] public int ViewCount { get; set; }
+    [Parameter] public DateOnly? PaidDate { get; set; }
+    [Parameter] public DateOnly DueDate { get; set; }
+    [Parameter] public PaymentTimingDto? Timing { get; set; }
+
+    private record Step(string Label, string? Detail, bool Done, bool Expected = false, bool IsLast = false);
+
+    private List<Step> Steps
+    {
+        get
+        {
+            var steps = new List<Step>();
+            var isPaid = Status == "Paid";
+
+            steps.Add(SentAtUtc is { } sent
+                ? new Step("Sent", sent.ToLocalTime().ToString("d MMM yyyy"), true)
+                : new Step("Sent", Status == "Draft" ? "Not yet sent" : null, Status != "Draft"));
+
+            steps.Add(FirstViewedAtUtc is { } seen
+                ? new Step("Opened by client",
+                    ViewCount > 1
+                        ? $"{seen.ToLocalTime():d MMM} · {ViewCount} times, last {LastViewedAtUtc?.ToLocalTime():d MMM}"
+                        : seen.ToLocalTime().ToString("d MMM yyyy"),
+                    true)
+                : new Step("Opened by client", Status == "Draft" ? null : "Not yet opened", false));
+
+            if (isPaid)
+            {
+                steps.Add(new Step("Paid",
+                    PaidDate?.ToString("d MMM yyyy"), true, IsLast: true));
+            }
+            else
+            {
+                steps.Add(new Step(
+                    Timing is { HasPrediction: true } ? "Expected" : "Due",
+                    ExpectedDetail,
+                    false,
+                    Expected: true,
+                    IsLast: true));
+            }
+
+            return steps;
+        }
+    }
+
+    private string? ExpectedDetail
+    {
+        get
+        {
+            if (Timing is not { HasPrediction: true, ExpectedPaymentDate: { } expected })
+                return DueDate.ToString("d MMM yyyy");
+
+            var basis = Timing.Basis switch
+            {
+                "Client" => $"based on {Timing.SampleSize} invoices from this client",
+                "Country" => $"based on {Timing.SampleSize} invoices from this country",
+                _ => $"based on {Timing.SampleSize} past invoices",
+            };
+
+            var late = Timing.IsAlreadyLaterThanUsual
+                ? $" · {Timing.DaysLaterThanUsual} days later than usual"
+                : "";
+
+            return $"{expected:d MMM yyyy} — {basis}{late}";
+        }
+    }
+}

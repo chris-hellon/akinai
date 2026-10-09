@@ -1,0 +1,35 @@
+@* One row inside an ActionMenu. Renders as a link when Href is set and a button
+   otherwise, so navigation keeps middle-click and open-in-new-tab working. *@
+
+@if (!string.IsNullOrEmpty(Href))
+{
+    <a href="@Href" role="menuitem" class="@ItemClass">
+        @if (ChildContent is not null) { @ChildContent }
+        else { @Text }
+    </a>
+}
+else
+{
+    <button type="button" role="menuitem" @onclick="OnClick" disabled="@Disabled" class="@ItemClass">
+        @if (ChildContent is not null) { @ChildContent }
+        else { @Text }
+    </button>
+}
+
+@code {
+    [Parameter] public string? Text { get; set; }
+    [Parameter] public string? Href { get; set; }
+    [Parameter] public bool Disabled { get; set; }
+    [Parameter] public EventCallback OnClick { get; set; }
+    [Parameter] public RenderFragment? ChildContent { get; set; }
+
+    /// <summary>Destructive actions read in red so they are not reached for by accident.</summary>
+    [Parameter] public bool Destructive { get; set; }
+
+    private string ItemClass =>
+        "w-full flex items-center gap-2 px-3 py-2 text-sm text-left transition-colors " +
+        "disabled:opacity-50 disabled:cursor-not-allowed " +
+        (Destructive
+            ? "text-red-600 dark:text-red-400 hover:bg-red-50 dark:hover:bg-red-950/30"
+            : "text-gray-700 dark:text-slate-300 hover:bg-gray-50 dark:hover:bg-slate-700");
+}

@@ -51,6 +51,20 @@ public class CurrencyPaymentSettings : IAuditableEntity
     // Currency-specific payment options
     public string? VietQrBankCode { get; private set; } // Only for VND
 
+    // --- Rail-specific payee identifiers -------------------------------------
+    // Each national instant-payment scheme addresses the payee differently, and none of
+    // them by IBAN. Without the right identifier the scheme's QR cannot be built at all,
+    // so these are stored per currency alongside the bank details rather than derived.
+
+    /// <summary>India: a UPI virtual payment address, e.g. <c>name@bank</c>.</summary>
+    public string? UpiVpa { get; private set; }
+
+    /// <summary>Brazil: a PIX key — CPF/CNPJ, email, phone, or a random EVP key.</summary>
+    public string? PixKey { get; private set; }
+
+    /// <summary>Thailand: a PromptPay ID — mobile number, national/tax ID, or e-wallet ID.</summary>
+    public string? PromptPayId { get; private set; }
+
     public DateTime CreatedAt { get; set; }
     public string CreatedBy { get; set; } = null!;
     public DateTime? ModifiedAt { get; set; }
@@ -80,7 +94,10 @@ public class CurrencyPaymentSettings : IAuditableEntity
         string? intermediaryBankSwift = null,
         string? intermediaryAccountNumber = null,
         string? bankAddress = null,
-        string? paymentPurposeCode = null)
+        string? paymentPurposeCode = null,
+        string? upiVpa = null,
+        string? pixKey = null,
+        string? promptPayId = null)
     {
         BankName = bankName;
         BankAccountName = bankAccountName;
@@ -94,5 +111,8 @@ public class CurrencyPaymentSettings : IAuditableEntity
         IntermediaryAccountNumber = intermediaryAccountNumber;
         BankAddress = bankAddress;
         PaymentPurposeCode = paymentPurposeCode;
+        UpiVpa = upiVpa;
+        PixKey = pixKey;
+        PromptPayId = promptPayId;
     }
 }

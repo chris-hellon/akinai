@@ -100,6 +100,15 @@
     [Parameter]
     public Guid Token { get; set; }
 
+    /// <summary>
+    /// Set to false by the owner's own preview. The handler already refuses to count a
+    /// view by the invoice's creator, but the preview says so explicitly rather than
+    /// relying on that: "your client opened this" is only worth anything if it is never
+    /// the sender who opened it.
+    /// </summary>
+    [SupplyParameterFromQuery(Name = "recordView")]
+    public bool? RecordView { get; set; }
+
     private PublicInvoiceDto? _invoice;
     private bool _isLoading = true;
 
@@ -118,7 +127,7 @@
     {
         try
         {
-            _invoice = await GetPublicInvoiceCall.Call(new GetPublicInvoice { Token = Token, RecordView = true });
+            _invoice = await GetPublicInvoiceCall.Call(new GetPublicInvoice { Token = Token, RecordView = RecordView ?? true });
         }
         catch (Exception ex)
         {

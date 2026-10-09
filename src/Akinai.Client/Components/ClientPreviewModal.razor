@@ -1,0 +1,79 @@
+@* What the client actually receives.
+
+   Every invoicing tool makes you send a test to yourself and guess. This renders the real
+   public page — the same URL, the same component, the same translation the client gets —
+   inside a device frame, so "it looks fine on my laptop" stops being the only check you
+   can make. An iframe rather than a re-render on purpose: a mock-up of the client view is
+   just another thing that can drift from it. *@
+
+<div class="space-y-4">
+    <div class="flex items-center justify-between gap-3">
+        <div class="flex items-center gap-1 rounded-lg bg-gray-100 dark:bg-slate-800 p-1">
+            <button type="button" @onclick="@(() => _device = Device.Phone)"
+                    class="px-3 py-1.5 text-sm font-medium rounded-md transition-colors @(_device == Device.Phone
+                        ? "bg-white dark:bg-slate-700 text-gray-900 dark:text-slate-100 shadow-sm"
+                        : "text-gray-500 dark:text-slate-400")">
+                Phone
+            </button>
+            <button type="button" @onclick="@(() => _device = Device.Desktop)"
+                    class="px-3 py-1.5 text-sm font-medium rounded-md transition-colors @(_device == Device.Desktop
+                        ? "bg-white dark:bg-slate-700 text-gray-900 dark:text-slate-100 shadow-sm"
+                        : "text-gray-500 dark:text-slate-400")">
+                Desktop
+            </button>
+        </div>
+
+        <div class="text-xs text-gray-500 dark:text-slate-400 text-right">
+            @if (!string.IsNullOrEmpty(Language))
+            {
+                <div>Reads in <span class="font-medium text-gray-700 dark:text-slate-300">@Language</span></div>
+            }
+            <div>@ClientName</div>
+        </div>
+    </div>
+
+    @if (PublicAccessToken is null)
+    {
+        <div class="rounded-xl border border-amber-200 bg-amber-50 dark:border-amber-900 dark:bg-amber-950/30 p-4 text-sm text-amber-800 dark:text-amber-200">
+            This invoice has no public link yet, so there is nothing for a client to open.
+            A link is created when the invoice is sent.
+        </div>
+    }
+    else
+    {
+        @* Centred, with the frame sized to the device rather than scaled, so what you see
+           is the real layout at the real width rather than a shrunken approximation. *@
+        <div class="flex justify-center">
+            @* Height follows the viewport rather than a fixed 680px: the modal host caps
+               width but not height, and its inner container is overflow-hidden, so a frame
+               taller than the window gets silently clipped rather than scrolled. *@
+            <div class="@(_device == Device.Phone
+                    ? "w-[390px] max-w-full rounded-[2rem] border-8 border-gray-900 dark:border-slate-700"
+                    : "w-full rounded-xl border border-gray-200 dark:border-slate-700")
+                    h-[62vh] min-h-[380px] max-h-[760px]
+                    overflow-hidden bg-white shadow-lg">
+                <iframe src="@PreviewUrl" title="Client view of this invoice"
+                        class="w-full h-full border-0"></iframe>
+            </div>
+        </div>
+
+        <p class="text-center text-xs text-gray-500 dark:text-slate-400">
+            This is the live page at your client's link. Opening it here does not count as a client view.
+        </p>
+    }
+</div>
+
+@code {
+    [Parameter] public Guid? PublicAccessToken { get; set; }
+    [Parameter] public string ClientName { get; set; } = "";
+    [Parameter] public string? Language { get; set; }
+
+    private enum Device { Phone, Desktop }
+    private Device _device = Device.Phone;
+
+    /// <summary>
+    /// <c>recordView=false</c> matters: the owner checking their own invoice must not
+    /// inflate the view count, or "your client opened this" stops meaning anything.
+    /// </summary>
+    private string PreviewUrl => $"/invoice/view/{PublicAccessToken}?recordView=false";
+}

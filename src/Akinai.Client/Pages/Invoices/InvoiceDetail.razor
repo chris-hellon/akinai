@@ -9,6 +9,8 @@
 @inject ICall<GetBusinessProfile, BusinessProfileDto?> GetBusinessProfileCall
 @inject ICall<GetBusinessLogo, byte[]?> GetBusinessLogoCall
 @inject ICall<GetCurrencyPaymentSettings, CurrencyPaymentSettingsDto?> GetCurrencyPaymentSettingsCall
+@inject ICall<GetInvoicePaymentTiming, PaymentTimingDto?> GetPaymentTimingCall
+@using Akinai.Shared.Dtos.Timing
 @inject ICall<GetInvoiceBankTransactions, List<BankTransactionDto>> GetInvoiceBankTransactionsCall
 @inject ICall<SaveInvoiceServiceLines> SaveServiceLinesCall
 @inject ICall<SummariseTimesheet, TimesheetSummaryDto> SummariseCall
@@ -26,23 +28,10 @@
         <Actions>
             @if (_invoice != null)
             {
-                <div class="flex items-center gap-3">
-                    <!-- PDF Download -->
-                    <button @onclick="DownloadPdf" disabled="@_isDownloading"
-                        class="inline-flex items-center gap-2 px-4 py-2.5 text-sm font-medium text-gray-700 dark:text-slate-300 bg-white dark:bg-slate-800 border border-gray-200 dark:border-slate-600 rounded-xl hover:bg-gray-50 dark:hover:bg-slate-700 transition-all duration-200 disabled:opacity-50">
-                        @if (_isDownloading)
-                        {
-                            <div class="w-4 h-4 border-2 border-gray-300 border-t-gray-600 rounded-full animate-spin"></div>
-                        }
-                        else
-                        {
-                            <svg class="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                                <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M12 10v6m0 0l-3-3m3 3l3-3m2 8H7a2 2 0 01-2-2V5a2 2 0 012-2h5.586a1 1 0 01.707.293l5.414 5.414a1 1 0 01.293.707V19a2 2 0 01-2 2z" />
-                            </svg>
-                        }
-                        PDF
-                    </button>
-
+                @* Two actions stay in the row; everything else moves into the menu.
+                   Six buttons fitted nobody's screen — on a phone the row either stacked
+                   into a wall or scrolled sideways, which hides the last action entirely. *@
+                <div class="flex items-center gap-2 sm:gap-3">
                     @if (_invoice.Status == "Draft")
                     {
                         <button @onclick="SendInvoiceAsync" disabled="@_isSending"
@@ -57,34 +46,48 @@
                                     <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M3 8l7.89 5.26a2 2 0 002.22 0L21 8M5 19h14a2 2 0 002-2V7a2 2 0 00-2-2H5a2 2 0 00-2 2v10a2 2 0 002 2z" />
                                 </svg>
                             }
-                            Send
-                        </button>
-                        <a href="@($"invoices/{Id}/edit")"
-                           class="inline-flex items-center gap-2 px-4 py-2.5 text-sm font-medium text-gray-700 dark:text-slate-300 bg-white dark:bg-slate-800 border border-gray-200 dark:border-slate-600 rounded-xl hover:bg-gray-50 dark:hover:bg-slate-700 transition-all duration-200">
-                            <svg class="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                                <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M11 5H6a2 2 0 00-2 2v11a2 2 0 002 2h11a2 2 0 002-2v-5m-1.414-9.414a2 2 0 112.828 2.828L11.828 15H9v-2.828l8.586-8.586z" />
-                            </svg>
-                            Edit
-                        </a>
-                        <button @onclick="MarkAsSent" disabled="@_isMarkingSent"
-                            class="inline-flex items-center gap-2 px-4 py-2.5 text-sm font-medium text-gray-700 dark:text-slate-300 bg-white dark:bg-slate-800 border border-gray-200 dark:border-slate-600 rounded-xl hover:bg-gray-50 dark:hover:bg-slate-700 transition-all duration-200 disabled:opacity-50">
-                            @if (_isMarkingSent)
-                            {
-                                <div class="w-4 h-4 border-2 border-gray-300 border-t-gray-600 rounded-full animate-spin"></div>
-                            }
-                            else
-                            {
-                                <svg class="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                                    <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M5 13l4 4L19 7" />
-                                </svg>
-                            }
-                            Mark as sent
+                            <span class="hidden sm:inline">Send</span>
                         </button>
                     }
+
                     @if (_invoice.Status != "Paid" && _invoice.Status != "Void")
                     {
                         <PrimaryButton Text="Mark as Paid" OnClick="MarkAsPaid" IsLoading="_isMarkingPaid" ShowIcon="false" />
                     }
+
+                    <ActionMenu Title="More">
+                        <ActionMenuItem OnClick="PreviewAsClient">
+                            <svg class="w-4 h-4 text-gray-400" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                                <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M15 12a3 3 0 11-6 0 3 3 0 016 0z" />
+                                <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M2.458 12C3.732 7.943 7.523 5 12 5c4.478 0 8.268 2.943 9.542 7-1.274 4.057-5.064 7-9.542 7-4.477 0-8.268-2.943-9.542-7z" />
+                            </svg>
+                            What your client sees
+                        </ActionMenuItem>
+
+                        <ActionMenuItem OnClick="DownloadPdf" Disabled="_isDownloading">
+                            <svg class="w-4 h-4 text-gray-400" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                                <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M12 10v6m0 0l-3-3m3 3l3-3m2 8H7a2 2 0 01-2-2V5a2 2 0 012-2h5.586a1 1 0 01.707.293l5.414 5.414a1 1 0 01.293.707V19a2 2 0 01-2 2z" />
+                            </svg>
+                            @(_isDownloading ? "Preparing PDF…" : "Download PDF")
+                        </ActionMenuItem>
+
+                        @if (_invoice.Status == "Draft")
+                        {
+                            <ActionMenuItem Href="@($"invoices/{Id}/edit")">
+                                <svg class="w-4 h-4 text-gray-400" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                                    <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M11 5H6a2 2 0 00-2 2v11a2 2 0 002 2h11a2 2 0 002-2v-5m-1.414-9.414a2 2 0 112.828 2.828L11.828 15H9v-2.828l8.586-8.586z" />
+                                </svg>
+                                Edit invoice
+                            </ActionMenuItem>
+
+                            <ActionMenuItem OnClick="MarkAsSent" Disabled="_isMarkingSent">
+                                <svg class="w-4 h-4 text-gray-400" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                                    <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M5 13l4 4L19 7" />
+                                </svg>
+                                Mark as sent
+                            </ActionMenuItem>
+                        }
+                    </ActionMenu>
                 </div>
             }
         </Actions>
@@ -207,6 +210,17 @@
             <!-- Sidebar -->
             <div class="space-y-6">
                 <!-- Details Card -->
+                <Card Title="Payment journey">
+                    <PaymentJourney Status="@_invoice.Status"
+                                    SentAtUtc="@_invoice.SentAtUtc"
+                                    FirstViewedAtUtc="@_invoice.FirstViewedAtUtc"
+                                    LastViewedAtUtc="@_invoice.LastViewedAtUtc"
+                                    ViewCount="@_invoice.ViewCount"
+                                    PaidDate="@_invoice.PaidDate"
+                                    DueDate="@_invoice.DueDate"
+                                    Timing="@_paymentTiming" />
+                </Card>
+
                 <Card Title="Details">
                     <dl class="space-y-3">
                         <div class="flex justify-between items-center">
@@ -404,6 +418,7 @@
     private BusinessProfileDto? _businessProfile;
     private byte[]? _businessLogo;
     private CurrencyPaymentSettingsDto? _currencyPaymentSettings;
+    private PaymentTimingDto? _paymentTiming;
     private bool _isLoading = true;
     private bool _isDownloading;
     private bool _isMarkingPaid;
@@ -462,6 +477,18 @@
             {
                 _currencyPaymentSettings = await GetCurrencyPaymentSettingsCall.Call(
                     new GetCurrencyPaymentSettings { CurrencyCode = _invoice.Currency });
+
+                // Best-effort. A prediction is a nicety; failing to fetch one must not stop
+                // the invoice rendering.
+                try
+                {
+                    _paymentTiming = await GetPaymentTimingCall.Call(
+                        new GetInvoicePaymentTiming { Id = Id });
+                }
+                catch
+                {
+                    _paymentTiming = null;
+                }
                 _breadcrumbs =
                 [
                     new PageHeader.BreadcrumbItem("Time & Billing", "/time-billing"),
@@ -693,6 +720,26 @@
         {
             _errorMessage = $"Failed to delete invoice: {ex.Message}";
         }
+    }
+
+    /// <summary>
+    /// Shows the live client page in a device frame. Not a mock-up of it — a mock-up is
+    /// one more thing that can drift from the real document.
+    /// </summary>
+    private async Task PreviewAsClient()
+    {
+        if (_invoice is null) return;
+
+        await ModalService.ShowAsync<object?>(
+            typeof(ClientPreviewModal),
+            "What your client sees",
+            new Dictionary<string, object?>
+            {
+                [nameof(ClientPreviewModal.PublicAccessToken)] = _invoice.PublicAccessToken,
+                [nameof(ClientPreviewModal.ClientName)] = _invoice.ClientName,
+                [nameof(ClientPreviewModal.Language)] = _invoice.Language,
+            },
+            new ModalOptions { Size = ModalSize.Full });
     }
 
     private async Task SendInvoiceAsync()

@@ -51,7 +51,10 @@ public class SaveCurrencyPaymentSettingsHandler(IDbContextFactory<ApplicationDbC
             request.IntermediaryBankSwift,
             request.IntermediaryAccountNumber,
             request.BankAddress,
-            request.PaymentPurposeCode);
+            request.PaymentPurposeCode,
+            request.UpiVpa,
+            request.PixKey,
+            request.PromptPayId);
 
         await db.SaveChangesAsync(cancellationToken);
         return HttpResult.NoContent();

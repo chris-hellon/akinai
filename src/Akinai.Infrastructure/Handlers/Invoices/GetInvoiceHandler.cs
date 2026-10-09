@@ -216,6 +216,7 @@ public class GetInvoiceHandler(
             templateDto,
             language.ToString(),
             invoice.Language?.ToString(),
+            invoice.SentAtUtc,
             invoice.FirstViewedAtUtc,
             invoice.LastViewedAtUtc,
             invoice.ViewCount,

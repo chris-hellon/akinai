@@ -16,4 +16,7 @@ public record CurrencyPaymentSettingsDto(
     string? IntermediaryBankSwift = null,
     string? IntermediaryAccountNumber = null,
     string? BankAddress = null,
-    string? PaymentPurposeCode = null);
+    string? PaymentPurposeCode = null,
+    string? UpiVpa = null,
+    string? PixKey = null,
+    string? PromptPayId = null);

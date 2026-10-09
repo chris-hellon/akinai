@@ -627,6 +627,18 @@ namespace Akinai.Infrastructure.Data.Migrations
                         .HasMaxLength(200)
                         .HasColumnType("nvarchar(200)");
 
+                    b.Property<string>("PixKey")
+                        .HasMaxLength(77)
+                        .HasColumnType("nvarchar(77)");
+
+                    b.Property<string>("PromptPayId")
+                        .HasMaxLength(32)
+                        .HasColumnType("nvarchar(32)");
+
+                    b.Property<string>("UpiVpa")
+                        .HasMaxLength(256)
+                        .HasColumnType("nvarchar(256)");
+
                     b.Property<string>("UserId")
                         .IsRequired()
                         .HasMaxLength(450)

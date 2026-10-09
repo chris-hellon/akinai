@@ -4,6 +4,9 @@
 @inject ICall<GetWeeklyTimeEntries, List<TimeEntryDto>> GetTimeEntriesCall
 @inject ICall<LogTimeEntry, Guid> LogTimeEntryCall
 @inject TimeTrackingState Tracking
+@inject ICall<SummariseWeek, WeekSummaryDto> SummariseWeekCall
+@using Akinai.Shared.Api.Timesheet
+@using Akinai.Shared.Dtos.Timesheet
 
 <PageTitle>Timesheet - Akinai</PageTitle>
 
@@ -56,6 +59,12 @@
                 </div>
             </div>
 
+            <SecondaryButton Text="Summarise my week"
+                             LoadingText="Summarising…"
+                             IsLoading="_isSummarising"
+                             Disabled="@(GetWeekTotal() == 0)"
+                             OnClick="SummariseWeekAsync" />
+
             <button @onclick="OpenJobPicker"
                     class="inline-flex items-center justify-center gap-2 px-5 py-2.5 text-sm font-medium text-white rounded-xl shadow-md transition-all duration-200 hover:shadow-lg active:scale-[0.98] brand-mark">
                 <svg class="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
@@ -65,6 +74,60 @@
             </button>
         </div>
     </div>
+
+    @* The week, rewritten. Deliberately read-only and unpriced: this is for telling
+       somebody what you did, not for billing them. Nothing here is saved. *@
+    @if (_weekSummary is { } summary)
+    {
+        <div class="bg-white dark:bg-slate-800 rounded-lg border border-gray-100 dark:border-slate-700 shadow-sm overflow-hidden">
+            <div class="px-5 py-4 border-b border-gray-100 dark:border-slate-700 flex items-start justify-between gap-4">
+                <div>
+                    <h3 class="text-base font-semibold text-gray-900 dark:text-slate-100">Your week, written up</h3>
+                    <p class="text-xs text-gray-500 dark:text-slate-400 mt-0.5">
+                        @if (summary.Available)
+                        {
+                            <text>@summary.TotalHours.ToString("N2") hours across @summary.Clients.Count client@(summary.Clients.Count == 1 ? "" : "s"). Nothing has been saved.</text>
+                        }
+                        else
+                        {
+                            <text>@summary.Reason</text>
+                        }
+                    </p>
+                </div>
+                <button type="button" @onclick="@(() => _weekSummary = null)"
+                        class="shrink-0 p-1 text-gray-400 hover:text-gray-600 dark:hover:text-slate-200 rounded-lg transition-colors"
+                        title="Dismiss">
+                    <svg class="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                        <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M6 18L18 6M6 6l12 12" />
+                    </svg>
+                </button>
+            </div>
+
+            @if (summary.Available)
+            {
+                <div class="divide-y divide-gray-100 dark:divide-slate-700">
+                    @foreach (var client in summary.Clients)
+                    {
+                        <div class="px-5 py-4">
+                            <div class="flex items-baseline justify-between gap-4 mb-2">
+                                <div class="text-sm font-semibold text-gray-900 dark:text-slate-100">@client.ClientName</div>
+                                <div class="text-xs text-gray-500 dark:text-slate-400">@client.Hours.ToString("N2") h</div>
+                            </div>
+                            <ul class="space-y-1.5">
+                                @foreach (var line in client.Lines)
+                                {
+                                    <li class="flex items-baseline justify-between gap-4 text-sm text-gray-600 dark:text-slate-400">
+                                        <span>@line.Description</span>
+                                        <span class="shrink-0 tabular-nums text-xs">@line.Hours.ToString("N2") h</span>
+                                    </li>
+                                }
+                            </ul>
+                        </div>
+                    }
+                </div>
+            }
+        </div>
+    }
 
     <!-- Timesheet Content -->
     @if (_isLoading)
@@ -278,6 +341,9 @@
     private bool _isLoading = true;
     private bool _isSaving;
     private string? _saveMessage;
+    private WeekSummaryDto? _weekSummary;
+    private bool _isSummarising;
+
     private DateOnly _weekStart;
     private DateOnly _weekEnd;
     private readonly DateOnly[] _weekDays = new DateOnly[7];
@@ -306,8 +372,32 @@
         UpdateWeekDays();
     }
 
+    /// <summary>
+    /// Asks for the week in readable form. Best-effort: a summariser that is unconfigured,
+    /// out of budget or simply unavailable must not break the timesheet, so a failure shows
+    /// a reason rather than an error.
+    /// </summary>
+    private async Task SummariseWeekAsync()
+    {
+        _isSummarising = true;
+        _weekSummary = null;
+        try
+        {
+            _weekSummary = await SummariseWeekCall.Call(new SummariseWeek { WeekStart = _weekStart });
+        }
+        catch
+        {
+            _weekSummary = WeekSummaryDto.Unavailable("The summary could not be produced just now.");
+        }
+        finally
+        {
+            _isSummarising = false;
+        }
+    }
+
     private void PreviousWeek()
     {
+        _weekSummary = null;
         _weekStart = _weekStart.AddDays(-7);
         UpdateWeekDays();
         _ = LoadDataForWeek();
@@ -315,6 +405,7 @@
 
     private void NextWeek()
     {
+        _weekSummary = null;
         _weekStart = _weekStart.AddDays(7);
         UpdateWeekDays();
         _ = LoadDataForWeek();
