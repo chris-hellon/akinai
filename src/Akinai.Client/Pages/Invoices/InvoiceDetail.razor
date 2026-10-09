@@ -188,6 +188,7 @@
                         Total="@_invoice.Total"
                         Notes="@_invoice.Notes"
                         RequiredStatements="@_invoice.RequiredStatements"
+                        ShowScanToPay="@(Entitlements.Current?.ScanToPay ?? false)"
                         LineItems="@(_previewLines ?? _invoice.LineItems)"
                         ExpenseLineItems="@_invoice.ExpenseLineItems"
                         ProductLineItems="@_invoice.ProductLineItems"
@@ -210,6 +211,11 @@
             <!-- Sidebar -->
             <div class="space-y-6">
                 <!-- Details Card -->
+                @* Predicted dates are a paid feature; the invoice is perfectly usable
+                   without the card, so it is simply absent on Free rather than replaced
+                   by a nag. *@
+                @if (Entitlements.Current?.PaymentInsights ?? false)
+                {
                 <Card Title="Payment journey">
                     <PaymentJourney Status="@_invoice.Status"
                                     SentAtUtc="@_invoice.SentAtUtc"
@@ -220,6 +226,7 @@
                                     DueDate="@_invoice.DueDate"
                                     Timing="@_paymentTiming" />
                 </Card>
+                }
 
                 <Card Title="Details">
                     <dl class="space-y-3">
@@ -482,8 +489,11 @@
                 // the invoice rendering.
                 try
                 {
-                    _paymentTiming = await GetPaymentTimingCall.Call(
-                        new GetInvoicePaymentTiming { Id = Id });
+                    if (Entitlements.Current?.PaymentInsights ?? false)
+                    {
+                        _paymentTiming = await GetPaymentTimingCall.Call(
+                            new GetInvoicePaymentTiming { Id = Id });
+                    }
                 }
                 catch
                 {

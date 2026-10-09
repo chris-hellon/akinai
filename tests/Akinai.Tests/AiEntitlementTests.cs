@@ -29,6 +29,8 @@ public class AiEntitlementTests
         RecurringBilling: true,
         Estimates: true,
         CustomTemplates: true,
+        ScanToPay: true,
+        PaymentInsights: true,
         RemoveBranding: true,
         AllowedCurrencies: null,
         AllowedLanguages: null,

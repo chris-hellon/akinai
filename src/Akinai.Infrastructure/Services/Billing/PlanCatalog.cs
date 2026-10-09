@@ -88,6 +88,8 @@ public class PlanCatalog(
             p.Estimates,
             p.CustomTemplates,
             p.RemoveBranding,
+            p.ScanToPay,
+            p.PaymentInsights,
             p.AiSpendLimitUsd,
             p.Highlights.Split('\n', StringSplitOptions.RemoveEmptyEntries | StringSplitOptions.TrimEntries));
     }

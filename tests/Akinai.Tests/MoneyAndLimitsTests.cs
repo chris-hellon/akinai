@@ -17,7 +17,7 @@ public class MoneyAndLimitsTests
 {
     private static EntitlementsDto Ents(int? cap, int used, decimal? aiLimit = null, decimal aiSpent = 0m) =>
         new(BillingPlan.Pro, "Pro", SubscriptionStatus.Active, BillingCycle.Monthly, null, true,
-            cap, used, true, true, true, true, true, true, true, null, null, aiLimit, aiSpent);
+            cap, used, true, true, true, true, true, true, true, true, true, null, null, aiLimit, aiSpent);
 
     [Theory]
     [InlineData(5, 0, true)]
@@ -84,7 +84,7 @@ public class MoneyAndLimitsTests
         // £9/month against £90/year is two months free. Hardcoding "2 months"
         // anywhere would silently lie the first time a price changed.
         var pro = new PlanDefinition(BillingPlan.Pro, "Pro", "", 9m, 90m, "GBP", "£",
-            null, true, true, true, true, true, true, true, 1m, []);
+            null, true, true, true, true, true, true, true, true, true, 1m, []);
 
         pro.AnnualMonthsFree.Should().Be(2m);
         pro.PriceFor(BillingCycle.Annual).Should().Be(90m);
@@ -96,7 +96,7 @@ public class MoneyAndLimitsTests
     public void A_free_plan_reports_no_annual_saving_and_does_not_divide_by_zero()
     {
         var free = new PlanDefinition(BillingPlan.Free, "Free", "", 0m, 0m, "GBP", "£",
-            5, false, false, false, false, false, false, false, null, []);
+            5, false, false, false, false, false, false, false, false, false, null, []);
 
         free.AnnualMonthsFree.Should().Be(0m);
         free.IsPaid.Should().BeFalse();

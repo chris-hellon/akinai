@@ -823,6 +823,7 @@ else if (Status == "Void")
         get
         {
             if (CurrencyPaymentSettings is null) return null;
+            if (!ShowScanToPay) return null;
 
             var (rail, account, railName, showsReference) = Currency?.ToUpperInvariant() switch
             {
@@ -849,6 +850,13 @@ else if (Status == "Void")
             return image is null ? null : new ScanToPayQr(railName, image, showsReference);
         }
     }
+
+    /// <summary>
+    /// Whether this account's plan includes scan-to-pay. Passed in rather than read from
+    /// entitlement state, because this component also renders on the client's public copy
+    /// and inside the PDF, where there is no signed-in account to ask.
+    /// </summary>
+    [Parameter] public bool ShowScanToPay { get; set; } = true;
 
     private bool HasVietQr()
     {

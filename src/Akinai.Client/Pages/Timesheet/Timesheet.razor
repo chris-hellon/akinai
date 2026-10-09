@@ -4,6 +4,7 @@
 @inject ICall<GetWeeklyTimeEntries, List<TimeEntryDto>> GetTimeEntriesCall
 @inject ICall<LogTimeEntry, Guid> LogTimeEntryCall
 @inject TimeTrackingState Tracking
+@inject EntitlementState Entitlements
 @inject ICall<SummariseWeek, WeekSummaryDto> SummariseWeekCall
 @using Akinai.Shared.Api.Timesheet
 @using Akinai.Shared.Dtos.Timesheet
@@ -59,11 +60,26 @@
                 </div>
             </div>
 
-            <SecondaryButton Text="Summarise my week"
-                             LoadingText="Summarising…"
-                             IsLoading="_isSummarising"
-                             Disabled="@(GetWeekTotal() == 0)"
-                             OnClick="SummariseWeekAsync" />
+            @* Gated the same way the invoice summariser is: the plan is enforced server-side
+               where the money is actually spent, so this is only about not offering a
+               button that will refuse. An account with no AI at all sees the upgrade hint;
+               a Pro account that has merely spent this month's allowance still gets the
+               button, because that is a different message and comes back from the server. *@
+            @if (Entitlements.Current?.HasAiFeatures ?? false)
+            {
+                <SecondaryButton Text="Summarise my week"
+                                 LoadingText="Summarising…"
+                                 IsLoading="_isSummarising"
+                                 Disabled="@(GetWeekTotal() == 0)"
+                                 OnClick="SummariseWeekAsync" />
+            }
+            else
+            {
+                @* The inline note, not UpgradePrompt: the timesheet still works perfectly
+                   without this, so replacing a button with a full upgrade card would
+                   overstate what is missing. *@
+                <PlanRestrictionNote Message="Summarise your week into something you can send — a Pro feature." />
+            }
 
             <button @onclick="OpenJobPicker"
                     class="inline-flex items-center justify-center gap-2 px-5 py-2.5 text-sm font-medium text-white rounded-xl shadow-md transition-all duration-200 hover:shadow-lg active:scale-[0.98] brand-mark">
@@ -350,6 +366,7 @@
 
     protected override async Task OnInitializedAsync()
     {
+        await Entitlements.EnsureLoadedAsync();
         Tracking.OnEntryLogged += OnEntryLogged;
         GoToCurrentWeek();
         await LoadData();

@@ -303,7 +303,8 @@ public class GetPublicInvoiceHandler(IDbContextFactory<ApplicationDbContext> dbF
             templateDto,
             language.ToString(),
             await DocumentBranding.ShowForAsync(entitlements, invoice.CreatedBy, cancellationToken),
-            compliance.RequiredStatements.ToList());
+            compliance.RequiredStatements.ToList(),
+            ShowScanToPay: await ScanToPayEntitlement.ShowForAsync(entitlements, invoice.CreatedBy, cancellationToken));
 
         return HttpResult<PublicInvoiceDto?>.Ok(result);
     }

@@ -23,6 +23,8 @@ public record PlanDefinition(
     bool Estimates,
     bool CustomTemplates,
     bool RemoveBranding,
+    bool ScanToPay,
+    bool PaymentInsights,
     /// <summary>
     /// Monthly AI/translation allowance in USD, or null when the plan has none.
     /// A fuse against runaway usage rather than a real cost centre — see AiPricing.
@@ -67,6 +69,8 @@ public static class Plans
         Estimates: false,
         CustomTemplates: false,
         RemoveBranding: false,
+        ScanToPay: false,
+        PaymentInsights: false,
         AiSpendLimitUsd: null,
         Highlights:
         [
@@ -75,6 +79,7 @@ public static class Plans
             "Time tracking and timesheets",
             "One currency, English invoices",
             "Expenses and reporting",
+            "Tax treatment worked out, and VAT numbers checked, before you send",
         ]);
 
     public static readonly PlanDefinition Pro = new(
@@ -93,6 +98,8 @@ public static class Plans
         Estimates: true,
         CustomTemplates: true,
         RemoveBranding: true,
+        ScanToPay: true,
+        PaymentInsights: true,
         // ~£1.00 at the time of writing. Denominated in USD because that is
         // what the model providers bill in; the round number is the GBP side,
         // so this will drift with the rate and is worth a look occasionally.
@@ -112,6 +119,8 @@ public static class Plans
             "Recurring invoices and expenses",
             "Estimates your clients sign online",
             "AI-powered invoicing — line items written and translated for you",
+            "Scan-to-pay QR codes — SEPA, UPI, PIX, PromptPay and VietQR",
+            "Predicted payment dates, learned from how your clients actually pay",
             "Your own branding on invoices",
         ]);
 

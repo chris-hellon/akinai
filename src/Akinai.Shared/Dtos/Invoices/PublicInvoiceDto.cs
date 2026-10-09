@@ -60,4 +60,10 @@ public record PublicInvoiceDto(
     /// a paid perk.
     /// </summary>
     bool ShowBranding = true,
-    List<string>? RequiredStatements = null);
+    List<string>? RequiredStatements = null,
+    /// <summary>
+    /// Whether the issuing account's plan includes scan-to-pay. Resolved server-side for
+    /// the same reason branding is: the person reading a public invoice is an anonymous
+    /// client with no plan of their own.
+    /// </summary>
+    bool ShowScanToPay = false);

@@ -25,6 +25,10 @@ public record EntitlementsDto(
     bool Estimates,
     bool CustomTemplates,
     bool RemoveBranding,
+    /// <summary>Scan-to-pay QR codes on invoices.</summary>
+    bool ScanToPay,
+    /// <summary>Predicted payment dates and the payment journey.</summary>
+    bool PaymentInsights,
     /// <summary>
     /// The currencies this account may use, or null when unrestricted.
     ///

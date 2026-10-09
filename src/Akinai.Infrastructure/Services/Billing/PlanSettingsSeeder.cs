@@ -45,6 +45,8 @@ public static class PlanSettingsSeeder
                 definition.Estimates,
                 definition.CustomTemplates,
                 definition.RemoveBranding,
+                definition.ScanToPay,
+                definition.PaymentInsights,
                 definition.AiSpendLimitUsd,
                 string.Join('\n', definition.Highlights),
                 index));

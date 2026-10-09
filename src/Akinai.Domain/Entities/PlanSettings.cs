@@ -41,6 +41,20 @@ public class PlanSettings : IAuditableEntity
     public bool CustomTemplates { get; private set; }
     public bool RemoveBranding { get; private set; }
 
+    /// <summary>
+    /// Scan-to-pay QR codes on the invoice — SEPA, UPI, PIX, PromptPay, VietQR.
+    /// A convenience that gets you paid faster, rather than something that stops the
+    /// invoice being wrong, which is why it sits on the paid side.
+    /// </summary>
+    public bool ScanToPay { get; private set; }
+
+    /// <summary>
+    /// Predicted payment dates from the account's own history, and the payment journey.
+    /// Needs a body of settled invoices to say anything, so it is of little use on a plan
+    /// capped at five a month in any case.
+    /// </summary>
+    public bool PaymentInsights { get; private set; }
+
     /// <summary>Monthly AI allowance in USD; null when the tier has none.</summary>
     public decimal? AiSpendLimitUsd { get; private set; }
 
@@ -67,6 +81,7 @@ public class PlanSettings : IAuditableEntity
         decimal monthlyPrice, decimal annualPrice, string currency, string currencySymbol,
         int? invoicesPerMonth, bool multiCurrency, bool allLanguages, bool bankImport,
         bool recurringBilling, bool estimates, bool customTemplates, bool removeBranding,
+        bool scanToPay, bool paymentInsights,
         decimal? aiSpendLimitUsd, string highlights, int sortOrder)
         => new()
         {
@@ -86,6 +101,8 @@ public class PlanSettings : IAuditableEntity
             Estimates = estimates,
             CustomTemplates = customTemplates,
             RemoveBranding = removeBranding,
+            ScanToPay = scanToPay,
+            PaymentInsights = paymentInsights,
             AiSpendLimitUsd = aiSpendLimitUsd,
             Highlights = highlights,
             SortOrder = sortOrder,

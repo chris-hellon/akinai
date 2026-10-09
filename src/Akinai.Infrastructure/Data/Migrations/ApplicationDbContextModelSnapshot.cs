@@ -1541,6 +1541,9 @@ namespace Akinai.Infrastructure.Data.Migrations
                         .HasMaxLength(60)
                         .HasColumnType("nvarchar(60)");
 
+                    b.Property<bool>("PaymentInsights")
+                        .HasColumnType("bit");
+
                     b.Property<string>("Plan")
                         .IsRequired()
                         .HasMaxLength(20)
@@ -1550,6 +1553,9 @@ namespace Akinai.Infrastructure.Data.Migrations
                         .HasColumnType("bit");
 
                     b.Property<bool>("RemoveBranding")
+                        .HasColumnType("bit");
+
+                    b.Property<bool>("ScanToPay")
                         .HasColumnType("bit");
 
                     b.Property<int>("SortOrder")
