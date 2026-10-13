@@ -29,7 +29,8 @@ public class GetActiveJobsHandler(IDbContextFactory<ApplicationDbContext> dbFact
             j.Name,
             j.Project.Name,
             j.Project.Client.Name,
-            j.GetEffectiveHourlyRate())).ToList();
+            j.GetEffectiveHourlyRate(),
+            j.Project.Client.Currency)).ToList();
 
         return HttpResult<List<ActiveJobDto>>.Ok(result);
     }

@@ -782,7 +782,7 @@
         [Range(0.01, 10000)]
         public decimal? EstimatedHours { get; set; }
 
-        [Range(0.01, 10000, ErrorMessage = "Rate must be between $0.01 and $10,000")]
+        [Range(0.01, 10000, ErrorMessage = "Rate must be between 0.01 and 10,000")]
         public decimal? HourlyRateOverride { get; set; }
     }
 }

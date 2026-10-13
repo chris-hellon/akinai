@@ -5,4 +5,5 @@ public record ActiveJobDto(
     string Name,
     string ProjectName,
     string ClientName,
-    decimal HourlyRate);
+    decimal HourlyRate,
+    string Currency);
