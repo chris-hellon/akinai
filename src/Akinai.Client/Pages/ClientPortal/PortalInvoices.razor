@@ -55,7 +55,42 @@
         else
         {
             <div class="bg-white dark:bg-slate-800 rounded-lg shadow-sm overflow-hidden">
-                <table class="min-w-full divide-y divide-gray-100 dark:divide-slate-700">
+                @* Six columns do not fit a phone, and the wrapper is overflow-hidden, so
+                   below sm they were clipped rather than scrollable — a client opening
+                   their invoice list on a phone simply could not see the amount or the
+                   View link. Cards below, table from sm up. *@
+                <div class="sm:hidden divide-y divide-gray-100 dark:divide-slate-700">
+                    @foreach (var invoice in _response.Items)
+                    {
+                        var (cardBg, cardText) = GetStatusClasses(invoice.Status);
+                        <div class="p-4">
+                            <div class="flex items-start justify-between gap-3">
+                                <div class="min-w-0">
+                                    <div class="text-sm font-medium text-gray-900 dark:text-slate-100">@invoice.InvoiceNumber</div>
+                                    <div class="text-xs text-gray-500 dark:text-slate-400 mt-0.5">
+                                        Due @invoice.DueDate.ToString("d MMM yyyy")
+                                    </div>
+                                </div>
+                                <div class="text-right shrink-0">
+                                    <div class="text-sm font-semibold text-gray-900 dark:text-slate-100">
+                                        @CurrencyExtensions.GetSymbol(invoice.Currency)@invoice.Total.ToString("N2")
+                                    </div>
+                                    <span class="inline-flex items-center px-2 py-0.5 mt-1 rounded-lg text-xs font-medium @cardBg @cardText">@invoice.Status</span>
+                                </div>
+                            </div>
+                            @if (invoice.PublicAccessToken.HasValue)
+                            {
+                                @* Full-width and tappable, rather than a text link in a cell. *@
+                                <a href="@($"/invoice/{invoice.PublicAccessToken.Value}")" target="_blank"
+                                   class="mt-3 flex items-center justify-center w-full py-2.5 rounded-xl border border-gray-200 dark:border-slate-600 text-sm font-medium text-primary-600 dark:text-primary-400">
+                                    View invoice
+                                </a>
+                            }
+                        </div>
+                    }
+                </div>
+
+                <table class="hidden sm:table min-w-full divide-y divide-gray-100 dark:divide-slate-700">
                     <thead class="bg-gray-50 dark:bg-slate-700/50">
                         <tr>
                             <th class="px-6 py-4 text-left text-xs font-semibold text-gray-500 dark:text-slate-400 uppercase tracking-wider">Invoice</th>

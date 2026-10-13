@@ -105,10 +105,15 @@
                             </button>
 
                             <!-- Divider -->
-                            <div class="hidden sm:block h-6 w-px bg-gray-200 dark:bg-slate-700"></div>
+                            <div class="hidden lg:block h-6 w-px bg-gray-200 dark:bg-slate-700"></div>
 
                             <!-- User Menu -->
-                            <div class="relative" @ref="_userMenuRoot">
+                            @* Hidden below lg rather than merely emptied: the button's only
+                               content is the `hidden lg:flex` name and chevron, so on a phone
+                               it rendered as an invisible flex item and gap-4 left a stray
+                               16px after the dark-mode toggle. Nothing is lost — Dashboard,
+                               Settings and Sign Out are all in the sidebar. *@
+                            <div class="relative hidden lg:block" @ref="_userMenuRoot">
                                 <ClickOutside Target="_userMenuRoot" Active="_userMenuOpen" OnClose="CloseUserMenu" />
                                 <button type="button"
                                         class="flex items-center gap-3 p-1 -m-1 rounded-xl hover:bg-gray-100 dark:hover:bg-slate-800 transition-colors"
@@ -286,6 +291,13 @@
     private void OnLocationChanged(object? sender, LocationChangedEventArgs e)
     {
         _currentPath = GetRelativePath();
+
+        // The drawer covers the page on a phone, so leaving it open over the destination
+        // means every navigation needs a second tap to dismiss it. Closed here rather
+        // than on each link: NavMenu has around twenty, one would eventually be missed,
+        // and this also catches navigation that does not come from a link at all.
+        _mobileSidebarOpen = false;
+
         InvokeAsync(StateHasChanged);
     }
 

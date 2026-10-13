@@ -23,7 +23,16 @@
 
     @if (_open)
     {
-        <div class="absolute right-0 mt-2 w-[420px] max-w-[calc(100vw-24px)] bg-white dark:bg-[#1b1612] rounded-2xl shadow-xl ring-1 ring-black/5 dark:ring-white/10 z-50 overflow-hidden">
+        @* The panel is anchored to the bell's right edge, which sits a few pixels from the
+           right of a phone screen — so a 420px panel ran off the left of the viewport and
+           was clipped. max-w caps the width but cannot move it back on screen.
+
+           Below sm it is therefore pinned to the viewport instead: fixed, inset by 12px
+           either side, and dropped just below the 4rem sticky header. From sm up it goes
+           back to hanging off the bell exactly as before. *@
+        <div class="fixed inset-x-3 top-[4.25rem] sm:absolute sm:inset-x-auto sm:right-0 sm:top-auto sm:mt-2
+                    w-auto sm:w-[420px] max-h-[75vh] overflow-y-auto
+                    bg-white dark:bg-[#1b1612] rounded-2xl shadow-xl ring-1 ring-black/5 dark:ring-white/10 z-50">
             <div class="flex items-center justify-between px-5 py-3.5 border-b border-gray-100 dark:border-[#2f2924]">
                 <span class="text-[15px] font-semibold text-gray-900 dark:text-slate-100" style="font-family:'Shippori Mincho',sans-serif">Notifications</span>
                 @if (Notifications.UnreadCount > 0)

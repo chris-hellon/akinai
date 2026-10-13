@@ -20,14 +20,17 @@
     <!-- Week Navigation Card -->
     <div class="bg-white dark:bg-slate-800 rounded-lg border border-gray-100 dark:border-slate-700 shadow-sm overflow-hidden">
         <div class="p-5 flex flex-col sm:flex-row sm:items-center sm:justify-between gap-4">
-            <div class="flex items-center gap-3">
+            @* w-full with the arrows pushed to the edges on a phone: as a content-width
+               group it left a third of the row empty after the forward arrow. From sm up
+               it goes back to sitting at its natural width beside the stats. *@
+            <div class="w-full sm:w-auto flex items-center justify-between sm:justify-start gap-3">
                 <button @onclick="PreviousWeek"
                         class="p-2.5 text-gray-500 dark:text-slate-400 hover:text-gray-700 dark:hover:text-slate-200 hover:bg-gray-100 dark:hover:bg-[#2f2924] rounded-xl transition-colors">
                     <svg class="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
                         <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M15 19l-7-7 7-7" />
                     </svg>
                 </button>
-                <div class="text-center min-w-[180px]">
+                <div class="flex-1 sm:flex-none text-center min-w-[180px]">
                     <h2 class="text-base font-semibold text-gray-900 dark:text-slate-100">
                         @_weekStart.ToString("MMM d") - @_weekEnd.ToString("MMM d, yyyy")
                     </h2>
@@ -44,7 +47,9 @@
             </div>
 
             <!-- Week Summary Stats -->
-            <div class="flex items-center gap-6">
+            @* Same treatment as the nav above: as a content-width group these sat bunched
+               to the left of a full-width row. Spread on a phone, natural width from sm. *@
+            <div class="w-full sm:w-auto flex items-center justify-around sm:justify-start gap-6">
                 <div class="text-center">
                     <div class="text-2xl font-bold text-primary-600 dark:text-primary-400">
                         @GetWeekTotal().ToString("N2")
@@ -183,8 +188,12 @@
     }
     else
     {
-        <!-- Timesheet Grid -->
-        <div class="bg-white dark:bg-slate-800 rounded-lg border border-gray-100 dark:border-slate-700 shadow-sm overflow-hidden">
+        @* The week grid needs roughly 690px before it starts scrolling sideways — a 180px
+           job column plus seven days plus a total. On a phone that means seeing two days
+           at a time and hunting for the rest, so below lg it is replaced entirely by the
+           day-at-a-time layout underneath rather than squeezed. *@
+        <!-- Timesheet Grid (lg and up) -->
+        <div class="hidden lg:block bg-white dark:bg-slate-800 rounded-lg border border-gray-100 dark:border-slate-700 shadow-sm overflow-hidden">
             <div class="overflow-x-auto">
                 <table class="w-full">
                     <thead>
@@ -306,6 +315,96 @@
             </div>
         </div>
 
+        @* Day at a time, for phones. Entering a timesheet on a phone is almost always
+           "what did I do today", not "reconcile my whole week", so the day comes first and
+           the jobs list under it. *@
+        <div class="lg:hidden space-y-3">
+            @* Seven equal cells. Every day carries a background, not just the selected
+               one — otherwise the grid stretches all cells to the row height and only the
+               selected cell paints it, so one black block appears to float among plain
+               text. Fixed height keeps the strip compact and the row even. *@
+            <div class="bg-white dark:bg-slate-800 rounded-lg border border-gray-100 dark:border-slate-700 shadow-sm p-2">
+                <div class="grid grid-cols-7 gap-1.5">
+                    @foreach (var day in _weekDays)
+                    {
+                        var isSelected = day == _selectedDay;
+                        var isToday = day == DateOnly.FromDateTime(DateTime.Today);
+                        var dayTotal = GetDayTotal(day);
+                        <button type="button" @onclick="@(() => _selectedDay = day)"
+                                class="h-14 flex flex-col items-center justify-center gap-0.5 rounded-lg transition-colors @(isSelected
+                                    ? "bg-primary-600 text-white"
+                                    : "bg-gray-50 dark:bg-slate-700/40 text-gray-600 dark:text-slate-300 hover:bg-gray-100 dark:hover:bg-slate-700")">
+                            <span class="text-[10px] uppercase leading-none @(isSelected ? "text-white/70" : "text-gray-400 dark:text-slate-500")">
+                                @day.ToString("ddd")[..1]
+                            </span>
+                            <span class="text-sm font-semibold leading-none @(isToday && !isSelected ? "text-primary-600 dark:text-primary-400" : "")">
+                                @day.Day
+                            </span>
+                            @* Always rendered so every cell is the same height; invisible
+                               when the day is empty. *@
+                            <span class="w-1.5 h-1.5 rounded-full @(dayTotal > 0
+                                ? (isSelected ? "bg-white" : "bg-primary-500")
+                                : "bg-transparent")"></span>
+                        </button>
+                    }
+                </div>
+            </div>
+
+            <div class="bg-white dark:bg-slate-800 rounded-lg border border-gray-100 dark:border-slate-700 shadow-sm overflow-hidden">
+                <div class="px-4 py-3 border-b border-gray-100 dark:border-slate-700 flex items-baseline justify-between">
+                    <div class="text-sm font-semibold text-gray-900 dark:text-slate-100">
+                        @_selectedDay.ToString("dddd d MMMM")
+                    </div>
+                    <div class="text-sm font-semibold text-primary-600 dark:text-primary-400">
+                        @GetDayTotal(_selectedDay).ToString("N2") h
+                    </div>
+                </div>
+
+                @if (_displayedJobs is { Count: > 0 })
+                {
+                    <div class="divide-y divide-gray-100 dark:divide-slate-700">
+                        @foreach (var job in _displayedJobs)
+                        {
+                            var entry = GetTimeEntry(job.Id, _selectedDay);
+                            var hasHours = entry is { Hours: > 0 };
+                            var isInactive = !job.IsActive;
+                            <div class="px-4 py-3 flex items-center gap-3">
+                                <div class="min-w-0 flex-1">
+                                    <div class="text-sm font-medium text-gray-900 dark:text-slate-100 truncate">@job.Name</div>
+                                    <div class="text-xs text-gray-500 dark:text-slate-400 truncate">@job.ProjectName &middot; @job.ClientName</div>
+                                </div>
+                                @if (isInactive)
+                                {
+                                    <div class="shrink-0 w-20 text-center border rounded-lg py-2.5 text-sm font-medium bg-gray-50 dark:bg-slate-800 border-gray-100 dark:border-slate-700 text-gray-400 dark:text-slate-500">
+                                        @FormatHoursToTime(entry?.Hours ?? 0)
+                                    </div>
+                                }
+                                else
+                                {
+                                    @* w-20 and py-2.5 give a target comfortably over the 44px
+                                       minimum a thumb needs; the 48px cell in the week grid is
+                                       fine with a mouse and fiddly without one. *@
+                                    <input type="text" inputmode="decimal" placeholder="0:00"
+                                           value="@FormatHoursToTime(entry?.Hours ?? 0)"
+                                           @onchange="@(e => UpdateTimeEntry(job.Id, _selectedDay, e.Value?.ToString()))"
+                                           onfocus="this.select()"
+                                           class="shrink-0 w-20 text-center border rounded-lg py-2.5 text-sm font-medium transition-all focus:outline-none focus:ring-2 focus:ring-primary-500/20 focus:border-primary-400 @(hasHours
+                                               ? "bg-primary-100 dark:bg-primary-900/50 border-primary-300 dark:border-primary-700 text-primary-700 dark:text-primary-300"
+                                               : "bg-white dark:bg-slate-800 border-gray-200 dark:border-slate-600 text-gray-600 dark:text-slate-300")" />
+                                }
+                            </div>
+                        }
+                    </div>
+                }
+                else
+                {
+                    <div class="px-4 py-8 text-center text-sm text-gray-500 dark:text-slate-400">
+                        No jobs on this timesheet yet.
+                    </div>
+                }
+            </div>
+        </div>
+
         <!-- Quick Tips -->
         <div class="flex items-center gap-3 text-xs text-gray-500 dark:text-slate-400">
             <svg class="w-4 h-4 text-gray-400 dark:text-slate-500" fill="none" stroke="currentColor" viewBox="0 0 24 24">
@@ -363,6 +462,12 @@
     private DateOnly _weekStart;
     private DateOnly _weekEnd;
     private readonly DateOnly[] _weekDays = new DateOnly[7];
+
+    /// <summary>
+    /// The day the phone layout is showing. Today when the displayed week contains it,
+    /// otherwise the Monday — landing on a day you cannot have worked would be odd.
+    /// </summary>
+    private DateOnly _selectedDay;
 
     protected override async Task OnInitializedAsync()
     {
@@ -455,6 +560,10 @@
         {
             _weekDays[i] = _weekStart.AddDays(i);
         }
+
+        // Keep the phone layout's day inside the week being shown.
+        var today = DateOnly.FromDateTime(DateTime.Today);
+        _selectedDay = today >= _weekStart && today <= _weekEnd ? today : _weekStart;
     }
 
     private async Task LoadData()
