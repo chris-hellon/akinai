@@ -1071,6 +1071,9 @@ namespace Akinai.Infrastructure.Data.Migrations
                     b.Property<Guid?>("PublicAccessToken")
                         .HasColumnType("uniqueidentifier");
 
+                    b.Property<DateTime?>("SendStartedAtUtc")
+                        .HasColumnType("datetime2");
+
                     b.Property<DateTime?>("SentAtUtc")
                         .HasColumnType("datetime2");
 

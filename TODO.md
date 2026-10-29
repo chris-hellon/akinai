@@ -1,6 +1,6 @@
 # TODO
 
-Running list of known work. Nothing here is urgent-broken — the app builds, 534 tests
+Running list of known work. Nothing here is urgent-broken — the app builds, 544 tests
 pass, and the cross-border compliance work is live end to end.
 
 ## Half-built: tested logic with nothing calling it
@@ -70,12 +70,6 @@ the persistence and the wiring are not.
       timestamp — that record is audit evidence, and being able to produce it is itself a
       selling point.
 
-- [ ] **A sweep for interrupted sends.** Sending is two-phase: the status is committed
-      before the document is rendered, and rolled back if the email fails. A process that
-      dies between the phases leaves `Status = Sent` with `SentAtUtc IS NULL`. Wrong but
-      detectable, and it over-reports rather than losing a send. A background reconcile
-      could clear it.
-
 - [ ] **Extend handler test coverage.** `InvoiceTestContext` gives handlers a real SQLite
       database. It now serves invoice totals, compliance, pre-flight and evidence; the same
       fixture would serve estimates, recurring invoices, expenses and the PDF renderer, none
@@ -139,6 +133,23 @@ sake: the timesheet summariser earns its place by solving a real grouping proble
       `UpdateDetails` happened to run before the time entries, expenses and line items,
       which are written through the DbSet and were covered by nothing but that ordering.
       Sending now says so before it happens, in the send modal and on Mark as sent.
+
+- [x] **Interrupted sends are swept, and the signature this was going to use was wrong.**
+      The plan was to find `Status = Sent` with `SentAtUtc IS NULL`. That is not a broken
+      send — `MarkInvoiceSent` produces exactly that row, and marking an invoice sent by
+      hand is ordinary for one posted or emailed from the user's own client. Six of the
+      seven invoices in the local database look like that. A sweep on that signature would
+      have returned them all to draft.
+      So the state is recorded rather than inferred: `Invoice.SendStartedAtUtc`, set only
+      by `BeginSend` on the email path and cleared by both `RecordDelivery` and
+      `AbandonSend`. `MarkSentManually` never sets it, and the column shipped with no
+      backfill, so every invoice predating it is invisible to the sweeper.
+      `AbandonedSendSweeper` returns to draft anything in flight for more than thirty
+      minutes — rolling back rather than reporting, because `Edit` refuses on a non-draft,
+      so a stuck invoice can otherwise be neither corrected nor re-sent. The grace period
+      is generous because the render launches Chromium and then waits on SMTP, and
+      rolling back a merely slow send would deliver the invoice and leave it saying Draft.
+      Nine tests, mostly about what it must *not* touch; all three guards mutation-verified.
 
 - [x] **The evidence pack has a UI.** `/invoices/{id}/evidence` shows the delivery record —
       what was sent, to whom, the document fingerprint and what it proves, every opening,

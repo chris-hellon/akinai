@@ -51,6 +51,24 @@ public class Invoice : AggregateRoot, IAuditableEntity
     /// <summary>SHA-256 of the PDF that was attached, as lower-case hex.</summary>
     public string? SentDocumentSha256 { get; private set; }
 
+    /// <summary>
+    /// When an email send was begun, cleared the moment it finishes either way.
+    ///
+    /// Exists so that an in-flight send is a state the database can name. Sending commits
+    /// the status before it renders and emails the document, so a process that dies in
+    /// between leaves an invoice marked Sent that nobody ever received. That was said to
+    /// be "wrong but detectable" — it was not. <see cref="MarkSentManually"/> produces
+    /// exactly the same row, and marking an invoice sent by hand is a normal thing to do,
+    /// so "Sent with no delivery record" describes the ordinary case far more often than
+    /// the broken one. Anything sweeping on that signature would have returned invoices
+    /// to draft that the user had deliberately marked as sent.
+    ///
+    /// Set only by <see cref="BeginSend"/>, so it is null on every invoice that predates
+    /// it and on every manual mark. A row where this is set and <see cref="SentAtUtc"/> is
+    /// not is unambiguously a send that started and never finished.
+    /// </summary>
+    public DateTime? SendStartedAtUtc { get; private set; }
+
     public DateTime? FirstViewedAtUtc { get; private set; }
     public DateTime? LastViewedAtUtc { get; private set; }
     public int ViewCount { get; private set; }
@@ -158,7 +176,12 @@ public class Invoice : AggregateRoot, IAuditableEntity
         TemplateId = templateId;
     }
 
-    public void Send()
+    /// <summary>
+    /// Leaves draft. Shared by both routes out of it; callers use <see cref="BeginSend"/>
+    /// or <see cref="MarkSentManually"/> rather than this, so that which route was taken
+    /// is recorded rather than lost.
+    /// </summary>
+    private void LeaveDraft()
     {
         if (Status != InvoiceStatus.Draft)
             throw new DomainException("Only draft invoices can be sent");
@@ -167,6 +190,29 @@ public class Invoice : AggregateRoot, IAuditableEntity
 
         // Generate public access token if not already set
         PublicAccessToken ??= Guid.NewGuid();
+    }
+
+    /// <summary>
+    /// Starts an email send: the status is committed now, and the document is rendered
+    /// and emailed afterwards. <see cref="SendStartedAtUtc"/> marks it as in flight so
+    /// that an attempt which never reaches <see cref="RecordDelivery"/> or
+    /// <see cref="AbandonSend"/> — because the process died — can be told apart from an
+    /// invoice someone simply marked as sent.
+    /// </summary>
+    public void BeginSend(DateTime startedAtUtc)
+    {
+        LeaveDraft();
+        SendStartedAtUtc = startedAtUtc;
+    }
+
+    /// <summary>
+    /// Records that the user sent this invoice themselves — by their own mail client, by
+    /// post, by hand. A finished state, not an in-flight one: there is no delivery record
+    /// to wait for, because Akinai did not do the sending and cannot attest to it.
+    /// </summary>
+    public void MarkSentManually()
+    {
+        LeaveDraft();
     }
 
     /// <summary>
@@ -194,6 +240,7 @@ public class Invoice : AggregateRoot, IAuditableEntity
             throw new DomainException("This invoice has already been delivered and cannot be returned to draft");
 
         Status = InvoiceStatus.Draft;
+        SendStartedAtUtc = null;
     }
 
     public void MarkAsPaid(DateOnly paidDate)
@@ -296,5 +343,10 @@ public class Invoice : AggregateRoot, IAuditableEntity
         SentAtUtc = sentAtUtc;
         SentToEmail = toEmail;
         SentDocumentSha256 = documentSha256;
+
+        // The send is over, so it is no longer in flight. Left set, the invoice would be
+        // swept as abandoned despite having been delivered — and AbandonSend's own guard
+        // is the only thing that would then stop it being walked back.
+        SendStartedAtUtc = null;
     }
 }

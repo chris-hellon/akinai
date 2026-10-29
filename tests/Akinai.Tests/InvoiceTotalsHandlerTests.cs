@@ -161,7 +161,7 @@ public class InvoiceTotalsHandlerTests
             db.InvoiceLineItems.Add(
                 InvoiceLineItem.Create(ctx.InvoiceId, "Hosting", quantity: 1m, unitPrice: 250m, "GBP", order: 0));
             var invoice = await db.Invoices.SingleAsync(i => i.Id == ctx.InvoiceId, Ct);
-            invoice.Send();
+            invoice.MarkSentManually();
             await db.SaveChangesAsync(Ct);
         }
         await ctx.RecalculateAsync();

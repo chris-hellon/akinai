@@ -107,7 +107,7 @@ public class SendInvoiceHandler(
         // by AbandonSend, which is permitted precisely because no delivery has been
         // recorded yet — so a failed attempt leaves no trace, exactly as before, while the
         // emailed document is now the same one the client sees online.
-        invoice.Send();
+        invoice.BeginSend(DateTime.UtcNow);
         await db.SaveChangesAsync(cancellationToken);
 
         byte[] pdfBytes;

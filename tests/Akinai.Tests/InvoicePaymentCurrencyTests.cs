@@ -59,7 +59,7 @@ public class InvoicePaymentCurrencyTests
     {
         await using var db = ctx.NewContext();
         var invoice = await db.Invoices.FirstAsync(i => i.Id == ctx.InvoiceId);
-        invoice.Send();
+        invoice.MarkSentManually();
         await db.SaveChangesAsync();
     }
 

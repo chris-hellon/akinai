@@ -28,7 +28,9 @@ public class MarkInvoiceSentHandler(
         if (invoice.Status != InvoiceStatus.Draft)
             return HttpResult.NoContent(); // already sent/paid/etc. — nothing to do
 
-        invoice.Send();
+        // Not BeginSend: nothing is in flight. The user is telling us they sent this
+        // themselves, which is a finished state with no delivery record to wait for.
+        invoice.MarkSentManually();
         await db.SaveChangesAsync(cancellationToken);
 
         await notifications.CreateAsync(

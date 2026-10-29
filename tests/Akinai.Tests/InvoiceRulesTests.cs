@@ -35,7 +35,7 @@ public class InvoiceRulesTests
         // The client already has this document. Changing dates or amounts under
         // them is the single worst thing an invoicing tool can do.
         var invoice = Draft();
-        invoice.Send();
+        invoice.MarkSentManually();
 
         var edit = () => invoice.UpdateDetails(
             new DateOnly(2026, 1, 1), new DateOnly(2026, 2, 1), 0m, "changed");
@@ -47,7 +47,7 @@ public class InvoiceRulesTests
     public void A_paid_invoice_cannot_be_voided()
     {
         var invoice = Draft();
-        invoice.Send();
+        invoice.MarkSentManually();
         invoice.MarkAsPaid(new DateOnly(2026, 7, 20));
 
         var voidIt = () => invoice.Void();
@@ -58,7 +58,7 @@ public class InvoiceRulesTests
     public void An_invoice_cannot_be_paid_twice()
     {
         var invoice = Draft();
-        invoice.Send();
+        invoice.MarkSentManually();
         invoice.MarkAsPaid(new DateOnly(2026, 7, 20));
 
         var again = () => invoice.MarkAsPaid(new DateOnly(2026, 7, 21));
@@ -200,7 +200,7 @@ public class InvoiceRulesTests
         // The status is committed before the document is rendered, so that the PDF shows
         // "Sent". This is what puts it back when the render or the email then fails.
         var invoice = Draft();
-        invoice.Send();
+        invoice.MarkSentManually();
 
         invoice.AbandonSend();
 
@@ -213,7 +213,7 @@ public class InvoiceRulesTests
         // The guard that keeps AbandonSend from being a general un-send: once a delivery
         // is recorded the email has gone and the client holds the document.
         var invoice = Draft();
-        invoice.Send();
+        invoice.MarkSentManually();
         invoice.RecordDelivery(Now, "client@example.com", "abc123");
 
         var abandon = () => invoice.AbandonSend();
@@ -235,10 +235,10 @@ public class InvoiceRulesTests
     {
         // A failed send must leave the invoice in a state the user can retry from.
         var invoice = Draft();
-        invoice.Send();
+        invoice.MarkSentManually();
         invoice.AbandonSend();
 
-        var resend = () => invoice.Send();
+        var resend = () => invoice.MarkSentManually();
 
         resend.Should().NotThrow();
         invoice.Status.Should().Be(InvoiceStatus.Sent);
@@ -250,7 +250,7 @@ public class InvoiceRulesTests
         // Send() mints the token. If abandoning cleared it, a retry would hand the client
         // a different link from any earlier attempt.
         var invoice = Draft();
-        invoice.Send();
+        invoice.MarkSentManually();
         var token = invoice.PublicAccessToken;
 
         invoice.AbandonSend();

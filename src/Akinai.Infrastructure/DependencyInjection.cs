@@ -133,6 +133,8 @@ public static class DependencyInjection
 
         services.AddHostedService<DunningService>();
 
+        services.AddHostedService<AbandonedSendSweeper>();
+
         return services;
     }
 }

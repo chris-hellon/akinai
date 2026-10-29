@@ -63,7 +63,7 @@ public class InvoiceEditLockTests
     public async Task A_sent_invoice_is_refused()
     {
         using var ctx = await SeededAsync();
-        await SetStatusAsync(ctx, i => i.Send());
+        await SetStatusAsync(ctx, i => i.MarkSentManually());
 
         var result = await Handler(ctx).Handle(Edit(ctx.InvoiceId), default);
 
@@ -74,7 +74,7 @@ public class InvoiceEditLockTests
     public async Task A_paid_invoice_is_refused()
     {
         using var ctx = await SeededAsync();
-        await SetStatusAsync(ctx, i => { i.Send(); i.MarkAsPaid(new DateOnly(2026, 8, 1)); });
+        await SetStatusAsync(ctx, i => { i.MarkSentManually(); i.MarkAsPaid(new DateOnly(2026, 8, 1)); });
 
         var result = await Handler(ctx).Handle(Edit(ctx.InvoiceId), default);
 
@@ -87,7 +87,7 @@ public class InvoiceEditLockTests
         // A 403 that had already written half the request would be worse than no gate at
         // all — the invoice would be neither the old one nor the new one.
         using var ctx = await SeededAsync();
-        await SetStatusAsync(ctx, i => i.Send());
+        await SetStatusAsync(ctx, i => i.MarkSentManually());
 
         await Handler(ctx).Handle(Edit(ctx.InvoiceId), default);
 
