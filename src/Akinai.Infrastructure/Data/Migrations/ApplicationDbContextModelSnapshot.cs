@@ -263,6 +263,9 @@ namespace Akinai.Infrastructure.Data.Migrations
                         .ValueGeneratedOnAdd()
                         .HasColumnType("uniqueidentifier");
 
+                    b.Property<bool>("AutomaticRemindersEnabled")
+                        .HasColumnType("bit");
+
                     b.Property<string>("BankAccountName")
                         .HasMaxLength(200)
                         .HasColumnType("nvarchar(200)");
@@ -720,6 +723,50 @@ namespace Akinai.Infrastructure.Data.Migrations
                     b.ToTable("DigitalSignatures", "App");
                 });
 
+            modelBuilder.Entity("Akinai.Domain.Entities.DunningReminder", b =>
+                {
+                    b.Property<Guid>("Id")
+                        .ValueGeneratedOnAdd()
+                        .HasColumnType("uniqueidentifier");
+
+                    b.Property<Guid>("ClientId")
+                        .HasColumnType("uniqueidentifier");
+
+                    b.Property<Guid>("InvoiceId")
+                        .HasColumnType("uniqueidentifier");
+
+                    b.Property<string>("Language")
+                        .IsRequired()
+                        .HasMaxLength(32)
+                        .HasColumnType("nvarchar(32)");
+
+                    b.Property<DateTime>("SentAtUtc")
+                        .HasColumnType("datetime2");
+
+                    b.Property<string>("Stage")
+                        .IsRequired()
+                        .HasMaxLength(32)
+                        .HasColumnType("nvarchar(32)");
+
+                    b.Property<string>("ToEmail")
+                        .IsRequired()
+                        .HasMaxLength(320)
+                        .HasColumnType("nvarchar(320)");
+
+                    b.Property<string>("UserId")
+                        .IsRequired()
+                        .HasMaxLength(450)
+                        .HasColumnType("nvarchar(450)");
+
+                    b.HasKey("Id");
+
+                    b.HasIndex("InvoiceId");
+
+                    b.HasIndex("ClientId", "SentAtUtc");
+
+                    b.ToTable("DunningReminders", "App");
+                });
+
             modelBuilder.Entity("Akinai.Domain.Entities.Estimate", b =>
                 {
                     b.Property<Guid>("Id")
@@ -1139,6 +1186,32 @@ namespace Akinai.Infrastructure.Data.Migrations
                     b.ToTable("InvoiceLineItems", "App");
                 });
 
+            modelBuilder.Entity("Akinai.Domain.Entities.InvoicePaymentCurrency", b =>
+                {
+                    b.Property<Guid>("Id")
+                        .ValueGeneratedOnAdd()
+                        .HasColumnType("uniqueidentifier");
+
+                    b.Property<decimal>("Amount")
+                        .HasPrecision(18, 2)
+                        .HasColumnType("decimal(18,2)");
+
+                    b.Property<string>("Currency")
+                        .IsRequired()
+                        .HasMaxLength(3)
+                        .HasColumnType("nvarchar(3)");
+
+                    b.Property<Guid>("InvoiceId")
+                        .HasColumnType("uniqueidentifier");
+
+                    b.HasKey("Id");
+
+                    b.HasIndex("InvoiceId", "Currency")
+                        .IsUnique();
+
+                    b.ToTable("InvoicePaymentCurrencies", "App");
+                });
+
             modelBuilder.Entity("Akinai.Domain.Entities.InvoiceServiceLine", b =>
                 {
                     b.Property<Guid>("Id")
@@ -1489,6 +1562,9 @@ namespace Akinai.Infrastructure.Data.Migrations
                         .HasPrecision(18, 2)
                         .HasColumnType("decimal(18,2)");
 
+                    b.Property<bool>("AutomaticReminders")
+                        .HasColumnType("bit");
+
                     b.Property<bool>("BankImport")
                         .HasColumnType("bit");
 
@@ -1510,6 +1586,9 @@ namespace Akinai.Infrastructure.Data.Migrations
                         .HasColumnType("nvarchar(4)");
 
                     b.Property<bool>("CustomTemplates")
+                        .HasColumnType("bit");
+
+                    b.Property<bool>("DeliveryRecord")
                         .HasColumnType("bit");
 
                     b.Property<bool>("Estimates")
@@ -2749,6 +2828,15 @@ namespace Akinai.Infrastructure.Data.Migrations
                         .IsRequired();
                 });
 
+            modelBuilder.Entity("Akinai.Domain.Entities.DunningReminder", b =>
+                {
+                    b.HasOne("Akinai.Domain.Entities.Invoice", null)
+                        .WithMany()
+                        .HasForeignKey("InvoiceId")
+                        .OnDelete(DeleteBehavior.Cascade)
+                        .IsRequired();
+                });
+
             modelBuilder.Entity("Akinai.Domain.Entities.Estimate", b =>
                 {
                     b.HasOne("Akinai.Domain.Entities.Client", "Client")
@@ -2959,6 +3047,17 @@ namespace Akinai.Infrastructure.Data.Migrations
 
                     b.Navigation("UnitPrice")
                         .IsRequired();
+                });
+
+            modelBuilder.Entity("Akinai.Domain.Entities.InvoicePaymentCurrency", b =>
+                {
+                    b.HasOne("Akinai.Domain.Entities.Invoice", "Invoice")
+                        .WithMany("PaymentCurrencies")
+                        .HasForeignKey("InvoiceId")
+                        .OnDelete(DeleteBehavior.Cascade)
+                        .IsRequired();
+
+                    b.Navigation("Invoice");
                 });
 
             modelBuilder.Entity("Akinai.Domain.Entities.InvoiceServiceLine", b =>
@@ -3441,6 +3540,8 @@ namespace Akinai.Infrastructure.Data.Migrations
                     b.Navigation("CurrencyTotals");
 
                     b.Navigation("LineItems");
+
+                    b.Navigation("PaymentCurrencies");
 
                     b.Navigation("ServiceLines");
 

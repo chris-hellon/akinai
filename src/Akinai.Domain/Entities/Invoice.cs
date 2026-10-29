@@ -99,6 +99,10 @@ public class Invoice : AggregateRoot, IAuditableEntity
     private readonly List<InvoiceCurrencyTotal> _currencyTotals = [];
     public IReadOnlyCollection<InvoiceCurrencyTotal> CurrencyTotals => _currencyTotals.AsReadOnly();
 
+    // Currencies this invoice accepts payment in besides its own, chosen per invoice.
+    private readonly List<InvoicePaymentCurrency> _paymentCurrencies = [];
+    public IReadOnlyCollection<InvoicePaymentCurrency> PaymentCurrencies => _paymentCurrencies.AsReadOnly();
+
     public DateTime CreatedAt { get; set; }
     public string CreatedBy { get; set; } = null!;
     public DateTime? ModifiedAt { get; set; }

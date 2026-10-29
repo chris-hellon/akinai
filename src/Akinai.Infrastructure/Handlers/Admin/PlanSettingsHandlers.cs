@@ -42,6 +42,7 @@ public class SavePlanSettingsHandler(
             request.MonthlyPrice, request.AnnualPrice, request.Currency, request.CurrencySymbol,
             request.InvoicesPerMonth, request.MultiCurrency, request.AllLanguages, request.BankImport,
             request.RecurringBilling, request.Estimates, request.CustomTemplates, request.RemoveBranding,
+            request.ScanToPay, request.PaymentInsights, request.AutomaticReminders, request.DeliveryRecord,
             request.AiSpendLimitUsd, request.Highlights ?? "");
 
         await db.SaveChangesAsync(cancellationToken);

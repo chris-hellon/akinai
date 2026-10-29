@@ -55,6 +55,25 @@ public class PlanSettings : IAuditableEntity
     /// </summary>
     public bool PaymentInsights { get; private set; }
 
+    /// <summary>
+    /// Chasing overdue invoices automatically.
+    ///
+    /// Paid for a reason beyond its value: it sends mail to third parties from the
+    /// deployment's own server, so restricting it to accounts with a card on file keeps a
+    /// free signup from spending the sending reputation every other user depends on.
+    /// </summary>
+    public bool AutomaticReminders { get; private set; }
+
+    /// <summary>
+    /// The delivery record for an invoice: what was sent, to whom, the document
+    /// fingerprint, every opening, every reminder and the signature.
+    ///
+    /// A flag of its own rather than folded into PaymentInsights. That one predicts when
+    /// a client will pay and is pure analysis; this is the record of what actually
+    /// happened, and the two are worth withdrawing independently.
+    /// </summary>
+    public bool DeliveryRecord { get; private set; }
+
     /// <summary>Monthly AI allowance in USD; null when the tier has none.</summary>
     public decimal? AiSpendLimitUsd { get; private set; }
 
@@ -81,7 +100,7 @@ public class PlanSettings : IAuditableEntity
         decimal monthlyPrice, decimal annualPrice, string currency, string currencySymbol,
         int? invoicesPerMonth, bool multiCurrency, bool allLanguages, bool bankImport,
         bool recurringBilling, bool estimates, bool customTemplates, bool removeBranding,
-        bool scanToPay, bool paymentInsights,
+        bool scanToPay, bool paymentInsights, bool automaticReminders, bool deliveryRecord,
         decimal? aiSpendLimitUsd, string highlights, int sortOrder)
         => new()
         {
@@ -103,6 +122,8 @@ public class PlanSettings : IAuditableEntity
             RemoveBranding = removeBranding,
             ScanToPay = scanToPay,
             PaymentInsights = paymentInsights,
+            AutomaticReminders = automaticReminders,
+            DeliveryRecord = deliveryRecord,
             AiSpendLimitUsd = aiSpendLimitUsd,
             Highlights = highlights,
             SortOrder = sortOrder,
@@ -117,6 +138,7 @@ public class PlanSettings : IAuditableEntity
         decimal monthlyPrice, decimal annualPrice, string currency, string currencySymbol,
         int? invoicesPerMonth, bool multiCurrency, bool allLanguages, bool bankImport,
         bool recurringBilling, bool estimates, bool customTemplates, bool removeBranding,
+        bool scanToPay, bool paymentInsights, bool automaticReminders, bool deliveryRecord,
         decimal? aiSpendLimitUsd, string highlights)
     {
         Name = name;
@@ -133,6 +155,10 @@ public class PlanSettings : IAuditableEntity
         Estimates = estimates;
         CustomTemplates = customTemplates;
         RemoveBranding = removeBranding;
+        ScanToPay = scanToPay;
+        PaymentInsights = paymentInsights;
+        AutomaticReminders = automaticReminders;
+        DeliveryRecord = deliveryRecord;
         AiSpendLimitUsd = aiSpendLimitUsd;
         Highlights = highlights;
     }

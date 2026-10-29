@@ -2,7 +2,9 @@ using BlazorUtils.EasyApi;
 using BlazorUtils.EasyApi.Server;
 using Akinai.Infrastructure.Data;
 using Akinai.Shared.Api.Invoices;
+using Akinai.Infrastructure.Handlers.CurrencyPaymentSettings;
 using Akinai.Shared.Dtos.CurrencyPaymentSettings;
+using Akinai.Shared.Payments;
 using Akinai.Shared.Dtos.Invoices;
 using Akinai.Shared.Dtos.InvoiceTemplates;
 using Microsoft.EntityFrameworkCore;
@@ -79,9 +81,20 @@ public class GetPublicInvoiceHandler(IDbContextFactory<ApplicationDbContext> dbF
         var businessProfile = await db.BusinessProfiles
             .FirstOrDefaultAsync(b => b.UserId == invoice.CreatedBy, cancellationToken);
 
-        // Get currency-specific payment settings
-        var currencySettings = await db.CurrencyPaymentSettings
-            .FirstOrDefaultAsync(c => c.UserId == invoice.CreatedBy && c.CurrencyCode == invoice.Currency, cancellationToken);
+        // Every currency account the owner holds, not just this invoice's own — the client
+        // is offered each one this invoice was written to accept, so a cross-border payer
+        // can settle on a local rail instead of a four-day correspondent chain.
+        var allCurrencySettings = await db.CurrencyPaymentSettings
+            .Where(c => c.UserId == invoice.CreatedBy)
+            .Select(CurrencyPaymentSettingsMapping.Projection)
+            .ToListAsync(cancellationToken);
+
+        var acceptedCurrencies = await db.InvoicePaymentCurrencies
+            .Where(pc => pc.InvoiceId == invoice.Id)
+            .ToDictionaryAsync(pc => pc.Currency, pc => pc.Amount, StringComparer.OrdinalIgnoreCase, cancellationToken);
+
+        var alternatePaymentOptions = AlternatePaymentCurrencies.Select(
+            invoice.Currency, acceptedCurrencies, allCurrencySettings);
 
         // Totals come from the snapshot (same as in GetInvoiceHandler). This is what the
         // client was billed; recomputing here would let a later rate change silently
@@ -217,21 +230,8 @@ public class GetPublicInvoiceHandler(IDbContextFactory<ApplicationDbContext> dbF
             clientAddress = string.Join("\n", parts);
         }
 
-        // Build currency payment settings DTO
-        CurrencyPaymentSettingsDto? currencyPaymentDto = null;
-        if (currencySettings != null)
-        {
-            currencyPaymentDto = new CurrencyPaymentSettingsDto(
-                currencySettings.Id,
-                currencySettings.CurrencyCode,
-                currencySettings.BankName,
-                currencySettings.BankAccountName,
-                currencySettings.BankAccountNumber,
-                currencySettings.BankSortCode,
-                currencySettings.BankIban,
-                currencySettings.BankSwift,
-                currencySettings.VietQrBankCode);
-        }
+        var currencyPaymentDto = allCurrencySettings.FirstOrDefault(
+            c => string.Equals(c.CurrencyCode, invoice.Currency, StringComparison.OrdinalIgnoreCase));
 
         // Linked template, or the owner's default when none is linked, so the
         // client sees the document the owner styled rather than the built-in
@@ -300,6 +300,7 @@ public class GetPublicInvoiceHandler(IDbContextFactory<ApplicationDbContext> dbF
             businessProfile?.DefaultCurrency,
             await Services.VndPaymentRate.GetAsync(exchangeRates, businessProfile?.DefaultCurrency, cancellationToken),
             currencyPaymentDto,
+            alternatePaymentOptions,
             templateDto,
             language.ToString(),
             await DocumentBranding.ShowForAsync(entitlements, invoice.CreatedBy, cancellationToken),

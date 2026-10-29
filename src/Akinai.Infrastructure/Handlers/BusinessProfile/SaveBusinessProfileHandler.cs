@@ -105,6 +105,8 @@ public class SaveBusinessProfileHandler(IDbContextFactory<ApplicationDbContext> 
                 request.VietQrBankCode);
         }
 
+        profile.SetAutomaticReminders(request.AutomaticRemindersEnabled);
+
         await db.SaveChangesAsync(cancellationToken);
         return HttpResult.NoContent();
     }

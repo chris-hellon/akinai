@@ -59,7 +59,8 @@ public class GetInvoicesHandler(IDbContextFactory<ApplicationDbContext> dbFactor
             invoice.Status.ToString(),
             invoice.Subtotal,
             invoice.TaxAmount,
-            invoice.Total)).ToList();
+            invoice.Total,
+            invoice.SentAtUtc)).ToList();
 
         var result = new PaginatedResponse<InvoiceSummaryDto>
         {

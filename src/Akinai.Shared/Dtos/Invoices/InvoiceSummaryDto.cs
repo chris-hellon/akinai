@@ -11,4 +11,8 @@ public record InvoiceSummaryDto(
     string Status,
     decimal Subtotal,
     decimal TaxAmount,
-    decimal Total);
+    decimal Total,
+    // Whether this invoice actually reached anyone, which its status cannot answer:
+    // Void and Paid are both reachable straight from Draft. The delete dialog needs to
+    // know before it tells the user what deleting it would destroy.
+    DateTime? SentAtUtc);

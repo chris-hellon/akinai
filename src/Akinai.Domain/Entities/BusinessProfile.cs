@@ -14,6 +14,17 @@ public class BusinessProfile : AggregateRoot, IAuditableEntity
     public Address? Address { get; private set; }
 
     // Tax/Registration Info
+    /// <summary>
+    /// Whether Akinai may email overdue clients on this account's behalf.
+    ///
+    /// Off until switched on, deliberately and without exception. Sending email to
+    /// somebody's clients in their name is not a default anyone should be opted into by
+    /// a software update — the first a user would know of it is a client replying.
+    /// </summary>
+    public bool AutomaticRemindersEnabled { get; private set; }
+
+    public void SetAutomaticReminders(bool enabled) => AutomaticRemindersEnabled = enabled;
+
     public string? TaxNumber { get; private set; }
     public string? RegistrationNumber { get; private set; }
 

@@ -1,0 +1,254 @@
+@using Akinai.Shared.Dtos.Evidence
+@using Akinai.Shared.Dunning
+@using Akinai.Shared.Compliance
+@using Akinai.Shared.Enums
+
+@* The delivery record for one invoice, as a document.
+
+   Everything here was written at the time it happened. That is the only reason any of it
+   is worth anything — a trail assembled on demand from today's data proves nothing about
+   what was sent six months ago — so the layout is deliberately flat and dull: labels and
+   values, exact timestamps, no interpretation. PaymentJourney already does the friendly
+   forward-looking reading of the same facts ("opened twice, usually pays a week late").
+   This is the version you hand to an accountant, a client in dispute, or a tax authority.
+
+   Rendered both in-app and by the print route, so the copy someone is handed cannot say
+   anything different from the copy on screen. *@
+
+<div class="print-sheet bg-white dark:bg-slate-800 rounded-2xl border border-gray-100 dark:border-slate-700 overflow-hidden">
+
+    <div class="px-6 sm:px-8 py-6 border-b border-gray-100 dark:border-slate-700">
+        <div class="flex flex-wrap items-start justify-between gap-4">
+            <div>
+                <p class="text-xs font-semibold uppercase tracking-wider text-gray-400 dark:text-slate-500">Delivery record</p>
+                <h1 class="mt-1 text-xl font-semibold text-gray-900 dark:text-slate-100">Invoice @Evidence.InvoiceNumber</h1>
+                <p class="mt-1 text-sm text-gray-500 dark:text-slate-400">@Evidence.ClientName</p>
+            </div>
+            <div class="sm:text-right">
+                <p class="text-xl font-semibold text-gray-900 dark:text-slate-100">@Money(Evidence.Total)</p>
+                <p class="mt-1 text-sm text-gray-500 dark:text-slate-400">
+                    Issued @Evidence.IssueDate.ToString("d MMM yyyy") · due @Evidence.DueDate.ToString("d MMM yyyy")
+                </p>
+                <p class="mt-1 text-xs text-gray-400 dark:text-slate-500">Status: @Evidence.Status</p>
+            </div>
+        </div>
+    </div>
+
+    @* --- Delivery ------------------------------------------------------------ *@
+    <div class="px-6 sm:px-8 py-6 border-b border-gray-100 dark:border-slate-700 no-break">
+        @SectionHeading("Delivery")
+
+        @if (Evidence.SentAtUtc is { } sent)
+        {
+            @Row("Sent", Timestamp(sent))
+            @Row("To", Evidence.SentToEmail ?? "—")
+        }
+        else
+        {
+            @* Said as a finding, not left blank. A blank field on a record like this reads
+               as missing data; the useful statement is that no send was ever recorded. *@
+            @Row("Sent", "No send recorded. This invoice has not been emailed from Akinai.", muted: true)
+        }
+    </div>
+
+    @* --- Document fingerprint ------------------------------------------------ *@
+    <div class="px-6 sm:px-8 py-6 border-b border-gray-100 dark:border-slate-700 no-break">
+        @SectionHeading("Document fingerprint")
+
+        @if (!string.IsNullOrEmpty(Evidence.SentDocumentSha256))
+        {
+            <p class="max-w-3xl text-sm text-gray-600 dark:text-slate-300">
+                SHA-256 of the PDF that was attached to that email. Re-hashing the client's copy
+                and getting this same value shows the two documents are byte-for-byte identical —
+                and a single altered character anywhere in it produces a completely different
+                value, so neither side can present a changed document as the one that was sent.
+            </p>
+            <p class="mt-3 font-mono text-xs break-all text-gray-900 dark:text-slate-100 bg-gray-50 dark:bg-slate-900/50 rounded-xl px-4 py-3 border border-gray-100 dark:border-slate-700">@Evidence.SentDocumentSha256</p>
+        }
+        else
+        {
+            @Row("Fingerprint",
+                Evidence.SentAtUtc is null
+                    ? "None. A fingerprint is recorded when the invoice is emailed."
+                    : "None recorded for this send.",
+                muted: true)
+        }
+    </div>
+
+    @* --- What the client did with it ----------------------------------------- *@
+    <div class="px-6 sm:px-8 py-6 border-b border-gray-100 dark:border-slate-700 no-break">
+        @SectionHeading("Opened by the client")
+
+        @if (Evidence.FirstViewedAtUtc is { } first)
+        {
+            @Row("First opened", Timestamp(first))
+            @if (Evidence.ViewCount > 1 && Evidence.LastViewedAtUtc is { } last)
+            {
+                @Row("Last opened", Timestamp(last))
+            }
+            @Row("Times opened", Evidence.ViewCount.ToString())
+            <p class="mt-3 max-w-3xl text-xs text-gray-400 dark:text-slate-500">
+                Counts openings of the invoice link by anyone other than you. It records that
+                the page was loaded, which is not the same as saying who read it.
+            </p>
+        }
+        else
+        {
+            @Row("Opened",
+                Evidence.SentAtUtc is null
+                    ? "Never opened, and never sent."
+                    : "Never opened. The link has not been loaded since it was sent.",
+                muted: true)
+        }
+    </div>
+
+    @* --- Reminders ----------------------------------------------------------- *@
+    <div class="px-6 sm:px-8 py-6 border-b border-gray-100 dark:border-slate-700">
+        @SectionHeading(Evidence.Reminders.Count == 1 ? "Reminder sent" : "Reminders sent")
+
+        @if (Evidence.Reminders.Count == 0)
+        {
+            @Row("Reminders", "None sent.", muted: true)
+        }
+        else
+        {
+            <table class="hidden sm:table w-full text-sm">
+                <thead>
+                    <tr class="text-left text-xs font-semibold uppercase tracking-wider text-gray-400 dark:text-slate-500">
+                        <th class="pb-2 pr-4 font-semibold">Stage</th>
+                        <th class="pb-2 pr-4 font-semibold">Sent</th>
+                        <th class="pb-2 pr-4 font-semibold">To</th>
+                        <th class="pb-2 font-semibold">Language</th>
+                    </tr>
+                </thead>
+                <tbody>
+                    @foreach (var reminder in Evidence.Reminders)
+                    {
+                        <tr class="border-t border-gray-100 dark:border-slate-700">
+                            <td class="py-2.5 pr-4 text-gray-900 dark:text-slate-100">
+                                @StageLabel(reminder.Stage)
+                            </td>
+                            <td class="py-2.5 pr-4 text-gray-600 dark:text-slate-300 whitespace-nowrap">@Timestamp(reminder.SentAtUtc)</td>
+                            <td class="py-2.5 pr-4 text-gray-600 dark:text-slate-300 break-all">@reminder.ToEmail</td>
+                            <td class="py-2.5 text-gray-600 dark:text-slate-300">@reminder.Language</td>
+                        </tr>
+                    }
+                </tbody>
+            </table>
+
+            @* Same rows stacked, for a phone. Four columns in a card this narrow broke the
+               email one character per line and pushed the last column off the edge. *@
+            <div class="sm:hidden divide-y divide-gray-100 dark:divide-slate-700">
+                @foreach (var reminder in Evidence.Reminders)
+                {
+                    <div class="py-3 first:pt-0">
+                        <p class="text-sm text-gray-900 dark:text-slate-100">@StageLabel(reminder.Stage)</p>
+                        <p class="mt-1 text-sm text-gray-600 dark:text-slate-300">@Timestamp(reminder.SentAtUtc)</p>
+                        <p class="mt-0.5 text-sm text-gray-500 dark:text-slate-400 break-all">@reminder.ToEmail · @reminder.Language</p>
+                    </div>
+                }
+            </div>
+        }
+    </div>
+
+    @* --- Signature ----------------------------------------------------------- *@
+    <div class="px-6 sm:px-8 py-6 border-b border-gray-100 dark:border-slate-700 no-break">
+        @SectionHeading("Signature")
+
+        @if (Evidence.SignedAtUtc is { } signed)
+        {
+            @Row("Signed by", Evidence.SignedByName ?? "—")
+            @Row("Signed", Timestamp(signed))
+            @if (!string.IsNullOrEmpty(Evidence.SignedByEmail))
+            {
+                @Row("Email given", Evidence.SignedByEmail)
+            }
+            @if (!string.IsNullOrEmpty(Evidence.SignedFromIpAddress))
+            {
+                @Row("From address", Evidence.SignedFromIpAddress)
+            }
+        }
+        else
+        {
+            @Row("Signature", "Not signed.", muted: true)
+        }
+    </div>
+
+    @* --- Tax treatment ------------------------------------------------------- *@
+    <div class="px-6 sm:px-8 py-6 no-break">
+        @SectionHeading("Tax treatment")
+
+        @Row("Treatment", TreatmentNames.Describe(Evidence.TaxTreatment))
+
+        @if (Evidence.RequiredStatements.Count > 0)
+        {
+            <p class="mt-4 text-xs font-semibold uppercase tracking-wider text-gray-400 dark:text-slate-500">Required wording</p>
+            <ul class="mt-2 space-y-1.5">
+                @foreach (var statement in Evidence.RequiredStatements)
+                {
+                    <li class="text-sm text-gray-600 dark:text-slate-300 pl-4 relative">
+                        <span class="absolute left-0 text-gray-300 dark:text-slate-600">·</span>@statement
+                    </li>
+                }
+            </ul>
+        }
+
+        @* The one part of this document that is not a contemporaneous record, so it says
+           so. Everything above was written when it happened; this is worked out now from
+           the invoice as it currently stands, and would come out differently if the
+           client's country or registration has changed since. Presenting it alongside
+           the rest without that caveat would be the one dishonest line on the page. *@
+        <p class="mt-4 max-w-3xl text-xs text-gray-400 dark:text-slate-500">
+            Assessed now rather than stored at the time, so this is the treatment that applies to
+            the invoice as it currently stands. It matches what the document printed unless the
+            client's country or tax registration has changed since.
+        </p>
+    </div>
+
+    <div class="px-6 sm:px-8 py-4 bg-gray-50 dark:bg-slate-900/40 border-t border-gray-100 dark:border-slate-700">
+        <p class="text-xs text-gray-400 dark:text-slate-500">
+            Record produced @GeneratedAtUtc.ToString("d MMM yyyy 'at' HH:mm") UTC. Times are shown in UTC,
+            which is how they are stored.
+        </p>
+    </div>
+</div>
+
+@code {
+    [Parameter, EditorRequired] public InvoiceEvidenceDto Evidence { get; set; } = null!;
+
+    /// <summary>
+    /// When this copy was produced. Passed in rather than read from the clock here so the
+    /// value is fixed for the render — a printed record that stamps itself with a time
+    /// taken mid-layout is a small lie, and a prerendered page would otherwise disagree
+    /// with itself once it hydrated.
+    /// </summary>
+    [Parameter] public DateTime GeneratedAtUtc { get; set; } = DateTime.UtcNow;
+
+    /// <summary>
+    /// An advance notice goes out before the due date and is not a chase. Counting it as
+    /// one overstates how hard the client was pursued, which is the opposite of what a
+    /// record should do, so it is marked wherever it appears.
+    /// </summary>
+    private RenderFragment StageLabel(string stage) =>@<text>@DunningStageNames.Describe(stage)@if (DunningStageNames.IsBeforeDue(stage))
+        {
+            <span class="ml-1.5 text-xs text-gray-400 dark:text-slate-500">(before due date)</span>
+        }</text>;
+
+    private RenderFragment SectionHeading(string text) =>@<h2 class="text-xs font-semibold uppercase tracking-wider text-gray-400 dark:text-slate-500 mb-4">@text</h2>;
+
+    private RenderFragment Row(string label, string value, bool muted = false) =>@<div class="flex flex-col sm:flex-row sm:gap-6 py-1.5">
+        <dt class="text-sm text-gray-500 dark:text-slate-400 sm:w-44 sm:shrink-0">@label</dt>
+        <dd class="text-sm @(muted ? "text-gray-400 dark:text-slate-500" : "text-gray-900 dark:text-slate-100") break-words">@value</dd>
+    </div>;
+
+    /// <summary>
+    /// UTC, spelled out. The stored value is UTC and that is what a record has to show —
+    /// rendering it in the reader's local zone would mean two people reading the same
+    /// document disagree about when the invoice was sent.
+    /// </summary>
+    private static string Timestamp(DateTime utc)
+        => utc.ToString("d MMM yyyy 'at' HH:mm") + " UTC";
+
+    private string Money(decimal amount)
+        => $"{CurrencyExtensions.GetSymbol(Evidence.Currency)}{amount:N2}";
+}

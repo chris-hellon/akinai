@@ -1,6 +1,7 @@
 using BlazorUtils.EasyApi;
 using BlazorUtils.EasyApi.Server;
 using Akinai.Domain.Entities;
+using Akinai.Domain.Enums;
 using Akinai.Infrastructure.Data;
 using Akinai.Infrastructure.Services;
 using Akinai.Shared.Api.Invoices;
@@ -13,7 +14,8 @@ public class UpdateInvoiceHandler(
     IDbContextFactory<ApplicationDbContext> dbFactory,
     ICurrentUserService currentUserService,
     IEntitlementService entitlementService,
-    IInvoiceTotalService totalService) : IHandle<UpdateInvoice>
+    IInvoiceTotalService totalService,
+    IInvoicePaymentCurrencyService paymentCurrencyService) : IHandle<UpdateInvoice>
 {
     public async Task<HttpResult> Handle(UpdateInvoice request, CancellationToken cancellationToken)
     {
@@ -23,6 +25,20 @@ public class UpdateInvoiceHandler(
 
         var invoice = await db.Invoices.FirstOrDefaultAsync(i => i.Id == request.Id && i.Client.UserId == userId, cancellationToken);
         if (invoice is null) return HttpResult.NotFound();
+
+        // A sent invoice is a document someone else is holding. Editing it would change
+        // what they owe after they were told, and would leave the evidence pack — the
+        // hash of the PDF that actually went out — describing a document that no longer
+        // exists.
+        //
+        // Invoice.UpdateDetails already refuses this, but by throwing from deep inside
+        // the handler, which reaches the caller as a 500 rather than an answer. It also
+        // only holds because it happens to run first: the time entries, expenses and line
+        // items below are mutated through the DbSet rather than the entity, so nothing
+        // but that ordering stops them. Stating it here makes the refusal explicit and
+        // independent of the order the rest of the method happens to be written in.
+        if (invoice.Status != InvoiceStatus.Draft)
+            return HttpResult.Forbidden();
 
         var entitlements = await entitlementService.GetAsync(userId, cancellationToken);
         if (!InvoiceLanguageRequest.TryResolve(request.Language, entitlements, out var language))
@@ -119,6 +135,11 @@ public class UpdateInvoiceHandler(
         // The invoice was fetched scoped to this user, so its owner is `userId` —
         // no need to look it up via the client again.
         await totalService.RecalculateAsync(db, invoice.Id, userId, cancellationToken);
+
+        // After the totals, because each accepted currency is a conversion of the
+        // final total — running it first would convert a figure that then changed.
+        await paymentCurrencyService.SetAsync(
+            db, invoice.Id, userId, request.PaymentCurrencies, cancellationToken);
         await db.SaveChangesAsync(cancellationToken);
 
         return HttpResult.NoContent();

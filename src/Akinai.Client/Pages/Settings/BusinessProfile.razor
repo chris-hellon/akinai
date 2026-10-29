@@ -116,6 +116,36 @@
                 </div>
             </Card>
 
+            <!-- Overdue reminders -->
+            <Card Title="Overdue reminders">
+                @* Gated in the UI so the toggle cannot be set on a plan that would
+                   never act on it. DunningService checks the same entitlement on
+                   every sweep, which is what actually stops the sending. *@
+                <PlanGate Feature="@(e => e.AutomaticReminders)"
+                          Title="Automatic reminders are a Pro feature"
+                          Description="Chase overdue invoices without writing the email — in your client's language, during their working hours.">
+                <label class="flex items-start gap-3 cursor-pointer">
+                    <InputCheckbox @bind-Value="Input.AutomaticRemindersEnabled"
+                                   class="mt-0.5 h-4 w-4 rounded border-gray-300 text-primary-600 focus:ring-primary-500" />
+                    <span>
+                        <span class="block text-sm font-medium text-gray-900 dark:text-slate-100">
+                            Chase overdue invoices for me
+                        </span>
+                        <span class="block text-xs text-gray-500 dark:text-slate-400 mt-1">
+                            Sends a short reminder in your client's own language, escalating from a nudge
+                            before the due date to a final notice. Only ever during their working hours,
+                            never twice in a day, and never twice at the same stage.
+                        </span>
+                        @* Said plainly. The user is authorising email to their clients in their
+                           name, and the first they would otherwise know of it is a reply. *@
+                        <span class="block text-xs text-amber-700 dark:text-amber-400 mt-2">
+                            These emails go to your clients from your address. Nothing is sent while this is off.
+                        </span>
+                    </span>
+                </label>
+                </PlanGate>
+            </Card>
+
             <!-- Tax & Registration -->
             <Card Title="Tax & Registration">
                 <div class="grid grid-cols-1 gap-4 sm:grid-cols-2">
@@ -350,6 +380,7 @@
                 Input.PostalCode = _fullProfile.PostalCode;
                 Input.Country = _fullProfile.Country;
                 Input.CountryCode = _fullProfile.CountryCode;
+                Input.AutomaticRemindersEnabled = _fullProfile.AutomaticRemindersEnabled;
                 Input.TaxNumber = _fullProfile.TaxNumber;
                 Input.RegistrationNumber = _fullProfile.RegistrationNumber;
             }
@@ -393,6 +424,7 @@
                 PostalCode = Input.PostalCode,
                 Country = Countries.NameOf(Input.CountryCode) ?? Input.Country,
                 CountryCode = Input.CountryCode,
+                AutomaticRemindersEnabled = Input.AutomaticRemindersEnabled,
                 TaxNumber = Input.TaxNumber,
                 RegistrationNumber = Input.RegistrationNumber,
                 // Preserve invoice settings from the original profile
@@ -446,6 +478,7 @@
         public string? PostalCode { get; set; }
         public string? Country { get; set; }
         public string? CountryCode { get; set; }
+        public bool AutomaticRemindersEnabled { get; set; }
         public string? TaxNumber { get; set; }
         public string? RegistrationNumber { get; set; }
     }

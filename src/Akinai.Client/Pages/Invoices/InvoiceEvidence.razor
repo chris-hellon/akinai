@@ -1,0 +1,102 @@
+@page "/invoices/{Id:guid}/evidence"
+@using Akinai.Shared.Dtos.Evidence
+
+@inject ICall<GetInvoiceEvidence, InvoiceEvidenceDto?> GetEvidenceCall
+@inject NavigationManager NavigationManager
+@inject EntitlementState Entitlements
+
+@* The delivery record for one invoice.
+
+   Its own route rather than a panel on the invoice, because this is a document you link
+   someone to, open beside a bank statement, or print and attach to a dispute — not
+   something to scroll past on the way to the line items. The record itself is
+   EvidenceRecord, shared with the print route, so the copy on screen and the copy handed
+   over cannot say different things. *@
+
+<PageTitle>@(_evidence is null ? "Delivery record" : $"Delivery record — {_evidence.InvoiceNumber}")</PageTitle>
+
+<div class="space-y-6">
+    <div class="no-print">
+        <PageHeader Title="Delivery record"
+                    Description="@(_evidence is null ? null : $"What was sent for invoice {_evidence.InvoiceNumber}, and what happened to it")"
+                    ShowBackButton="true"
+                    BackUrl="@($"/invoices/{Id}")"
+                    Breadcrumbs="@Breadcrumbs">
+            <Actions>
+                @if (_evidence is not null && Entitlements.Allows(e => e.DeliveryRecord))
+                {
+                    @* Opens the print route in a new tab and lets the browser's own print
+                       dialog produce the PDF. Deliberately not a server-rendered download
+                       like the invoice PDF: that path prints the page with headless
+                       Chromium over loopback with no cookies, which works for the invoice
+                       because its print route is authorised by the public token. This
+                       record is owner-only and must never be reachable by that token, so
+                       the browser doing the printing is the user's own. *@
+                    <a href="@($"/invoice/evidence/print/{Id}")" target="_blank" rel="noopener"
+                       class="btn-primary inline-flex items-center gap-2">
+                        <svg class="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                            <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M17 17h2a2 2 0 002-2v-4a2 2 0 00-2-2H5a2 2 0 00-2 2v4a2 2 0 002 2h2m2 4h6a2 2 0 002-2v-4a2 2 0 00-2-2H9a2 2 0 00-2 2v4a2 2 0 002 2zm8-12V5a2 2 0 00-2-2H9a2 2 0 00-2 2v4h10z" />
+                        </svg>
+                        Print or save as PDF
+                    </a>
+                }
+            </Actions>
+        </PageHeader>
+    </div>
+
+    <PlanGate Feature="@(e => e.DeliveryRecord)"
+              Title="The delivery record is a Pro feature"
+              Description="Proof of what you sent, to whom, and when they opened it — as one document you can print and hand over.">
+        @if (_isLoading)
+        {
+            <LoadingSpinner Padding="py-20" />
+        }
+        else if (_evidence is null)
+        {
+            <EmptyState Title="No record found"
+                        Message="This invoice does not exist, or it is not yours."
+                        ActionText="Back to invoices"
+                        ActionUrl="/invoices" />
+        }
+        else
+        {
+            <EvidenceRecord Evidence="_evidence" GeneratedAtUtc="_generatedAtUtc" />
+        }
+    </PlanGate>
+</div>
+
+@code {
+    [Parameter] public Guid Id { get; set; }
+
+    private InvoiceEvidenceDto? _evidence;
+    private bool _isLoading = true;
+
+    // Fixed once, when the record is loaded, so the footer does not disagree with itself
+    // between the prerender and the interactive render.
+    private DateTime _generatedAtUtc = DateTime.UtcNow;
+
+    private List<PageHeader.BreadcrumbItem> Breadcrumbs =>
+    [
+        new("Invoices", "/invoices"),
+        new(_evidence?.InvoiceNumber ?? "Invoice", $"/invoices/{Id}"),
+        new("Delivery record"),
+    ];
+
+    protected override async Task OnInitializedAsync()
+    {
+        try
+        {
+            await Entitlements.EnsureLoadedAsync();
+            _evidence = await GetEvidenceCall.Call(new GetInvoiceEvidence { Id = Id });
+            _generatedAtUtc = DateTime.UtcNow;
+        }
+        catch (Exception ex)
+        {
+            Console.WriteLine($"Error loading invoice evidence: {ex.Message}");
+        }
+        finally
+        {
+            _isLoading = false;
+        }
+    }
+}

@@ -1,6 +1,6 @@
 # TODO
 
-Running list of known work. Nothing here is urgent-broken — the app builds, 329 tests
+Running list of known work. Nothing here is urgent-broken — the app builds, 534 tests
 pass, and the cross-border compliance work is live end to end.
 
 ## Half-built: tested logic with nothing calling it
@@ -24,19 +24,11 @@ the persistence and the wiring are not.
       - The withholding rates are indicative. `CN/KR/TW/PK/TR/CO` most deserve an
         accountant's eye; Vietnam was deliberately left out of the table.
 
-- [ ] **Dunning.** `DunningSchedule` and `DunningTemplates` cover a four-stage escalation
-      in all 8 languages, with business-hours and weekend suppression in the client's
-      timezone. Nothing sends. Needs a send-history table (the schedule is a pure function
-      and assumes the caller records sends atomically), a background sender, and hooking
-      the existing `SmtpEmailSender`.
-      - Tone needs a native reader before anything goes out: Spanish is pitched at
-        Peninsular Spanish, Chinese at mainland practice only, Vietnamese may be too soft
-        to read as final, and Korean's seven-day deadline is unverified. Details are in
-        comments in `DunningTemplates.cs`.
-
-- [ ] **Evidence pack has no UI.** Delivery, document hash, view history and signature are
-      recorded and `GET /api/invoices/{id}/evidence` returns them. Nothing displays or
-      exports it.
+- [ ] **Dunning — tone needs a native reader before anything goes out.** The sending
+      itself is done (see below), but Spanish is pitched at Peninsular Spanish, Chinese at
+      mainland practice only, Vietnamese may be too soft to read as final, and Korean's
+      seven-day deadline is unverified. Details are in comments in `DunningTemplates.cs`.
+      This is the one thing standing between the feature and a real client's inbox.
 
 ## Blocked on a decision or an install
 
@@ -64,6 +56,13 @@ the persistence and the wiring are not.
       the branch is still there.
 
 ## Worth doing
+
+- [ ] **The delivery record prints from the browser, not the server.** The invoice PDF is
+      produced by headless Chromium fetching the print route over loopback with no cookies,
+      which works only because that route is authorised by the public access token. The
+      record is owner-only and must never be reachable by a token the client holds, so it
+      is printed by the user's own browser instead. A server-generated PDF — for emailing
+      a record, or attaching one automatically — needs an owner-scoped render path first.
 
 - [ ] **Online tax-ID validation.** Format and checksum validation is done offline; the
       live lookups are not. VIES for the EU (free) and the UK VAT API would confirm a number
@@ -116,6 +115,79 @@ sake: the timesheet summariser earns its place by solving a real grouping proble
 - [x] Handler tests for invoice totals against a real SQLite database (`6546734`), each
       mutation-verified. Dropped the unused `EntityFrameworkCore.InMemory` package, which
       had pulled EF Core to a version its SQLite provider could not run against.
+
+### Chasing and payment routes
+
+- [x] **Deleting an issued invoice stays possible, and now says what it costs.**
+      Decided: a hard delete is wanted, because an invoice sent in error should be
+      removable and Void is a cancellation rather than an erasure. So the handler keeps
+      no status guard and the dialog carries the whole consequence instead — that the
+      recipient, the timestamp, the document fingerprint and the view history go with
+      it, that the client keeps their copy either way, and that the number is not
+      retired — numbering continues from the highest invoice that still exists, so the
+      number is either reused or left as a hole. Keyed on `SentAtUtc` rather than status,
+      because Void and Paid are both reachable straight from Draft and an invoice can be
+      either without ever having been emailed; a warning that overstates is one people
+      learn to skim. Pinned by `InvoiceDeleteWarningTests`, and written once in
+      `InvoiceDeleteWarning` because the list, the panel and the dialog all ask, and a
+      warning that is severe on only one screen teaches people to trust the mild one.
+      A draft still gets the ordinary confirmation; there is nothing to destroy.
+
+- [x] **A sent invoice is locked to editing at the API, not only in the UI.**
+      `UpdateInvoice` now answers 403 for anything that is not a Draft. The entity already
+      refused, but by throwing from inside the handler — a 500 — and only because
+      `UpdateDetails` happened to run before the time entries, expenses and line items,
+      which are written through the DbSet and were covered by nothing but that ordering.
+      Sending now says so before it happens, in the send modal and on Mark as sent.
+
+- [x] **The evidence pack has a UI.** `/invoices/{id}/evidence` shows the delivery record —
+      what was sent, to whom, the document fingerprint and what it proves, every opening,
+      every reminder, the signature, and the tax treatment. Reached from the invoice's
+      More menu and from under the payment journey. Pro, on its own `DeliveryRecord`
+      entitlement rather than `PaymentInsights` — that card predicts, this one records,
+      and the two are worth withdrawing separately. Enforced in `GetInvoiceEvidenceHandler`
+      before anything is assembled, not only in the UI: both the page and the print route
+      come through it, and an endpoint that trusts its callers is reachable with a cookie
+      and curl. The menu entry stays visible on Free, so the feature is discoverable and
+      the page behind it explains what it is.
+      Reminders were missing from the DTO and are the part a late-payment dispute turns
+      on, so they were added. Timestamps are shown in UTC, as stored — rendering them
+      locally would mean two people reading the same document disagree about when the
+      invoice was sent. The tax treatment carries a caveat because it is the one line that
+      is re-assessed now rather than recorded at the time.
+      One `EvidenceRecord` component serves the screen and `/invoice/evidence/print/{id}`,
+      so the copy handed over cannot differ from the copy on screen.
+
+- [x] **`DunningReminder` had no foreign key.** `InvoiceId` was a bare Guid with an index
+      and no navigation property, so EF created no constraint: deleting an invoice left its
+      reminders behind, and a typo'd invoice id inserted happily. Now declared in
+      `DunningReminderConfiguration` with no navigation on either side — a reminder is a
+      record of fact about an invoice, not part of the aggregate, and giving `Invoice` a
+      `Reminders` collection would invite loading it on every read. Cascade, because the
+      delete is deliberately a hard delete and the dialog promises it removes everything
+      recorded against the invoice. The migration clears pre-existing orphans first, since
+      the constraint cannot be created while they exist. `ClientId` stays unconstrained on
+      purpose: it is denormalised, and invoices already restrict deletion of their client.
+
+- [x] **Dunning sends.** `DunningReminder` records each send, `DunningService` sweeps
+      hourly, and the existing `SmtpEmailSender` carries it. Gated on a named
+      `AutomaticReminders` entitlement rather than `IsPaid`, so a tier can have it
+      withdrawn without being made free, and the Business Profile toggle is gated on the
+      same flag. Backfilled onto paid tiers by migration, because the seeder is
+      insert-only.
+- [x] **An invoice can accept more than one currency.** Chosen per invoice on the create
+      and edit forms, from whichever currencies have payment details. The amount is
+      converted at save while the invoice is a draft and frozen the moment it is issued,
+      so editing a sent invoice cannot restate what the client was told they owe. The client's copy, the owner's view and the PDF all
+      render the same routes through one `CurrencyPaymentBlock`. Deliberately *not*
+      inferred from the per-currency reporting totals — those exist for every currency the
+      owner's clients use, so that would have offered accounts that do not exist.
+- [x] **Three payment-settings projections had drifted.** The public copy of an invoice
+      stopped mapping at `VietQrBankCode`, so a UPI, PIX or PromptPay account produced a
+      QR in the owner's own view and nothing in the copy the client was sent. All three
+      now go through `CurrencyPaymentSettingsMapping`.
+- [x] **Pro repriced £9 → £14** (£140/yr). The old price was below the generalist books'
+      entry tiers while being unmetered where they are not, and read as a hobby project.
 
 ### Reconciliation
 

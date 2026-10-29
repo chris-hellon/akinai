@@ -1,4 +1,5 @@
 @page "/invoices"
+@using Akinai.Shared.Invoices
 
 @inject ICall<GetInvoices, PaginatedResponse<InvoiceSummaryDto>> GetInvoicesCall
 @inject ICall<GetInvoice, InvoiceDetailDto?> GetInvoiceCall
@@ -130,7 +131,7 @@
                                         <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M12 10v6m0 0l-3-3m3 3l3-3m2 8H7a2 2 0 01-2-2V5a2 2 0 012-2h5.586a1 1 0 01.707.293l5.414 5.414a1 1 0 01.293.707V19a2 2 0 01-2 2z" />
                                     </svg>
                                 </IconButton>
-                                <IconButton OnClick="() => DeleteInvoice(invoice.Id, invoice.InvoiceNumber)" Variant="IconButton.IconButtonVariant.Danger" Title="Delete">
+                                <IconButton OnClick="() => DeleteInvoice(invoice)" Variant="IconButton.IconButtonVariant.Danger" Title="Delete">
                                     <DeleteIcon />
                                 </IconButton>
                             </div>
@@ -195,7 +196,7 @@
                                     <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M12 10v6m0 0l-3-3m3 3l3-3m2 8H7a2 2 0 01-2-2V5a2 2 0 012-2h5.586a1 1 0 01.707.293l5.414 5.414a1 1 0 01.293.707V19a2 2 0 01-2 2z" />
                                 </svg>
                             </IconButton>
-                            <IconButton OnClick="() => DeleteInvoice(invoice.Id, invoice.InvoiceNumber)" Variant="IconButton.IconButtonVariant.Danger" Title="Delete">
+                            <IconButton OnClick="() => DeleteInvoice(invoice)" Variant="IconButton.IconButtonVariant.Danger" Title="Delete">
                                 <DeleteIcon />
                             </IconButton>
                         </div>
@@ -377,23 +378,33 @@
         }
     }
 
-    private async Task DeleteInvoice(Guid invoiceId, string invoiceNumber)
+    private async Task DeleteInvoice(InvoiceSummaryDto invoice)
     {
+        var parameters = new Dictionary<string, object>
+        {
+            { "ItemName", $"Invoice {invoice.InvoiceNumber}" },
+            { "WarningMessage", InvoiceDeleteWarning.Baseline(invoice.Status) }
+        };
+
+        // The list deletes without ever showing the invoice, so this dialog is the only
+        // place the consequence can appear. It says the same thing the detail page does.
+        var severe = InvoiceDeleteWarning.Severe(invoice.Status, invoice.InvoiceNumber, invoice.SentAtUtc);
+        if (severe is not null)
+        {
+            parameters["SevereWarning"] = severe;
+        }
+
         var confirmed = await ModalService.ShowAsync<bool>(
             typeof(DeleteConfirmationModal),
             "Delete Invoice",
-            new Dictionary<string, object>
-            {
-                { "ItemName", $"Invoice {invoiceNumber}" },
-                { "WarningMessage", "This will permanently delete this invoice. This action cannot be undone." }
-            },
+            parameters,
             new ModalOptions { Size = ModalSize.Small });
 
         if (!confirmed) return;
 
         try
         {
-            await DeleteInvoiceCall.Call(new DeleteInvoice { Id = invoiceId });
+            await DeleteInvoiceCall.Call(new DeleteInvoice { Id = invoice.Id });
             await LoadInvoices();
         }
         catch (Exception ex)

@@ -1,0 +1,65 @@
+@page "/invoice/evidence/print/{Id:guid}"
+@attribute [Authorize]
+@attribute [ExcludeFromInteractiveRouting]
+@layout EmptyLayout
+
+@using BlazorUtils.EasyApi
+@using Microsoft.AspNetCore.Authorization
+@using Akinai.Client.Components
+@using Akinai.Shared.Api.Invoices
+@using Akinai.Shared.Dtos.Evidence
+
+@inject ICall<GetInvoiceEvidence, InvoiceEvidenceDto?> GetEvidenceCall
+
+@*
+    The delivery record, laid out for paper.
+
+    Same EvidenceRecord component as the in-app page, for the reason the invoice print
+    route exists: a document that is rendered twice is a document that disagrees with
+    itself the moment either copy is touched.
+
+    Two things differ from /invoice/print/{token}, both deliberate:
+
+    - It is [Authorize] and keyed on the invoice id, not on the public access token. The
+      token is in the client's hands. A record of what we sent them, when, and what their
+      own openings looked like is the owner's, and a link the client already holds must
+      never be a way in.
+
+    - Nothing prints this server-side. The invoice PDF is produced by headless Chromium
+      fetching the print route over loopback with no cookies, which only works because
+      that route is token-authorised. This one needs a signed-in session, so the browser
+      that prints it is the user's own — they open this page and use their own print
+      dialog. A server-rendered PDF would need an owner-scoped render path first.
+
+    ExcludeFromInteractiveRouting keeps it static server HTML, so the markup is complete
+    in the first response and nothing has to wait on hydration before printing.
+*@
+
+<PageTitle>@(_evidence is null ? "Delivery record" : $"Delivery record {_evidence.InvoiceNumber}")</PageTitle>
+
+@if (_evidence is not null)
+{
+    <div class="max-w-4xl mx-auto p-6 print:p-0">
+        <EvidenceRecord Evidence="_evidence" GeneratedAtUtc="_generatedAtUtc" />
+    </div>
+}
+else
+{
+    <div class="max-w-4xl mx-auto p-6">
+        <p class="text-sm text-gray-500">No record found for this invoice.</p>
+    </div>
+}
+
+@code {
+    [Parameter] public Guid Id { get; set; }
+
+    private InvoiceEvidenceDto? _evidence;
+    private readonly DateTime _generatedAtUtc = DateTime.UtcNow;
+
+    protected override async Task OnInitializedAsync()
+    {
+        // Dispatches in-process here rather than over HTTP, and the handler scopes to the
+        // signed-in user, so a request for somebody else's invoice comes back as nothing.
+        _evidence = await GetEvidenceCall.Call(new GetInvoiceEvidence { Id = Id });
+    }
+}

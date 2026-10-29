@@ -37,6 +37,9 @@
     /// <summary>Warning shown inside the confirmation dialog.</summary>
     [Parameter] public string? WarningMessage { get; set; }
 
+    /// <summary>Shown in a red box inside the dialog; see <see cref="DeleteConfirmationModal"/>.</summary>
+    [Parameter] public string? SevereWarning { get; set; }
+
     /// <summary>Invoked after the user confirms; should perform the delete and navigate away.</summary>
     [Parameter, EditorRequired] public EventCallback OnConfirmed { get; set; }
 
@@ -44,14 +47,21 @@
 
     private async Task ConfirmDelete()
     {
+        var parameters = new Dictionary<string, object>
+        {
+            { "ItemName", string.IsNullOrWhiteSpace(ItemName) ? $"this {EntityLabel.ToLowerInvariant()}" : ItemName! },
+            { "WarningMessage", WarningMessage ?? "This action cannot be undone." }
+        };
+
+        if (!string.IsNullOrEmpty(SevereWarning))
+        {
+            parameters["SevereWarning"] = SevereWarning;
+        }
+
         var confirmed = await ModalService.ShowAsync<bool>(
             typeof(DeleteConfirmationModal),
             $"Delete {EntityLabel}",
-            new Dictionary<string, object>
-            {
-                { "ItemName", string.IsNullOrWhiteSpace(ItemName) ? $"this {EntityLabel.ToLowerInvariant()}" : ItemName! },
-                { "WarningMessage", WarningMessage ?? "This action cannot be undone." }
-            },
+            parameters,
             new ModalOptions { Size = ModalSize.Small });
 
         if (!confirmed) return;

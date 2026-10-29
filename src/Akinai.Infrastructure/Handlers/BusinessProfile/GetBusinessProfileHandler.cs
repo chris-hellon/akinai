@@ -56,7 +56,8 @@ public class GetBusinessProfileHandler(
             profile.RevolutUsername,
             profile.VietQrBankCode,
             // Live rate, not a number typed into settings — see VndPaymentRate.
-            await Services.VndPaymentRate.GetAsync(exchangeRates, profile.DefaultCurrency, cancellationToken));
+            await Services.VndPaymentRate.GetAsync(exchangeRates, profile.DefaultCurrency, cancellationToken),
+            profile.AutomaticRemindersEnabled);
 
         return HttpResult<BusinessProfileDto?>.Ok(result);
     }

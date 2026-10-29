@@ -68,6 +68,10 @@
                             <label class="flex items-center gap-2 text-sm"><input type="checkbox" @bind="p.Estimates" /> Estimates</label>
                             <label class="flex items-center gap-2 text-sm"><input type="checkbox" @bind="p.CustomTemplates" /> Templates</label>
                             <label class="flex items-center gap-2 text-sm"><input type="checkbox" @bind="p.RemoveBranding" /> No branding</label>
+                            <label class="flex items-center gap-2 text-sm"><input type="checkbox" @bind="p.ScanToPay" /> Scan to pay</label>
+                            <label class="flex items-center gap-2 text-sm"><input type="checkbox" @bind="p.PaymentInsights" /> Payment insights</label>
+                            <label class="flex items-center gap-2 text-sm"><input type="checkbox" @bind="p.AutomaticReminders" /> Auto reminders</label>
+                            <label class="flex items-center gap-2 text-sm"><input type="checkbox" @bind="p.DeliveryRecord" /> Delivery record</label>
                         </div>
                     </div>
 
@@ -142,6 +146,10 @@
                 Estimates = p.Estimates,
                 CustomTemplates = p.CustomTemplates,
                 RemoveBranding = p.RemoveBranding,
+                ScanToPay = p.ScanToPay,
+                PaymentInsights = p.PaymentInsights,
+                AutomaticReminders = p.AutomaticReminders,
+                DeliveryRecord = p.DeliveryRecord,
                 AiSpendLimitUsd = p.AiSpendLimitUsd,
                 Highlights = p.Highlights,
             });
@@ -181,6 +189,10 @@
         public bool Estimates { get; set; }
         public bool CustomTemplates { get; set; }
         public bool RemoveBranding { get; set; }
+        public bool ScanToPay { get; set; }
+        public bool PaymentInsights { get; set; }
+        public bool AutomaticReminders { get; set; }
+        public bool DeliveryRecord { get; set; }
         public decimal? AiSpendLimitUsd { get; set; }
         public string Highlights { get; set; } = "";
 
@@ -204,6 +216,10 @@
             Estimates = d.Estimates,
             CustomTemplates = d.CustomTemplates,
             RemoveBranding = d.RemoveBranding,
+            ScanToPay = d.ScanToPay,
+            PaymentInsights = d.PaymentInsights,
+            AutomaticReminders = d.AutomaticReminders,
+            DeliveryRecord = d.DeliveryRecord,
             AiSpendLimitUsd = d.AiSpendLimitUsd,
             Highlights = string.Join('\n', d.Highlights),
         };

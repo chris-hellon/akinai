@@ -507,7 +507,7 @@ else if (Status == "Void")
             </div>
         }
 
-        @* Scan-to-pay, for whichever national rail settles this invoice's currency.
+        @* How to pay, once per currency this invoice can actually be settled in.
 
            The client opens their banking app, scans, and the transfer is prefilled — payee,
            amount and the invoice reference — so there is no account number to retype and no
@@ -515,189 +515,26 @@ else if (Status == "Void")
            goes astray. Generated on this machine rather than fetched from an image service,
            so the amount and account never leave it and the code still prints into a PDF
            with no connection. *@
-        @if (ScanToPay is { } scan)
-        {
-            <div class="@(HasOnlinePaymentButtons() ? "mt-6 pt-6 border-t border-gray-200 dark:border-slate-600" : "")">
-                <div class="text-xs font-semibold text-gray-500 dark:text-slate-400 uppercase tracking-wider mb-3">
-                    Scan to pay (@scan.RailName)
-                </div>
-                <div class="flex flex-col sm:flex-row items-start gap-4">
-                    <div class="bg-white p-2 rounded-lg shadow-sm border border-gray-100">
-                        <img src="@scan.ImageUri" alt="@scan.RailName payment QR code" class="w-48 h-48 object-contain" />
-                    </div>
-                    <div class="text-sm text-gray-600 dark:text-slate-400">
-                        <p class="font-medium text-gray-700 dark:text-slate-300 mb-2">@L.ScanWithBankingApp</p>
-                        <ul class="space-y-1.5">
-                            <li>Amount: @Currency @Total.ToString("N2")</li>
-                            @if (!string.IsNullOrEmpty(CurrencyPaymentSettings?.BankAccountName))
-                            {
-                                <li>To: @CurrencyPaymentSettings.BankAccountName</li>
-                            }
-                            @if (scan.ShowsReference)
-                            {
-                                <li>Reference: @InvoiceNumber</li>
-                            }
-                        </ul>
-                    </div>
-                </div>
-            </div>
-        }
+        <CurrencyPaymentBlock Currency="@Currency" Amount="@Total" Settings="@CurrencyPaymentSettings"
+                              InvoiceNumber="@InvoiceNumber" L="@L" ShowScanToPay="@ShowScanToPay"
+                              WrapperClass="@(HasOnlinePaymentButtons() ? "mt-6 pt-6 border-t border-gray-200 dark:border-slate-600" : "")" />
 
-        @* VietQR section - only for VND *@
-        @if (HasVietQr())
+        @* Other currencies the owner can be paid in, at the amount snapshotted when the
+           invoice was issued. The client picks whichever rail is local to them, which for
+           a cross-border invoice is usually the difference between a same-day transfer and
+           a four-day correspondent chain. *@
+        @foreach (var option in AlternatePaymentOptions)
         {
-            <div class="@(HasOnlinePaymentButtons() ? "mt-6 pt-6 border-t border-gray-200 dark:border-slate-600" : "")">
-                <div class="text-xs font-semibold text-gray-500 dark:text-slate-400 uppercase tracking-wider mb-3">Vietnamese Bank Transfer (VietQR)</div>
-                <div class="flex flex-col sm:flex-row items-start gap-4">
-                    <div class="bg-white p-2 rounded-lg shadow-sm border border-gray-100">
-                        <img src="@GetVietQrUrl()" alt="VietQR Payment Code" class="w-48 h-48 object-contain" />
-                    </div>
-                    <div class="text-sm text-gray-600 dark:text-slate-400">
-                        <p class="font-medium text-gray-700 dark:text-slate-300 mb-2">@L.ScanWithBankingApp</p>
-                        <ul class="space-y-1.5">
-                            <li class="flex items-center gap-2">
-                                <svg class="w-4 h-4 text-emerald-500" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                                    <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M5 13l4 4L19 7" />
-                                </svg>
-                                Amount: @(((long)Total).ToString("N0")) VND
-                            </li>
-                            @if (!string.IsNullOrEmpty(CurrencyPaymentSettings?.BankName))
-                            {
-                                <li class="flex items-center gap-2">
-                                    <svg class="w-4 h-4 text-emerald-500" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                                        <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M5 13l4 4L19 7" />
-                                    </svg>
-                                    Bank: @CurrencyPaymentSettings.BankName
-                                </li>
-                            }
-                            @if (!string.IsNullOrEmpty(CurrencyPaymentSettings?.BankAccountName))
-                            {
-                                <li class="flex items-center gap-2">
-                                    <svg class="w-4 h-4 text-emerald-500" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                                        <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M5 13l4 4L19 7" />
-                                    </svg>
-                                    Account: @CurrencyPaymentSettings.BankAccountName
-                                </li>
-                            }
-                            @if (!string.IsNullOrEmpty(CurrencyPaymentSettings?.BankAccountNumber))
-                            {
-                                <li class="flex items-center gap-2">
-                                    <svg class="w-4 h-4 text-emerald-500" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                                        <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M5 13l4 4L19 7" />
-                                    </svg>
-                                    Account No: @CurrencyPaymentSettings.BankAccountNumber
-                                </li>
-                            }
-                            <li class="flex items-center gap-2">
-                                <svg class="w-4 h-4 text-emerald-500" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                                    <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M5 13l4 4L19 7" />
-                                </svg>
-                                Reference: Invoice @InvoiceNumber
-                            </li>
-                        </ul>
-                    </div>
-                </div>
-            </div>
-        }
-        @* Bank transfer details for non-VND currencies *@
-        else if (HasBankTransferDetails())
-        {
-            <div class="@(HasOnlinePaymentButtons() ? "mt-6 pt-6 border-t border-gray-200 dark:border-slate-600" : "")">
-                <div class="text-xs font-semibold text-gray-500 dark:text-slate-400 uppercase tracking-wider mb-3">@L.BankTransfer</div>
-                <div class="bg-white dark:bg-slate-800 rounded-lg border border-gray-100 dark:border-slate-700 p-4">
-                    <div class="grid grid-cols-1 sm:grid-cols-2 gap-3 text-sm">
-                        @if (!string.IsNullOrEmpty(CurrencyPaymentSettings?.BankName))
-                        {
-                            <div>
-                                <span class="text-gray-500 dark:text-slate-400">Bank:</span>
-                                <span class="font-medium text-gray-900 dark:text-white ml-2">@CurrencyPaymentSettings.BankName</span>
-                            </div>
-                        }
-                        @if (!string.IsNullOrEmpty(CurrencyPaymentSettings?.BankAccountName))
-                        {
-                            <div>
-                                <span class="text-gray-500 dark:text-slate-400">Account Name:</span>
-                                <span class="font-medium text-gray-900 dark:text-white ml-2">@CurrencyPaymentSettings.BankAccountName</span>
-                            </div>
-                        }
-                        @if (!string.IsNullOrEmpty(CurrencyPaymentSettings?.BankAccountNumber))
-                        {
-                            <div>
-                                <span class="text-gray-500 dark:text-slate-400">Account No:</span>
-                                <span class="font-medium text-gray-900 dark:text-white ml-2">@CurrencyPaymentSettings.BankAccountNumber</span>
-                            </div>
-                        }
-                        @if (!string.IsNullOrEmpty(CurrencyPaymentSettings?.BankSortCode))
-                        {
-                            <div>
-                                <span class="text-gray-500 dark:text-slate-400">Sort Code:</span>
-                                <span class="font-medium text-gray-900 dark:text-white ml-2">@CurrencyPaymentSettings.BankSortCode</span>
-                            </div>
-                        }
-                        @if (!string.IsNullOrEmpty(CurrencyPaymentSettings?.BankIban))
-                        {
-                            <div class="sm:col-span-2">
-                                <span class="text-gray-500 dark:text-slate-400">IBAN:</span>
-                                <span class="font-medium text-gray-900 dark:text-white ml-2">@CurrencyPaymentSettings.BankIban</span>
-                            </div>
-                        }
-                        @if (!string.IsNullOrEmpty(CurrencyPaymentSettings?.BankSwift))
-                        {
-                            <div>
-                                <span class="text-gray-500 dark:text-slate-400">SWIFT/BIC:</span>
-                                <span class="font-medium text-gray-900 dark:text-white ml-2">@CurrencyPaymentSettings.BankSwift</span>
-                            </div>
-                        }
-                        @* Only rendered when filled in — an invoice should not carry
-                           empty routing rows. Kept next to the direct details because
-                           the payer's bank asks for them on the same form. *@
-                        @if (!string.IsNullOrEmpty(CurrencyPaymentSettings?.BankAddress))
-                        {
-                            <div class="sm:col-span-2">
-                                <span class="text-gray-500 dark:text-slate-400">Bank address:</span>
-                                <span class="font-medium text-gray-900 dark:text-white ml-2 whitespace-pre-line">@CurrencyPaymentSettings.BankAddress</span>
-                            </div>
-                        }
-                        @if (!string.IsNullOrEmpty(CurrencyPaymentSettings?.IntermediaryBankName))
-                        {
-                            <div>
-                                <span class="text-gray-500 dark:text-slate-400">Correspondent bank:</span>
-                                <span class="font-medium text-gray-900 dark:text-white ml-2">@CurrencyPaymentSettings.IntermediaryBankName</span>
-                            </div>
-                        }
-                        @if (!string.IsNullOrEmpty(CurrencyPaymentSettings?.IntermediaryBankSwift))
-                        {
-                            <div>
-                                <span class="text-gray-500 dark:text-slate-400">Correspondent SWIFT/BIC:</span>
-                                <span class="font-medium text-gray-900 dark:text-white ml-2">@CurrencyPaymentSettings.IntermediaryBankSwift</span>
-                            </div>
-                        }
-                        @if (!string.IsNullOrEmpty(CurrencyPaymentSettings?.IntermediaryAccountNumber))
-                        {
-                            <div>
-                                <span class="text-gray-500 dark:text-slate-400">Account at correspondent:</span>
-                                <span class="font-medium text-gray-900 dark:text-white ml-2">@CurrencyPaymentSettings.IntermediaryAccountNumber</span>
-                            </div>
-                        }
-                        @if (!string.IsNullOrEmpty(CurrencyPaymentSettings?.PaymentPurposeCode))
-                        {
-                            <div>
-                                <span class="text-gray-500 dark:text-slate-400">Payment purpose:</span>
-                                <span class="font-medium text-gray-900 dark:text-white ml-2">@CurrencyPaymentSettings.PaymentPurposeCode</span>
-                            </div>
-                        }
-                        <div class="sm:col-span-2 pt-2 border-t border-gray-100 dark:border-slate-700 mt-2">
-                            <span class="text-gray-500 dark:text-slate-400">Reference:</span>
-                            <span class="font-medium text-gray-900 dark:text-white ml-2">Invoice @InvoiceNumber</span>
-                        </div>
-                    </div>
-                </div>
-            </div>
+            <CurrencyPaymentBlock Currency="@option.Currency" Amount="@option.Amount" Settings="@option.Settings"
+                                  InvoiceNumber="@InvoiceNumber" L="@L" ShowScanToPay="@ShowScanToPay"
+                                  Heading="@($"Or pay in {option.Currency}")"
+                                  SubHeading="@($"{FormatMoney(option.Currency, option.Amount)} — the equivalent of {FormatMoney(Currency, Total)} at the rate when this invoice was issued.")"
+                                  WrapperClass="mt-6 pt-6 border-t border-gray-200 dark:border-slate-600" />
         }
     </div>
 }
 
-<!-- Footer.
+<!-- Footer.<!-- Footer.
      Bottom padding tightens only when a branding line follows (it carries its
      own space below). Without one — every paid plan — the footer stays balanced
      rather than leaving the invoice bottom cramped. -->
@@ -786,6 +623,14 @@ else if (Status == "Void")
     [Parameter] public string? RevolutUsername { get; set; }
     [Parameter] public CurrencyPaymentSettingsDto? CurrencyPaymentSettings { get; set; }
 
+    /// <summary>
+    /// Other currencies this invoice can be settled in — every currency it has a
+    /// snapshotted total for and the owner has an account to receive. Chosen server-side
+    /// by AlternatePaymentCurrencies so the view, the client's copy and the PDF offer
+    /// exactly the same routes.
+    /// </summary>
+    [Parameter] public IReadOnlyList<InvoicePaymentCurrencyDto> AlternatePaymentOptions { get; set; } = [];
+
     // Payment helper methods
     private bool HasOnlinePaymentButtons()
     {
@@ -797,59 +642,40 @@ else if (Status == "Void")
     }
 
     private bool HasPaymentOptions()
-    {
-        // SEPA counts too. Without it, an invoice whose only payment route is a euro IBAN
-        // hides the entire payment section — including the QR that was the one way to pay.
-        return HasOnlinePaymentButtons() || HasVietQr() || HasBankTransferDetails() || ScanToPay is not null;
-    }
-
-    private sealed record ScanToPayQr(string RailName, string ImageUri, bool ShowsReference);
+        => HasOnlinePaymentButtons() || PrimaryCurrencyHasPaymentRoute() || AlternatePaymentOptions.Count > 0;
 
     /// <summary>
-    /// The scan-to-pay code for this invoice, or null when no rail covers its currency or
-    /// the details on file are not good enough to encode.
+    /// Whether the invoice's own currency has somewhere to be paid into. Mirrors what
+    /// CurrencyPaymentBlock will actually render, so the section heading cannot appear
+    /// above an empty block.
     ///
-    /// Null rather than a broken image on purpose: an unscannable QR on an invoice is worse
-    /// than none at all, because the client reaches for it first and only discovers it does
-    /// not work after the payment has failed.
-    ///
-    /// VietQR is deliberately not routed through here — it is still drawn by the existing
-    /// image service, because the EMV payload needs the acquirer's six-digit BIN and what
-    /// is stored is a short bank code. Guessing that mapping would produce a scannable code
-    /// pointing at the wrong bank, which is far worse than an extra network call.
+    /// An IBAN counts on its own. Without that, an invoice whose only payment route is a
+    /// euro IBAN hid the entire payment section — including the QR that was the one way
+    /// to pay it.
     /// </summary>
-    private ScanToPayQr? ScanToPay
+    private bool PrimaryCurrencyHasPaymentRoute()
     {
-        get
-        {
-            if (CurrencyPaymentSettings is null) return null;
-            if (!ShowScanToPay) return null;
+        var s = CurrencyPaymentSettings;
+        if (s is null) return false;
+        if (!string.IsNullOrWhiteSpace(s.BankAccountNumber) || !string.IsNullOrWhiteSpace(s.BankIban)) return true;
 
-            var (rail, account, railName, showsReference) = Currency?.ToUpperInvariant() switch
-            {
-                "EUR" => (PaymentRail.Epc, CurrencyPaymentSettings.BankIban, "SEPA", true),
-                "INR" => (PaymentRail.Upi, CurrencyPaymentSettings.UpiVpa, "UPI", true),
-                "BRL" => (PaymentRail.Pix, CurrencyPaymentSettings.PixKey, "PIX", true),
-                "THB" => (PaymentRail.PromptPay, CurrencyPaymentSettings.PromptPayId, "PromptPay", false),
-                _ => default,
-            };
-
-            if (string.IsNullOrWhiteSpace(account)) return null;
-
-            var result = PaymentQrPayload.Build(rail, new PaymentQrRequest(
-                PayeeName: CurrencyPaymentSettings.BankAccountName,
-                AccountIdentifier: account,
-                Amount: Total,
-                CurrencyCode: Currency,
-                Reference: InvoiceNumber,
-                BeneficiaryBic: CurrencyPaymentSettings.BankSwift));
-
-            if (!result.IsAvailable) return null;
-
-            var image = QrImage.DataUri(result.Payload);
-            return image is null ? null : new ScanToPayQr(railName, image, showsReference);
-        }
+        // UPI, PIX and PromptPay have no account number to print — the identifier is the
+        // account, and the QR is the only way it reaches the client. No QR, no route.
+        return ShowScanToPay &&
+               (!string.IsNullOrWhiteSpace(s.UpiVpa)
+                || !string.IsNullOrWhiteSpace(s.PixKey)
+                || !string.IsNullOrWhiteSpace(s.PromptPayId));
     }
+
+    /// <summary>
+    /// An amount with its currency, for the "or pay in X" line. VND and the other
+    /// zero-decimal currencies are written without the decimals nobody quotes them in —
+    /// "19,605,118 VND", not "19,605,118.40".
+    /// </summary>
+    private static string FormatMoney(string? currency, decimal amount)
+        => string.Equals(currency, "VND", StringComparison.OrdinalIgnoreCase)
+            ? $"{(long)amount:N0} VND"
+            : $"{Akinai.Shared.Enums.CurrencyExtensions.GetSymbol(currency ?? "")}{amount:N2}";
 
     /// <summary>
     /// Whether this account's plan includes scan-to-pay. Passed in rather than read from
@@ -857,33 +683,6 @@ else if (Status == "Void")
     /// and inside the PDF, where there is no signed-in account to ask.
     /// </summary>
     [Parameter] public bool ShowScanToPay { get; set; } = true;
-
-    private bool HasVietQr()
-    {
-        return Currency == "VND" &&
-               !string.IsNullOrEmpty(CurrencyPaymentSettings?.VietQrBankCode) &&
-               !string.IsNullOrEmpty(CurrencyPaymentSettings?.BankAccountNumber);
-    }
-
-    private bool HasBankTransferDetails()
-    {
-        return CurrencyPaymentSettings != null &&
-               !string.IsNullOrEmpty(CurrencyPaymentSettings.BankAccountNumber);
-    }
-
-    private string GetVietQrUrl()
-    {
-        if (CurrencyPaymentSettings == null)
-            return "";
-
-        var bankId = CurrencyPaymentSettings.VietQrBankCode;
-        var accountNo = CurrencyPaymentSettings.BankAccountNumber;
-        var amount = ((long)Total).ToString();
-        var description = Uri.EscapeDataString($"Invoice {InvoiceNumber}");
-        var accountName = Uri.EscapeDataString(CurrencyPaymentSettings.BankAccountName ?? "");
-
-        return $"https://img.vietqr.io/image/{bankId}-{accountNo}-compact.png?amount={amount}&addInfo={description}&accountName={accountName}";
-    }
 
     private decimal GetPaymentAmount()
     {

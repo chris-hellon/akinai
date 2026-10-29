@@ -22,21 +22,7 @@ public class GetAllCurrencyPaymentSettingsHandler(IDbContextFactory<ApplicationD
         var settings = await db.CurrencyPaymentSettings
             .Where(c => c.UserId == userId)
             .OrderBy(c => c.CurrencyCode)
-            .Select(c => new CurrencyPaymentSettingsDto(
-                c.Id,
-                c.CurrencyCode,
-                c.BankName,
-                c.BankAccountName,
-                c.BankAccountNumber,
-                c.BankSortCode,
-                c.BankIban,
-                c.BankSwift,
-                c.VietQrBankCode,
-                c.IntermediaryBankName,
-                c.IntermediaryBankSwift,
-                c.IntermediaryAccountNumber,
-                c.BankAddress,
-                c.PaymentPurposeCode))
+            .Select(CurrencyPaymentSettingsMapping.Projection)
             .ToListAsync(cancellationToken);
 
         return HttpResult<List<CurrencyPaymentSettingsDto>>.Ok(settings);

@@ -1,5 +1,6 @@
 @inject ICall<GetBusinessProfile, BusinessProfileDto?> GetBusinessProfileCall
 @inject ICall<GetInvoicePreflight, InvoicePreflightDto?> GetPreflightCall
+@using Akinai.Shared.Compliance
 @using Akinai.Shared.Dtos.Preflight
 
 <div class="space-y-6">
@@ -88,7 +89,7 @@
                it is there rather than leaving the user to wonder. *@
             <div class="rounded-xl border border-gray-200 dark:border-slate-700 p-4">
                 <div class="text-xs font-semibold uppercase tracking-wide text-gray-400 dark:text-slate-500">
-                    Tax treatment: @_preflight.TaxTreatment
+                    Tax treatment: @TreatmentNames.Describe(_preflight.TaxTreatment)
                 </div>
                 @foreach (var s in _preflight.RequiredStatements)
                 {
@@ -157,6 +158,20 @@
                     <span>View Template</span>
                 </a>
             </div>
+        </div>
+
+        @* The last thing read before Send is pressed. Sending is a one-way door — the
+           invoice locks to editing and the client has a copy — and the moment to say so
+           is here, not in a tooltip on the Edit button afterwards. *@
+        <div class="flex items-start gap-3 p-3 bg-amber-50 dark:bg-amber-900/20 border border-amber-200 dark:border-amber-800/40 rounded-xl">
+            <svg class="w-5 h-5 text-amber-500 shrink-0 mt-0.5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M12 9v2m0 4h.01m-6.938 4h13.856c1.54 0 2.502-1.667 1.732-3L13.732 4c-.77-1.333-2.694-1.333-3.464 0L3.34 16c-.77 1.333.192 3 1.732 3z" />
+            </svg>
+            <p class="text-sm text-amber-800 dark:text-amber-200">
+                <span class="font-medium">This cannot be undone.</span>
+                Once sent, this invoice can no longer be edited — check the dates, line
+                items and amounts before you send it.
+            </p>
         </div>
 
         <!-- Actions -->

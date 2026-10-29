@@ -166,6 +166,10 @@
                             </div>
                         </div>
 
+                        <div class="mt-5">
+                            <AcceptedCurrenciesPicker InvoiceCurrency="@ClientCurrency" @bind-Selected="_paymentCurrencies" />
+                        </div>
+
                         @* Template and language together: both answer "how does this
                            document go out?", and the language note needs room to sit
                            under its own field rather than stretching the date row. *@
@@ -300,6 +304,7 @@
 
     /// <summary>Empty means "inherit from the client or account default".</summary>
     private string _selectedLanguage = "";
+    private List<string> _paymentCurrencies = [];
     private List<LanguageDto> _languages = new();
 
     // Read at render rather than captured at load, so a plan upgrade pushed over
@@ -499,7 +504,8 @@
                 TaxRate = _taxRate,
                 Notes = _notes,
                 TemplateId = string.IsNullOrEmpty(_selectedTemplateId) ? null : Guid.Parse(_selectedTemplateId),
-                Language = string.IsNullOrEmpty(_selectedLanguage) ? null : _selectedLanguage
+                Language = string.IsNullOrEmpty(_selectedLanguage) ? null : _selectedLanguage,
+                PaymentCurrencies = _paymentCurrencies
             });
             NavigationManager.NavigateTo("invoices");
         }

@@ -29,6 +29,9 @@ public record EntitlementsDto(
     bool ScanToPay,
     /// <summary>Predicted payment dates and the payment journey.</summary>
     bool PaymentInsights,
+    /// <summary>Chasing overdue invoices automatically.</summary>
+    bool AutomaticReminders,
+    bool DeliveryRecord,
     /// <summary>
     /// The currencies this account may use, or null when unrestricted.
     ///

@@ -134,6 +134,8 @@ public class EntitlementService(
             definition.RemoveBranding,
             definition.ScanToPay,
             definition.PaymentInsights,
+            definition.AutomaticReminders,
+            definition.DeliveryRecord,
             allowedCurrencies,
             allowedLanguages,
             aiSpendLimitUsd,

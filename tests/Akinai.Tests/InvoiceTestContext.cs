@@ -2,6 +2,8 @@ using Akinai.Domain.Entities;
 using Akinai.Domain.ValueObjects;
 using Akinai.Infrastructure.Data;
 using Akinai.Infrastructure.Services;
+using Akinai.Shared.Billing;
+using Akinai.Shared.Dtos.Billing;
 using Akinai.Shared.Services;
 using Microsoft.Data.Sqlite;
 using Microsoft.EntityFrameworkCore;
@@ -205,6 +207,34 @@ public sealed class InvoiceTestContext : IDisposable
     public sealed class NoHttpContext : Microsoft.AspNetCore.Http.IHttpContextAccessor
     {
         public Microsoft.AspNetCore.Http.HttpContext? HttpContext { get; set; }
+    }
+
+    /// <summary>
+    /// A plan with every feature on or every feature off, for handlers that gate on an
+    /// entitlement. Shared rather than redeclared per test class: the entitlement record
+    /// gains a flag every time a feature is gated, and a copy per file means the next one
+    /// is added to some of them and forgotten in the rest.
+    /// </summary>
+    public sealed class FakePlan(bool everything) : IEntitlementService
+    {
+        public static FakePlan Pro => new(true);
+        public static FakePlan Free => new(false);
+
+        public Task<EntitlementsDto> GetAsync(string userId, CancellationToken ct = default)
+            => Task.FromResult(new EntitlementsDto(
+                Plan: everything ? BillingPlan.Pro : BillingPlan.Free,
+                PlanName: everything ? "Pro" : "Free",
+                Status: SubscriptionStatus.Active,
+                Cycle: BillingCycle.Monthly,
+                CurrentPeriodEndUtc: null,
+                PlanSelected: true,
+                InvoicesPerMonth: null,
+                InvoicesUsedThisMonth: 0,
+                MultiCurrency: everything, AllLanguages: everything, BankImport: everything,
+                RecurringBilling: everything, Estimates: everything, CustomTemplates: everything,
+                RemoveBranding: everything, ScanToPay: everything, PaymentInsights: everything,
+                AutomaticReminders: everything, DeliveryRecord: everything,
+                AllowedCurrencies: null, AllowedLanguages: null));
     }
 
     /// <summary>A different signed-in user, for checking ownership scoping.</summary>

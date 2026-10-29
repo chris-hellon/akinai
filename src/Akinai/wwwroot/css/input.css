@@ -1603,6 +1603,14 @@ html.dark { --color-wordmark-ai: var(--color-primary-300, #6bb8bf); }
 
   /* Anything interactive has no meaning on paper. */
   .no-print, button:not(.keep-print) { display: none !important; }
+
+  /* The app shell is navigation, not content. The dedicated print routes use
+     EmptyLayout and never see any of this, but an authenticated page printed
+     with Ctrl+P otherwise comes out with the sidebar down one edge and the
+     content indented past it — and the delivery record is a page people will
+     reasonably print from where they are standing. */
+  #sidebar, #main-content > header { display: none !important; }
+  #main-content { margin-left: 0 !important; }
 }
 
 /* ---------------------------------------------------------------------

@@ -1,3 +1,4 @@
+using Akinai.Shared.Payments;
 using Akinai.Shared.Dtos.InvoiceTemplates;
 
 namespace Akinai.Shared.Dtos.Invoices;
@@ -59,4 +60,9 @@ public record InvoiceDetailDto(
     /// How many time entries this invoice bills, regardless of how they are
     /// presented. Drives whether summarising is worth offering.
     /// </summary>
-    int TimeEntryCount = 0);
+    int TimeEntryCount = 0,
+    /// <summary>
+    /// Other currencies this invoice accepts payment in, at the amounts snapshotted when
+    /// it was saved. Drives both the payment blocks and the edit form's tick boxes.
+    /// </summary>
+    IReadOnlyList<InvoicePaymentCurrencyDto>? AlternatePaymentOptions = null);

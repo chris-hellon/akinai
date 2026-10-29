@@ -114,6 +114,8 @@
                     </div>
                 </div>
 
+                <AcceptedCurrenciesPicker InvoiceCurrency="@_currency" @bind-Selected="_paymentCurrencies" />
+
                 <div>
                     <label class="block text-sm font-medium text-gray-700 mb-2">Notes</label>
                     <textarea @bind="_notes" rows="3" placeholder="Add any notes to appear on the invoice..."
@@ -354,6 +356,7 @@
 
     /// <summary>Empty means "inherit from the client or account default".</summary>
     private string _selectedLanguage = "";
+    private List<string> _paymentCurrencies = [];
     private List<LanguageDto> _languages = new();
     private string _selectedTemplateId = "";
     private List<InvoiceTemplateDto>? _templates;
@@ -429,6 +432,8 @@
                 // The invoice's own stored choice, not the resolved language —
                 // blank must stay blank so "inherit" survives a save.
                 _selectedLanguage = _invoice.InvoiceLanguage ?? "";
+                _paymentCurrencies = _invoice.AlternatePaymentOptions?
+                    .Select(o => o.Currency).ToList() ?? [];
                 _selectedTemplateId = _invoice.TemplateId?.ToString() ?? "";
 
                 _lineItems = _invoice.LineItems.Select(li => new EditableLineItem
@@ -608,7 +613,8 @@
                 ProductLineItems = _productLineItems
                     .Where(p => !string.IsNullOrWhiteSpace(p.Description) || p.ProductId.HasValue)
                     .Select(p => new ProductLineItemRequest(p.ProductId, p.Description, p.Quantity, p.UnitPrice))
-                    .ToList()
+                    .ToList(),
+                PaymentCurrencies = _paymentCurrencies
             };
 
             await UpdateInvoiceCall.Call(request);

@@ -21,6 +21,7 @@ public sealed class ApplicationDbContext : IdentityDbContext<ApplicationUser>
     public DbSet<InvoiceLineItem> InvoiceLineItems => Set<InvoiceLineItem>();
     public DbSet<InvoiceServiceLine> InvoiceServiceLines => Set<InvoiceServiceLine>();
     public DbSet<InvoiceCurrencyTotal> InvoiceCurrencyTotals => Set<InvoiceCurrencyTotal>();
+    public DbSet<InvoicePaymentCurrency> InvoicePaymentCurrencies => Set<InvoicePaymentCurrency>();
     public DbSet<BusinessProfile> BusinessProfiles => Set<BusinessProfile>();
     public DbSet<CurrencyPaymentSettings> CurrencyPaymentSettings => Set<CurrencyPaymentSettings>();
     public DbSet<Expense> Expenses => Set<Expense>();
@@ -49,6 +50,7 @@ public sealed class ApplicationDbContext : IdentityDbContext<ApplicationUser>
 
     // Notifications
     public DbSet<Notification> Notifications => Set<Notification>();
+    public DbSet<DunningReminder> DunningReminders => Set<DunningReminder>();
 
     // Billing
     public DbSet<SubscriptionEvent> SubscriptionEvents => Set<SubscriptionEvent>();

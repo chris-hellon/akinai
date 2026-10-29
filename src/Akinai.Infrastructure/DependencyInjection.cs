@@ -68,6 +68,7 @@ public static class DependencyInjection
         services.Configure<ExchangeRateOptions>(configuration.GetSection(ExchangeRateOptions.SectionName));
         services.AddHttpClient<IExchangeRateService, ExchangeRateService>();
         services.AddScoped<IInvoiceTotalService, InvoiceTotalService>();
+        services.AddScoped<IInvoicePaymentCurrencyService, InvoicePaymentCurrencyService>();
 
         // Billing. Swapping SimulatedBillingProvider for a Stripe implementation
         // is the whole of "going live" — nothing above this line knows which
@@ -129,6 +130,8 @@ public static class DependencyInjection
         services.AddHostedService<RecurringExpenseGeneratorService>();
 
         services.AddHostedService<OverdueInvoiceService>();
+
+        services.AddHostedService<DunningService>();
 
         return services;
     }

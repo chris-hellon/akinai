@@ -23,6 +23,20 @@
         }
     </div>
 
+    @* The grey footnote above is right for routine deletes and wrong for the ones that
+       destroy a record someone else is holding. Those get their own box, because a
+       consequence set in the same small grey type as every other confirmation is a
+       consequence nobody reads. *@
+    @if (!string.IsNullOrEmpty(SevereWarning))
+    {
+        <div class="flex gap-3 rounded-xl border border-red-200 dark:border-red-900/50 bg-red-50 dark:bg-red-950/30 px-4 py-3">
+            <svg class="w-5 h-5 shrink-0 text-red-500 mt-0.5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M12 9v2m0 4h.01m-6.938 4h13.856c1.54 0 2.502-1.667 1.732-3L13.732 4c-.77-1.333-2.694-1.333-3.464 0L3.34 16c-.77 1.333.192 3 1.732 3z" />
+            </svg>
+            <p class="text-sm text-red-800 dark:text-red-300">@SevereWarning</p>
+        </div>
+    }
+
     <!-- Actions -->
     <div class="flex justify-center gap-3 pt-2">
         <button @onclick="Cancel"
@@ -51,6 +65,13 @@
 @code {
     [Parameter] public string ItemName { get; set; } = "this item";
     [Parameter] public string? WarningMessage { get; set; }
+
+    /// <summary>
+    /// Spelled out in a red box rather than as a footnote. For deletes that remove
+    /// something a third party is holding a copy of, or that destroy a record kept as
+    /// evidence — not for the ordinary "are you sure".
+    /// </summary>
+    [Parameter] public string? SevereWarning { get; set; }
     [Parameter] public Func<Task>? OnDelete { get; set; }
 
     private bool _isDeleting;

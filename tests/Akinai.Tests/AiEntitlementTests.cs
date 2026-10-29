@@ -31,6 +31,8 @@ public class AiEntitlementTests
         CustomTemplates: true,
         ScanToPay: true,
         PaymentInsights: true,
+        AutomaticReminders: true,
+        DeliveryRecord: true,
         RemoveBranding: true,
         AllowedCurrencies: null,
         AllowedLanguages: null,

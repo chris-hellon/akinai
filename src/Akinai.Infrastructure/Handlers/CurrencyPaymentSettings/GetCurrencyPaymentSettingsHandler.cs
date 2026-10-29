@@ -21,24 +21,7 @@ public class GetCurrencyPaymentSettingsHandler(IDbContextFactory<ApplicationDbCo
         await using var db = await dbFactory.CreateDbContextAsync(cancellationToken);
         var settings = await db.CurrencyPaymentSettings
             .Where(c => c.UserId == userId && c.CurrencyCode == request.CurrencyCode)
-            .Select(c => new CurrencyPaymentSettingsDto(
-                c.Id,
-                c.CurrencyCode,
-                c.BankName,
-                c.BankAccountName,
-                c.BankAccountNumber,
-                c.BankSortCode,
-                c.BankIban,
-                c.BankSwift,
-                c.VietQrBankCode,
-                c.IntermediaryBankName,
-                c.IntermediaryBankSwift,
-                c.IntermediaryAccountNumber,
-                c.BankAddress,
-                c.PaymentPurposeCode,
-                c.UpiVpa,
-                c.PixKey,
-                c.PromptPayId))
+            .Select(CurrencyPaymentSettingsMapping.Projection)
             .FirstOrDefaultAsync(cancellationToken);
 
         return HttpResult<CurrencyPaymentSettingsDto?>.Ok(settings);

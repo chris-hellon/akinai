@@ -37,4 +37,29 @@ public record InvoiceEvidenceDto(
     IReadOnlyList<string> RequiredStatements,
 
     DateTime? SignedAtUtc,
-    string? SignedByName);
+    string? SignedByName,
+    string? SignedByEmail,
+
+    /// <summary>
+    /// Where the signature was given from. Weak on its own and decisive alongside the
+    /// rest — it is the one part of the trail the signer cannot later claim was typed
+    /// by somebody else.
+    /// </summary>
+    string? SignedFromIpAddress,
+
+    /// <summary>
+    /// Every reminder actually sent for this invoice, oldest first. Part of the trail
+    /// rather than a footnote to it: "they were chased four times and never replied" is
+    /// the claim a late-payment dispute turns on, and these rows are the only record of
+    /// it. Empty when nothing was ever sent.
+    /// </summary>
+    IReadOnlyList<InvoiceEvidenceReminderDto> Reminders);
+
+/// <summary>One reminder, as it went out.</summary>
+public record InvoiceEvidenceReminderDto(
+    /// <summary>The <c>DunningStage</c> name, stored as text on the reminder.</summary>
+    string Stage,
+    DateTime SentAtUtc,
+    string ToEmail,
+    /// <summary>The language it was written in, which is itself part of the record.</summary>
+    string Language);

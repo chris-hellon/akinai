@@ -25,6 +25,13 @@ public record PlanDefinition(
     bool RemoveBranding,
     bool ScanToPay,
     bool PaymentInsights,
+    bool AutomaticReminders,
+    /// <summary>
+    /// The delivery record: what was sent, to whom, the document fingerprint, every
+    /// opening, every reminder and the signature, as one document that can be printed
+    /// and handed over.
+    /// </summary>
+    bool DeliveryRecord,
     /// <summary>
     /// Monthly AI/translation allowance in USD, or null when the plan has none.
     /// A fuse against runaway usage rather than a real cost centre — see AiPricing.
@@ -71,6 +78,8 @@ public static class Plans
         RemoveBranding: false,
         ScanToPay: false,
         PaymentInsights: false,
+        AutomaticReminders: false,
+        DeliveryRecord: false,
         AiSpendLimitUsd: null,
         Highlights:
         [
@@ -86,8 +95,21 @@ public static class Plans
         Plan: BillingPlan.Pro,
         Name: "Pro",
         Tagline: "Bill in their language. Get paid on their rail.",
-        MonthlyPrice: 9m,
-        AnnualPrice: 90m,
+        // £14/mo, or £140 for the year — ten months' price, so "two months free"
+        // is exactly true rather than approximately.
+        //
+        // Pitched below the entry tier of the generalist books (Xero Starter and
+        // FreshBooks Lite are both ~£15) while being unmetered where they are not:
+        // Xero Starter caps invoices at 20 a month and FreshBooks Lite caps
+        // billable clients at 5. Nothing at this price does multi-currency with
+        // reporting currency, eight languages, or the local payment rails, which
+        // is the whole reason to pick this over them.
+        //
+        // It was £9. That was underpriced for the feature set and, worse, it read
+        // as a hobby project — and raising a price on existing subscribers is
+        // harder than starting a little higher.
+        MonthlyPrice: 14m,
+        AnnualPrice: 140m,
         Currency: "GBP",
         CurrencySymbol: "£",
         InvoicesPerMonth: null,
@@ -100,15 +122,18 @@ public static class Plans
         RemoveBranding: true,
         ScanToPay: true,
         PaymentInsights: true,
-        // ~£1.00 at the time of writing. Denominated in USD because that is
-        // what the model providers bill in; the round number is the GBP side,
-        // so this will drift with the rate and is worth a look occasionally.
+        AutomaticReminders: true,
+        DeliveryRecord: true,
+        // ~£1.50 at the time of writing. Denominated in USD because that is
+        // what the model providers bill in, so it drifts with the rate and is
+        // worth a look occasionally.
         //
         // Not a binding constraint for text features — summarising a timesheet
-        // on the cheapest tier costs about $0.0014, so this is roughly 950
+        // on the cheapest tier costs about $0.0014, so this is roughly 1,400
         // invoices a month. It is headroom for vision work (receipt capture),
-        // which is the only thing that could realistically consume it.
-        AiSpendLimitUsd: 1.33m,
+        // which is the only thing that could realistically consume it. Raised
+        // from $1.33 along with the price; the margin carries it comfortably.
+        AiSpendLimitUsd: 2.00m,
         Highlights:
         [
             "Everything in Free, plus:",
@@ -121,6 +146,8 @@ public static class Plans
             "AI-powered invoicing — line items written and translated for you",
             "Scan-to-pay QR codes — SEPA, UPI, PIX, PromptPay and VietQR",
             "Predicted payment dates, learned from how your clients actually pay",
+            "Overdue invoices chased for you, in your client's language and working hours",
+            "A delivery record for every invoice — proof of what you sent, and when they opened it",
             "Your own branding on invoices",
         ]);
 

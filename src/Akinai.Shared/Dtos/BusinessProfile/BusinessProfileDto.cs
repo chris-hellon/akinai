@@ -32,4 +32,5 @@ public record BusinessProfileDto(
     string? WiseEmail,
     string? RevolutUsername,
     string? VietQrBankCode,
-    decimal? VndToDefaultCurrencyRate);
+    decimal? VndToDefaultCurrencyRate,
+    bool AutomaticRemindersEnabled = false);

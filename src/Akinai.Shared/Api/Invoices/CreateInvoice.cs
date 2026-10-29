@@ -18,6 +18,14 @@ public class CreateInvoice : IPost<Guid>
     [BodyParam]
     public List<ProductLineItemRequest> ProductLineItems { get; init; } = [];
 
+/// <summary>
+    /// Currencies this invoice accepts payment in besides its own, as ISO codes. Only
+    /// currencies the owner has payment details for are honoured. Empty means the billing
+    /// currency only, which is the default.
+    /// </summary>
+    [BodyParam]
+    public List<string> PaymentCurrencies { get; init; } = [];
+
     [BodyParam]
     public DateOnly IssueDate { get; init; }
 

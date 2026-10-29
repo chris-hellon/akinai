@@ -16,13 +16,24 @@ namespace Akinai.Infrastructure.Handlers.Invoices;
 /// </summary>
 public class GetInvoiceEvidenceHandler(
     IDbContextFactory<ApplicationDbContext> dbFactory,
-    ICurrentUserService currentUserService) : IHandle<GetInvoiceEvidence, InvoiceEvidenceDto?>
+    ICurrentUserService currentUserService,
+    IEntitlementService entitlements) : IHandle<GetInvoiceEvidence, InvoiceEvidenceDto?>
 {
     public async Task<HttpResult<InvoiceEvidenceDto?>> Handle(
         GetInvoiceEvidence request, CancellationToken cancellationToken)
     {
         var userId = currentUserService.UserId;
         if (string.IsNullOrEmpty(userId)) return HttpResult<InvoiceEvidenceDto?>.Unauthorized();
+
+        // Checked here rather than only in the UI. The in-app page and the print route
+        // both come through this handler, and an endpoint that trusts its callers is not
+        // gated at all — /api/invoices/{id}/evidence is reachable with a cookie and curl.
+        //
+        // Resolved per request, so a lapsed subscription stops answering immediately
+        // rather than at the next restart, and keyed on the named entitlement so a tier
+        // can have the record withdrawn without being made free.
+        var plan = await entitlements.GetAsync(userId, cancellationToken);
+        if (!plan.DeliveryRecord) return HttpResult<InvoiceEvidenceDto?>.Forbidden();
 
         await using var db = await dbFactory.CreateDbContextAsync(cancellationToken);
 
@@ -40,8 +51,17 @@ public class GetInvoiceEvidenceHandler(
                         && s.LinkedEntityId == invoice.Id
                         && s.IsValid)
             .OrderByDescending(s => s.SignedAt)
-            .Select(s => new { s.SignedAt, s.SignerName })
+            .Select(s => new { s.SignedAt, s.SignerName, s.SignerEmail, s.SignerIpAddress })
             .FirstOrDefaultAsync(cancellationToken);
+
+        // Oldest first, so the trail reads as the chase happened. SentAtUtc is the record
+        // of fact — a reminder row exists only once its email has actually gone out.
+        var reminders = await db.DunningReminders
+            .AsNoTracking()
+            .Where(r => r.InvoiceId == invoice.Id)
+            .OrderBy(r => r.SentAtUtc)
+            .Select(r => new InvoiceEvidenceReminderDto(r.Stage, r.SentAtUtc, r.ToEmail, r.Language))
+            .ToListAsync(cancellationToken);
 
         // Re-assessed rather than stored. Honest about what it is: this is the treatment
         // that applies to the invoice as it stands now, which is the same thing the
@@ -66,6 +86,9 @@ public class GetInvoiceEvidenceHandler(
             compliance.Treatment.ToString(),
             compliance.RequiredStatements,
             signature?.SignedAt,
-            signature?.SignerName));
+            signature?.SignerName,
+            signature?.SignerEmail,
+            signature?.SignerIpAddress,
+            reminders));
     }
 }

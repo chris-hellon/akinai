@@ -1,0 +1,129 @@
+@using Akinai.Shared.Api.CurrencyPaymentSettings
+@using Akinai.Shared.Dtos.CurrencyPaymentSettings
+@using Akinai.Shared.Payments
+@inject ICall<GetAllCurrencyPaymentSettings, List<CurrencyPaymentSettingsDto>> GetAllCurrencySettingsCall
+
+@*
+    Which currencies this invoice will accept payment in, besides the one it is billed in.
+
+    Offered rather than inferred. The amount in another currency is a figure the client
+    may pay against, so it is a commercial decision per invoice — not something to derive
+    from which currencies happen to have an account attached.
+
+    Only currencies with somewhere to receive are listed: a bank account, an IBAN, or a
+    local rail identifier. A currency tab opened and never filled in cannot be ticked.
+*@
+
+<div>
+    <label class="block text-sm font-medium text-gray-700 dark:text-slate-300 mb-2">
+        Also accept payment in
+    </label>
+
+    @if (_isLoading)
+    {
+        <div class="h-9 w-40 rounded bg-gray-100 dark:bg-slate-700 animate-pulse"></div>
+    }
+    else if (Choices.Count == 0)
+    {
+        <p class="text-xs text-gray-500 dark:text-slate-400">
+            @(string.IsNullOrEmpty(InvoiceCurrency)
+                ? "Pick a client first."
+                : $"{InvoiceCurrency} only — no other currency has payment details yet.")
+            <a href="settings/invoicing" class="text-primary-600 dark:text-primary-400 hover:underline">Add bank details</a>
+            to offer another currency.
+        </p>
+    }
+    else
+    {
+        <div class="flex flex-wrap gap-2">
+            @foreach (var choice in Choices)
+            {
+                var isOn = Selected.Contains(choice, StringComparer.OrdinalIgnoreCase);
+                <button type="button" @onclick="() => Toggle(choice)"
+                        class="@(isOn
+                            ? "px-3 py-1.5 rounded-lg text-sm font-medium bg-primary-600 text-white"
+                            : "px-3 py-1.5 rounded-lg text-sm font-medium bg-gray-100 text-gray-700 hover:bg-gray-200 dark:bg-slate-700 dark:text-slate-200 dark:hover:bg-slate-600")">
+                    @choice
+                    @if (isOn)
+                    {
+                        <span class="ml-1">&#10003;</span>
+                    }
+                </button>
+            }
+        </div>
+        <p class="mt-1.5 text-xs text-gray-500 dark:text-slate-400">
+            @* Said plainly: the conversion is fixed when the invoice is saved, so a rate
+               move afterwards is the owner's to absorb. That is the whole commitment
+               being made by ticking one of these, and it should not be a surprise. *@
+            The client can pay in @InvoiceCurrency or any of these. The amount is converted
+            and fixed when you save, so a later rate move will not change what they owe.
+        </p>
+    }
+</div>
+
+@code {
+    /// <summary>The currency the invoice is billed in. Never offered as an extra.</summary>
+    [Parameter] public string? InvoiceCurrency { get; set; }
+
+    [Parameter] public List<string> Selected { get; set; } = [];
+    [Parameter] public EventCallback<List<string>> SelectedChanged { get; set; }
+
+    private List<CurrencyPaymentSettingsDto> _accounts = [];
+    private bool _isLoading = true;
+
+    private List<string> Choices => _accounts
+        .Where(AlternatePaymentCurrencies.IsPayable)
+        .Select(a => a.CurrencyCode.Trim().ToUpperInvariant())
+        .Where(c => !string.Equals(c, InvoiceCurrency, StringComparison.OrdinalIgnoreCase))
+        .Distinct(StringComparer.OrdinalIgnoreCase)
+        .OrderBy(c => c, StringComparer.Ordinal)
+        .ToList();
+
+    protected override async Task OnInitializedAsync()
+    {
+        try
+        {
+            _accounts = await GetAllCurrencySettingsCall.Call(new GetAllCurrencyPaymentSettings()) ?? [];
+        }
+        catch
+        {
+            // A picker that cannot load its options is an empty picker, not a broken
+            // form. The invoice is still perfectly valid in its own currency.
+            _accounts = [];
+        }
+        finally
+        {
+            _isLoading = false;
+        }
+    }
+
+    /// <summary>
+    /// Changing the client changes the invoice's currency, and the currency it is billed
+    /// in can never also be an extra. Without this, picking a VND client after ticking
+    /// VND would send VND twice and print the same account as both the primary block and
+    /// an alternate.
+    /// </summary>
+    protected override async Task OnParametersSetAsync()
+    {
+        if (string.IsNullOrEmpty(InvoiceCurrency)) return;
+
+        var pruned = Selected
+            .Where(c => !string.Equals(c, InvoiceCurrency, StringComparison.OrdinalIgnoreCase))
+            .ToList();
+
+        if (pruned.Count == Selected.Count) return;
+
+        Selected = pruned;
+        await SelectedChanged.InvokeAsync(pruned);
+    }
+
+    private async Task Toggle(string currency)
+    {
+        var next = Selected.ToList();
+        if (next.RemoveAll(c => string.Equals(c, currency, StringComparison.OrdinalIgnoreCase)) == 0)
+            next.Add(currency);
+
+        Selected = next;
+        await SelectedChanged.InvokeAsync(next);
+    }
+}

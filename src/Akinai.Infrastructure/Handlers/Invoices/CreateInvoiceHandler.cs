@@ -13,7 +13,8 @@ public class CreateInvoiceHandler(
     IDbContextFactory<ApplicationDbContext> dbFactory,
     ICurrentUserService currentUserService,
     IEntitlementService entitlementService,
-    IInvoiceTotalService totalService) : IHandle<CreateInvoice, Guid>
+    IInvoiceTotalService totalService,
+    IInvoicePaymentCurrencyService paymentCurrencyService) : IHandle<CreateInvoice, Guid>
 {
     public async Task<HttpResult<Guid>> Handle(CreateInvoice request, CancellationToken cancellationToken)
     {
@@ -117,6 +118,11 @@ public class CreateInvoiceHandler(
         if (client is not null)
         {
             await totalService.RecalculateAsync(db, invoice.Id, client.UserId, cancellationToken);
+
+            // After the totals, because each accepted currency is a conversion of the
+            // final total — running it first would convert a figure that then changed.
+            await paymentCurrencyService.SetAsync(
+                db, invoice.Id, client.UserId, request.PaymentCurrencies, cancellationToken);
             await db.SaveChangesAsync(cancellationToken);
         }
 

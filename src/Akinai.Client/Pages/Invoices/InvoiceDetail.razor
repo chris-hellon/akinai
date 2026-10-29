@@ -1,4 +1,5 @@
 @page "/invoices/{Id:guid}"
+@using Akinai.Shared.Invoices
 
 @inject ICall<GetInvoice, InvoiceDetailDto?> GetInvoiceCall
 @inject ICall<GetInvoicePdf, byte[]> GetInvoicePdfCall
@@ -70,6 +71,23 @@
                             </svg>
                             @(_isDownloading ? "Preparing PDF…" : "Download PDF")
                         </ActionMenuItem>
+
+                        @if (InvoiceDeleteWarning.IsIssued(_invoice.Status))
+                        {
+                            @* Shown on every plan even though the record itself is Pro.
+                               The page behind it explains what it is and offers the
+                               upgrade; hiding the entry point instead would mean nobody
+                               on Free ever discovers the feature exists. Its own
+                               entitlement rather than PaymentInsights, which gates the
+                               payment journey below — that card predicts, this one
+                               records, and the two can be withdrawn separately. *@
+                            <ActionMenuItem Href="@($"invoices/{Id}/evidence")">
+                                <svg class="w-4 h-4 text-gray-400" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                                    <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M9 12h6m-6 4h6m2 5H7a2 2 0 01-2-2V5a2 2 0 012-2h5.586a1 1 0 01.707.293l5.414 5.414a1 1 0 01.293.707V19a2 2 0 01-2 2z" />
+                                </svg>
+                                Delivery record
+                            </ActionMenuItem>
+                        }
 
                         @if (_invoice.Status == "Draft")
                         {
@@ -204,7 +222,8 @@
                         RevolutUsername="@_businessProfile?.RevolutUsername"
                         DefaultCurrency="@_businessProfile?.DefaultCurrency"
                         VndToDefaultCurrencyRate="@_businessProfile?.VndToDefaultCurrencyRate"
-                        CurrencyPaymentSettings="@_currencyPaymentSettings" />
+                        CurrencyPaymentSettings="@_currencyPaymentSettings"
+                        AlternatePaymentOptions="@(_invoice?.AlternatePaymentOptions ?? [])" />
                 </div>
             </div>
 
@@ -225,6 +244,17 @@
                                     PaidDate="@_invoice.PaidDate"
                                     DueDate="@_invoice.DueDate"
                                     Timing="@_paymentTiming" />
+
+                    @if (InvoiceDeleteWarning.IsIssued(_invoice.Status))
+                    {
+                        <a href="@($"invoices/{Id}/evidence")"
+                           class="mt-4 inline-flex items-center gap-1.5 text-sm text-primary-600 dark:text-primary-400 hover:underline">
+                            Full delivery record
+                            <svg class="w-3.5 h-3.5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                                <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M9 5l7 7-7 7" />
+                            </svg>
+                        </a>
+                    }
                 </Card>
                 }
 
@@ -387,7 +417,9 @@
         </div>
 
         <DangerZone EntityLabel="Invoice" ItemName="@_invoice.InvoiceNumber"
-                    WarningMessage="This permanently deletes the invoice and its line items. This cannot be undone."
+                    Description="@InvoiceDeleteWarning.PanelDescription(_invoice.Status, _invoice.SentAtUtc)"
+                    WarningMessage="@InvoiceDeleteWarning.Baseline(_invoice.Status)"
+                    SevereWarning="@InvoiceDeleteWarning.Severe(_invoice.Status, _invoice.InvoiceNumber, _invoice.SentAtUtc)"
                     OnConfirmed="PerformDelete" />
     }
 </div>
@@ -679,6 +711,22 @@
 
     private async Task MarkAsSent()
     {
+        // Marking sent is the same one-way door as actually emailing it — the invoice
+        // stops being editable either way — so it asks the same question.
+        var confirmed = await ModalService.ShowAsync<bool>(
+            typeof(ConfirmationModal),
+            "Mark as sent?",
+            new Dictionary<string, object>
+            {
+                { "Message", $"Mark invoice {_invoice?.InvoiceNumber} as sent?" },
+                { "WarningMessage", "Once an invoice is sent it can no longer be edited. "
+                    + "Check the dates, line items and amounts first." },
+                { "ConfirmText", "Mark as sent" },
+            },
+            new ModalOptions { Size = ModalSize.Small });
+
+        if (!confirmed) return;
+
         _isMarkingSent = true;
         _errorMessage = null;
 

@@ -95,4 +95,8 @@ public class SaveBusinessProfile : IPut
 
     [BodyParam]
     public string? VietQrBankCode { get; init; }
+
+    /// <summary>Whether Akinai may email overdue clients on this account's behalf.</summary>
+    [BodyParam]
+    public bool AutomaticRemindersEnabled { get; init; }
 }

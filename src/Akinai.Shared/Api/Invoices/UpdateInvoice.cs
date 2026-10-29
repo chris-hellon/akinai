@@ -37,6 +37,15 @@ public class UpdateInvoice : IPut
     public List<ProductLineItemRequest>? ProductLineItems { get; init; }
 
     /// <summary>
+    /// Currencies this invoice accepts payment in besides its own, as ISO codes. Only
+    /// currencies the owner has payment details for are honoured. Null leaves the current selection
+    /// alone; empty clears it back to the billing currency only.
+    /// </summary>
+    [BodyParam]
+    public List<string>? PaymentCurrencies { get; init; }
+
+
+    /// <summary>
     /// Language for this invoice, as a <c>SupportedLanguage</c> name. Null means
     /// inherit from the client override, then the account default.
     /// </summary>

@@ -69,6 +69,12 @@ public class InvoiceConfiguration : IEntityTypeConfiguration<Invoice>
             .HasForeignKey(ct => ct.InvoiceId)
             .OnDelete(DeleteBehavior.Cascade);
 
+        // Invoice has many accepted payment currencies
+        builder.HasMany(i => i.PaymentCurrencies)
+            .WithOne(pc => pc.Invoice)
+            .HasForeignKey(pc => pc.InvoiceId)
+            .OnDelete(DeleteBehavior.Cascade);
+
         builder.HasIndex(i => i.ClientId);
         builder.HasIndex(i => i.Status);
     }

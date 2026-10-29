@@ -1,4 +1,5 @@
 using Akinai.Shared.Dtos.CurrencyPaymentSettings;
+using Akinai.Shared.Payments;
 using Akinai.Shared.Dtos.InvoiceTemplates;
 
 namespace Akinai.Shared.Dtos.Invoices;
@@ -40,6 +41,8 @@ public record PublicInvoiceDto(
     decimal? VndToDefaultCurrencyRate,
     // Currency-specific bank details
     CurrencyPaymentSettingsDto? CurrencyPaymentSettings,
+    /// <summary>Other currencies this invoice accepts, at the amounts it accepts them.</summary>
+    IReadOnlyList<InvoicePaymentCurrencyDto> AlternatePaymentOptions,
     // Template styling
     InvoiceTemplateDto? Template = null,
     /// <summary>

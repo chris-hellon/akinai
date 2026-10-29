@@ -16,8 +16,14 @@ namespace Akinai.Tests;
 public class MoneyAndLimitsTests
 {
     private static EntitlementsDto Ents(int? cap, int used, decimal? aiLimit = null, decimal aiSpent = 0m) =>
-        new(BillingPlan.Pro, "Pro", SubscriptionStatus.Active, BillingCycle.Monthly, null, true,
-            cap, used, true, true, true, true, true, true, true, true, true, null, null, aiLimit, aiSpent);
+        new(Plan: BillingPlan.Pro, PlanName: "Pro", Status: SubscriptionStatus.Active,
+            Cycle: BillingCycle.Monthly, CurrentPeriodEndUtc: null, PlanSelected: true,
+            InvoicesPerMonth: cap, InvoicesUsedThisMonth: used,
+            MultiCurrency: true, AllLanguages: true, BankImport: true, RecurringBilling: true,
+            Estimates: true, CustomTemplates: true, RemoveBranding: true, ScanToPay: true,
+            PaymentInsights: true, AutomaticReminders: true, DeliveryRecord: true,
+            AllowedCurrencies: null, AllowedLanguages: null,
+            AiSpendLimitUsd: aiLimit, AiSpentUsd: aiSpent);
 
     [Theory]
     [InlineData(5, 0, true)]
@@ -82,9 +88,13 @@ public class MoneyAndLimitsTests
     public void Annual_saving_is_derived_from_the_two_prices()
     {
         // £9/month against £90/year is two months free. Hardcoding "2 months"
-        // anywhere would silently lie the first time a price changed.
+        // anywhere would silently lie the first time a price changed — which it
+        // since has, so these figures are the test's own, not the live Pro price.
         var pro = new PlanDefinition(BillingPlan.Pro, "Pro", "", 9m, 90m, "GBP", "£",
-            null, true, true, true, true, true, true, true, true, true, 1m, []);
+            InvoicesPerMonth: null, MultiCurrency: true, AllLanguages: true, BankImport: true,
+            RecurringBilling: true, Estimates: true, CustomTemplates: true, RemoveBranding: true,
+            ScanToPay: true, PaymentInsights: true, AutomaticReminders: true, DeliveryRecord: true,
+            AiSpendLimitUsd: 1m, Highlights: []);
 
         pro.AnnualMonthsFree.Should().Be(2m);
         pro.PriceFor(BillingCycle.Annual).Should().Be(90m);
@@ -96,7 +106,10 @@ public class MoneyAndLimitsTests
     public void A_free_plan_reports_no_annual_saving_and_does_not_divide_by_zero()
     {
         var free = new PlanDefinition(BillingPlan.Free, "Free", "", 0m, 0m, "GBP", "£",
-            5, false, false, false, false, false, false, false, false, false, null, []);
+            InvoicesPerMonth: 5, MultiCurrency: false, AllLanguages: false, BankImport: false,
+            RecurringBilling: false, Estimates: false, CustomTemplates: false, RemoveBranding: false,
+            ScanToPay: false, PaymentInsights: false, AutomaticReminders: false, DeliveryRecord: false,
+            AiSpendLimitUsd: null, Highlights: []);
 
         free.AnnualMonthsFree.Should().Be(0m);
         free.IsPaid.Should().BeFalse();

@@ -31,6 +31,10 @@ public class SavePlanSettings : IPut
     [BodyParam] public bool Estimates { get; init; }
     [BodyParam] public bool CustomTemplates { get; init; }
     [BodyParam] public bool RemoveBranding { get; init; }
+    [BodyParam] public bool ScanToPay { get; init; }
+    [BodyParam] public bool PaymentInsights { get; init; }
+    [BodyParam] public bool AutomaticReminders { get; init; }
+    [BodyParam] public bool DeliveryRecord { get; init; }
     [BodyParam] public decimal? AiSpendLimitUsd { get; init; }
 
     /// <summary>Marketing bullets, one per line.</summary>

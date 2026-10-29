@@ -5,6 +5,8 @@ using Akinai.Infrastructure.Data;
 using Akinai.Shared.Api.Invoices;
 using Akinai.Shared.Dtos.Invoices;
 using Akinai.Shared.Dtos.InvoiceTemplates;
+using Akinai.Infrastructure.Handlers.CurrencyPaymentSettings;
+using Akinai.Shared.Payments;
 using Akinai.Shared.Services;
 using Microsoft.EntityFrameworkCore;
 
@@ -134,6 +136,20 @@ public class GetInvoiceHandler(
             li.UnitPrice.Currency,
             li.Order)).ToList();
 
+        // The currencies this invoice accepts, filtered to accounts that still exist.
+        // The owner's own view shows exactly what the client's copy will.
+        var acceptedCurrencies = await db.InvoicePaymentCurrencies
+            .Where(pc => pc.InvoiceId == invoice.Id)
+            .ToDictionaryAsync(pc => pc.Currency, pc => pc.Amount, StringComparer.OrdinalIgnoreCase, cancellationToken);
+
+        var currencyAccounts = await db.CurrencyPaymentSettings
+            .Where(c => c.UserId == userId)
+            .Select(CurrencyPaymentSettingsMapping.Projection)
+            .ToListAsync(cancellationToken);
+
+        var alternatePaymentOptions = AlternatePaymentCurrencies.Select(
+            invoice.Currency, acceptedCurrencies, currencyAccounts);
+
         // The linked template, or the account's default when none is linked —
         // so an invoice with no template of its own still honours the default
         // the user chose (centred header, logo, colours).
@@ -221,7 +237,8 @@ public class GetInvoiceHandler(
             invoice.LastViewedAtUtc,
             invoice.ViewCount,
             invoice.HasSummarisedServices,
-            timeEntries.Count);
+            timeEntries.Count,
+            alternatePaymentOptions);
 
         return HttpResult<InvoiceDetailDto?>.Ok(result);
     }
