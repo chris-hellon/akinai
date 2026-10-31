@@ -32,17 +32,6 @@ the persistence and the wiring are not.
 
 ## Blocked on a decision or an install
 
-- [ ] **Upgrade off .NET 10 RC1.** SDK and every package are pinned to `10.0.100-rc.1` /
-      `10.0.0-rc.1`, and RC1 is the only 10.x SDK installed. Needs the GA SDK installed
-      first — a system-level install, not something a coding session should do unattended.
-      Highest-leverage item left: it probably clears the advisories below too.
-
-- [ ] **Three high-severity advisories**, all transitive — no direct `PackageReference`
-      exists for any of them:
-      - `Microsoft.Build.Tasks.Core` 17.14.8 — GHSA-w3q9-fxm7-j8fq
-      - `Microsoft.Build.Utilities.Core` 17.14.8 — GHSA-w3q9-fxm7-j8fq
-      - `SQLitePCLRaw.lib.e_sqlite3` 2.1.11 — GHSA-2m69-gcr7-jv3q
-
 - [ ] **Decide whether CLAUDE.md should be tracked.** Gitignored at `.gitignore:206` in a
       deliberate `# Claude Code` block, never committed, so the maintained version exists
       only on this machine — a fresh clone gets nothing.
@@ -133,6 +122,23 @@ sake: the timesheet summariser earns its place by solving a real grouping proble
       `UpdateDetails` happened to run before the time entries, expenses and line items,
       which are written through the DbSet and were covered by nothing but that ordering.
       Sending now says so before it happens, in the send modal and on Mark as sent.
+
+### Platform
+
+- [x] **Off .NET 10 RC1, and every advisory is clear.** All ten `10.0.0-rc.1.25451.107`
+      references moved to `10.0.14`. That cleared the three the TODO listed — the two
+      `Microsoft.Build.*` ones and `SQLitePCLRaw.lib.e_sqlite3` — but GA has its own
+      history: 10.0.12, which matches the installed runtime, carries high-severity
+      advisories in `SignalR.Common` and `Components.WebAssembly.Server`, so the latest
+      patch is the right target rather than the matching one. One remained after that,
+      `System.Security.Cryptography.Pkcs` 9.0.11 arriving through EF Core's SQL Server
+      provider via `Microsoft.Data.SqlClient`; a direct reference is the only way to lift
+      a transitive dependency, so Infrastructure now declares it.
+      No `global.json`, so the build takes the newest SDK — worth adding one if build
+      reproducibility starts to matter, since RC1 is still installed alongside GA.
+      **The `dotnet ef` path bug is fixed**: the commands work from the solution root
+      again, and CLAUDE.md has been updated. The global `dotnet-ef` tool is 10.0.13 and
+      warns that it lags the runtime; `dotnet tool update --global dotnet-ef` clears it.
 
 - [x] **Interrupted sends are swept, and the signature this was going to use was wrong.**
       The plan was to find `Status = Sent` with `SentAtUtc IS NULL`. That is not a broken
