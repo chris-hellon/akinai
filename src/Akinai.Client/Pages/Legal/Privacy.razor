@@ -104,6 +104,10 @@
                 <td>Only the freeform text on a document you are translating — job descriptions, notes and terms. Names, addresses and payment details are never sent. See the note below.</td>
             </tr>
             <tr>
+                <td><strong>Anthropic</strong><br />Timesheet summaries</td>
+                <td>Only when you ask for a summary: the client's name, the project and job names, and the notes you wrote on your time entries. No amounts, rates or contact details. Anthropic does not train on it.</td>
+            </tr>
+            <tr>
                 <td><strong>ExchangeRate-API</strong><br />Currency conversion</td>
                 <td>Currency codes only. No personal data and no invoice amounts.</td>
             </tr>
@@ -126,11 +130,41 @@
     </p>
 </div>
 
+<div class="lgnote">
+    <p>
+        <strong>About payment QR codes.</strong> Scan-to-pay codes are generated inside
+        Akinai, on our own servers. Your bank details are not sent to any QR service to
+        produce them, and nothing is fetched from a third party when your client opens the
+        invoice — so no one outside Akinai learns your account number, and no one learns
+        your client's IP address from the code.
+    </p>
+</div>
+
 <h2>Where it is held, and for how long</h2>
 <p>
-    Your data is stored in our hosting provider's data centres and is transferred
-    internationally where a service above requires it. We keep your account data
-    for as long as your account exists.
+    Your account and your business records are stored in Microsoft Azure data centres in
+    <strong>Singapore</strong> (Azure's Southeast Asia region). That is where the database
+    lives and where it is backed up.
+</p>
+<p>
+    Some of the services listed above process data elsewhere, which means your data crosses
+    a border when one of them is used:
+</p>
+<div class="lgtable-wrap">
+    <table>
+        <thead>
+            <tr><th>Service</th><th>Processed in</th></tr>
+        </thead>
+        <tbody>
+            <tr><td>Our database and backups</td><td>Singapore</td></tr>
+            <tr><td>Microsoft Azure Translator</td><td>United Kingdom</td></tr>
+            <tr><td>Anthropic</td><td>United States</td></tr>
+            <tr><td>Stripe</td><td>United States and the other countries named in their privacy policy</td></tr>
+        </tbody>
+    </table>
+</div>
+<p>
+    We keep your account data for as long as your account exists.
 </p>
 <p>
     If you cancel a paid plan, nothing is deleted — your account simply moves to

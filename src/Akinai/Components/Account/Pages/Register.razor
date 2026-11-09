@@ -7,6 +7,10 @@
 @using Microsoft.AspNetCore.WebUtilities
 @using Akinai.Infrastructure.Data
 
+@using Akinai.Shared.Legal
+@using Akinai.Domain.Entities
+@using Akinai.Infrastructure.Data
+@using Microsoft.EntityFrameworkCore
 @inject UserManager<ApplicationUser> UserManager
 @inject IUserStore<ApplicationUser> UserStore
 @inject SignInManager<ApplicationUser> SignInManager
@@ -14,6 +18,7 @@
 @inject ILogger<Register> Logger
 @inject NavigationManager NavigationManager
 @inject IdentityRedirectManager RedirectManager
+@inject IDbContextFactory<ApplicationDbContext> DbFactory
 
 <PageTitle>Register - Akinai</PageTitle>
 
@@ -70,19 +75,41 @@
                 <ValidationMessage For="() => Input.ConfirmPassword" class="text-xs text-red-600"/>
             </div>
 
+            @* Ticked by the person, not by us, and the two are separate boxes.
+               This replaced a line of small print reading "By signing up, you agree to
+               our…", which recorded nothing, bundled a required acceptance with an
+               optional one, and left no way to answer what somebody had agreed to. *@
+            <div class="space-y-3 pt-1">
+                <label class="flex items-start gap-3 cursor-pointer">
+                    <InputCheckbox @bind-Value="Input.AcceptTerms"
+                                   class="mt-0.5 h-4 w-4 shrink-0 rounded border-gray-300 text-primary-600 focus:ring-primary-500" />
+                    <span class="text-xs text-gray-500 leading-relaxed">
+                        I agree to the
+                        <a href="@LegalDocuments.TermsPath" target="_blank" rel="noopener"
+                           class="text-gray-700 underline hover:text-gray-900">Terms</a>
+                        and the
+                        <a href="@LegalDocuments.PrivacyPath" target="_blank" rel="noopener"
+                           class="text-gray-700 underline hover:text-gray-900">Privacy Policy</a>.
+                    </span>
+                </label>
+                <ValidationMessage For="() => Input.AcceptTerms" class="text-xs text-red-600" />
+
+                <label class="flex items-start gap-3 cursor-pointer">
+                    <InputCheckbox @bind-Value="Input.ProductEmails"
+                                   class="mt-0.5 h-4 w-4 shrink-0 rounded border-gray-300 text-primary-600 focus:ring-primary-500" />
+                    <span class="text-xs text-gray-500 leading-relaxed">
+                        Email me occasionally about new features. Optional, and nothing to do
+                        with the account emails we have to send you.
+                    </span>
+                </label>
+            </div>
+
             <div class="pt-2">
                 <button type="submit"
                     class="w-full py-3.5 px-4 text-sm font-semibold text-white rounded-xl transition-all duration-200 hover:opacity-90 active:scale-[0.98] brand-mark">
                     Create account
                 </button>
             </div>
-
-            <p class="text-xs text-gray-400 text-center">
-                By signing up, you agree to our
-                <a href="#" class="text-gray-500 hover:text-gray-700 transition-colors">Terms</a>
-                and
-                <a href="#" class="text-gray-500 hover:text-gray-700 transition-colors">Privacy Policy</a>
-            </p>
         </EditForm>
 
         <!-- Login Link -->
@@ -101,6 +128,12 @@
 @code {
     private IEnumerable<IdentityError>? identityErrors;
 
+    /// <summary>
+    /// For the caller's address on a consent record. Corroborating evidence only — a proxy
+    /// or a missing header must never stop somebody registering.
+    /// </summary>
+    [CascadingParameter] private HttpContext? HttpCtx { get; set; }
+
     [SupplyParameterFromForm] private InputModel Input { get; set; } = null!;
 
     [SupplyParameterFromQuery] private string? ReturnUrl { get; set; }
@@ -110,6 +143,28 @@
     protected override void OnInitialized()
     {
         Input ??= new();
+    }
+
+    /// <summary>
+    /// Writes what this person actually ticked, against the version of the documents they
+    /// were shown.
+    /// </summary>
+    private async Task RecordConsentAsync(string userId)
+    {
+        var now = DateTime.UtcNow;
+        var ip = HttpCtx?.Connection.RemoteIpAddress?.ToString();
+
+        await using var db = await DbFactory.CreateDbContextAsync();
+
+        db.ConsentRecords.Add(ConsentRecord.Record(
+            userId, ConsentPurpose.TermsAndPrivacy, granted: true,
+            LegalDocuments.CurrentVersion, now, source: "registration", ip));
+
+        db.ConsentRecords.Add(ConsentRecord.Record(
+            userId, ConsentPurpose.ProductEmails, granted: Input.ProductEmails,
+            LegalDocuments.CurrentVersion, now, source: "registration", ip));
+
+        await db.SaveChangesAsync();
     }
 
     public async Task RegisterUser(EditContext editContext)
@@ -130,6 +185,14 @@
         Logger.LogInformation("User created a new account with password.");
 
         var userId = await UserManager.GetUserIdAsync(user);
+
+        // Written immediately after the account exists and before anything is sent, so
+        // there is no window in which an account exists with no record of what its owner
+        // agreed to. Both answers are recorded, including the optional one declined: "they
+        // said no" is a position to be able to evidence, and an absent row cannot be told
+        // apart from a row that was never written.
+        await RecordConsentAsync(userId);
+
         var code = await UserManager.GenerateEmailConfirmationTokenAsync(user);
         code = WebEncoders.Base64UrlEncode(Encoding.UTF8.GetBytes(code));
         var callbackUrl = NavigationManager.GetUriWithQueryParameters(
@@ -191,5 +254,15 @@
         [Display(Name = "Confirm password")]
         [Compare("Password", ErrorMessage = "The password and confirmation password do not match.")]
         public string ConfirmPassword { get; set; } = "";
+
+        /// <summary>
+        /// Required, and false by default. A pre-ticked box is not consent, and the
+        /// validator refuses rather than quietly proceeding.
+        /// </summary>
+        [Range(typeof(bool), "true", "true", ErrorMessage = "Please accept the Terms and Privacy Policy to continue.")]
+        public bool AcceptTerms { get; set; }
+
+        /// <summary>Optional, and recorded either way — a "no" is a position to hold too.</summary>
+        public bool ProductEmails { get; set; }
     }
 }

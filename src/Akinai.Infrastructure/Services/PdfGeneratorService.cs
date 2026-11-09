@@ -1292,20 +1292,22 @@ public class PdfGeneratorService
     {
         try
         {
-            var bankId = currencySettings.VietQrBankCode;
-            var accountNo = currencySettings.BankAccountNumber;
-            var amount = ((long)total).ToString();
-            var description = Uri.EscapeDataString($"Invoice {invoice.InvoiceNumber}");
-            var accountName = Uri.EscapeDataString(currencySettings.BankAccountName ?? "");
+            // Rendered here rather than downloaded. This used to fetch an image from
+            // img.vietqr.io with the account number, holder's name and amount in the query
+            // string — on the path that produces the PDF a client is emailed, so the
+            // account details left the building every time an invoice went out. It also
+            // made a blocking HTTP call, with a ten-second timeout, inside PDF generation.
+            var qr = Akinai.Shared.Payments.PaymentQrPayload.VietQr(
+                new Akinai.Shared.Payments.PaymentQrRequest(
+                    AccountIdentifier: currencySettings.BankAccountNumber,
+                    Amount: decimal.Truncate(total),
+                    CurrencyCode: "VND",
+                    Reference: $"Invoice {invoice.InvoiceNumber}"),
+                currencySettings.VietQrBankCode);
 
-            var url = $"https://img.vietqr.io/image/{bankId}-{accountNo}-compact.png?amount={amount}&addInfo={description}&accountName={accountName}";
-
-            using var httpClient = new HttpClient();
-            httpClient.Timeout = TimeSpan.FromSeconds(10);
-            var response = httpClient.GetAsync(url).GetAwaiter().GetResult();
-            if (response.IsSuccessStatusCode)
+            if (qr.IsAvailable)
             {
-                return response.Content.ReadAsByteArrayAsync().GetAwaiter().GetResult();
+                return Akinai.Shared.Payments.QrImage.Png(qr.Payload!);
             }
         }
         catch

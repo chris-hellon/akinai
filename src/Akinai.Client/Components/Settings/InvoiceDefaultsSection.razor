@@ -1,3 +1,4 @@
+@using Akinai.Shared.Payments
 @inject ICall<GetBusinessProfile, BusinessProfileDto?> GetBusinessProfileCall
 @inject ICall<SaveBusinessProfile> SaveBusinessProfileCall
 @inject ICall<GetAllCurrencyPaymentSettings, List<CurrencyPaymentSettingsDto>> GetAllCurrencyPaymentSettingsCall
@@ -314,7 +315,7 @@
                                     </span>
                                 </label>
                                 <Select TValue="string" @bind-Value="settings.VietQrBankCode" Placeholder="-- Select Bank for QR Code --"
-                                    Options="@(new List<SelectOption<string>> { new("", "-- Select Bank for QR Code --") }.Concat(_vietQrBanks.Select(bank => new SelectOption<string>(bank.Code, bank.ShortName))).ToList())" />
+                                    Options="@(new List<SelectOption<string>> { new("", "-- Select Bank for QR Code --") }.Concat(VietQrBanks.All.Select(bank => new SelectOption<string>(bank.Code, bank.Name))).ToList())" />
                                 <p class="mt-1.5 text-xs text-gray-500 dark:text-slate-400">A QR code will appear on VND invoices for easy mobile payment.</p>
                             </div>
                         }
@@ -363,7 +364,6 @@
     private string? _statusMessage;
     private string? _errorMessage;
     private bool _isError;
-    private List<VietQrBank> _vietQrBanks = [];
     private string _selectedCurrency = "USD";
     private Dictionary<string, CurrencySettingsModel> _currencySettings = new();
 
@@ -397,26 +397,6 @@
         var selectable = SelectableCurrencies();
         if (selectable.Count > 0 && selectable.All(c => c.Code != _selectedCurrency))
             _selectedCurrency = selectable[0].Code;
-        await LoadVietQrBanksAsync();
-    }
-
-    private async Task LoadVietQrBanksAsync()
-    {
-        try
-        {
-            var response = await Http.GetFromJsonAsync<VietQrBankResponse>("https://api.vietqr.io/v2/banks");
-            if (response?.Data != null)
-            {
-                _vietQrBanks = response.Data
-                    .OrderByDescending(b => b.TransferSupported)
-                    .ThenBy(b => b.ShortName)
-                    .ToList();
-            }
-        }
-        catch (Exception ex)
-        {
-            Console.WriteLine($"Error loading VietQR banks: {ex.Message}");
-        }
     }
 
     private async Task LoadSettingsAsync()
@@ -628,24 +608,4 @@
 
     private record CurrencyInfo(string Code, string Name);
 
-    private sealed class VietQrBankResponse
-    {
-        [System.Text.Json.Serialization.JsonPropertyName("code")]
-        public string? Code { get; set; }
-
-        [System.Text.Json.Serialization.JsonPropertyName("data")]
-        public List<VietQrBank>? Data { get; set; }
-    }
-
-    private sealed class VietQrBank
-    {
-        [System.Text.Json.Serialization.JsonPropertyName("code")]
-        public string Code { get; set; } = "";
-
-        [System.Text.Json.Serialization.JsonPropertyName("shortName")]
-        public string ShortName { get; set; } = "";
-
-        [System.Text.Json.Serialization.JsonPropertyName("transferSupported")]
-        public int TransferSupported { get; set; }
-    }
 }

@@ -21,6 +21,8 @@ public enum PaymentRail
     Pix,
     /// <summary>Thailand's PromptPay — also an EMVCo merchant-presented QR, different template.</summary>
     PromptPay,
+    /// <summary>Vietnam's VietQR — EMVCo again, under NAPAS's own merchant account template.</summary>
+    VietQr,
 }
 
 /// <summary>
@@ -139,6 +141,7 @@ public static class PaymentQrPayload
         PaymentRail.Upi => Upi(request),
         PaymentRail.Pix => Pix(request),
         PaymentRail.PromptPay => PromptPay(request),
+        PaymentRail.VietQr => VietQr(request),
         _ => PaymentQrResult.NotAvailable(rail, "This payment rail is not supported."),
     };
 
@@ -1003,4 +1006,128 @@ public static class PaymentQrPayload
         var local = compacted[..at];
         return local.All(c => char.IsAsciiLetterOrDigit(c) || c is '.' or '-' or '_');
     }
+
+    // ---------------------------------------------------------------------------------
+    // VietQR — NAPAS merchant-presented QR (EMVCo)
+    // ---------------------------------------------------------------------------------
+
+    /// <summary>NAPAS's globally unique identifier inside the merchant account template.</summary>
+    private const string VietQrGui = "A000000727";
+
+    private const string VietQrMerchantAccountTemplate = "38";
+    private const string VietQrCurrency = "704";   // VND, ISO 4217 numeric
+    private const string VietQrCountry = "VN";
+
+    /// <summary>
+    /// "Inter-Bank Fund Transfer to an account", as opposed to QRIBFTTC which transfers to a
+    /// card number. An invoice is always paid to an account, so this is fixed.
+    /// </summary>
+    private const string VietQrServiceToAccount = "QRIBFTTA";
+
+    /// <summary>Beneficiary organisation sub-template inside tag 38.</summary>
+    private const string VietQrBeneficiary = "01";
+
+    /// <summary>Where NAPAS puts the free-text reference: tag 62, sub-tag 08.</summary>
+    private const string VietQrPurposeSubTag = "08";
+
+    private const int VietQrMaxAccountLength = 19;
+    private const int VietQrMaxPurposeLength = 25;
+
+    /// <summary>
+    /// Builds a VietQR payload — the code a Vietnamese banking app scans to pre-fill a
+    /// transfer.
+    ///
+    /// <para>
+    /// This replaced an <c>img.vietqr.io</c> image URL that carried the account number and
+    /// the account holder's name as query-string parameters. Three things were wrong with
+    /// it: bank details travelled in a URL, where they are logged by everything in the path;
+    /// the request was made by the payer's browser, so a third party learned the payer's IP
+    /// as well; and every VND invoice silently lost its QR code whenever that service was
+    /// unreachable. Building the payload here removes all three, and matches what the other
+    /// four rails already do.
+    /// </para>
+    ///
+    /// <para>
+    /// VND has no minor unit, so the amount is whole dong. A fractional amount is refused
+    /// rather than rounded: a QR code is an instruction to pay, and quietly altering the
+    /// figure on one is not a rounding decision anybody asked for.
+    /// </para>
+    /// </summary>
+    /// <param name="bankCode">
+    /// The NAPAS short code stored in settings. Resolved through <see cref="VietQrBanks"/>,
+    /// which returns nothing for a code it does not know rather than guessing a BIN.
+    /// </param>
+    public static PaymentQrResult VietQr(PaymentQrRequest request, string? bankCode = null)
+    {
+        const PaymentRail rail = PaymentRail.VietQr;
+
+        var bin = VietQrBanks.BinFor(bankCode);
+        if (bin is null)
+            return PaymentQrResult.NotAvailable(
+                rail,
+                string.IsNullOrWhiteSpace(bankCode)
+                    ? "A VietQR code needs the receiving bank, and none is set."
+                    : "That bank is not one VietQR can route to.");
+
+        // Vietnamese account numbers are digits. Anything else means the field holds
+        // something that is not one — the same field carries an IBAN on the EPC rail — and
+        // non-digits are rejected rather than stripped. Stripping turned a pasted IBAN into
+        // a short number that looked plausible and belonged to nobody, which is the one
+        // outcome this whole builder exists to avoid.
+        var account = Sanitise(request.AccountIdentifier);
+        if (account.Length == 0)
+            return PaymentQrResult.NotAvailable(rail, "A VietQR code needs your bank account number, and none is set.");
+
+        if (!account.All(char.IsAsciiDigit) || account.Length > VietQrMaxAccountLength)
+            return PaymentQrResult.NotAvailable(rail, "This does not look like a Vietnamese account number.");
+
+        if (!IsCurrency(request.CurrencyCode, "VND"))
+            return PaymentQrResult.NotAvailable(rail, "VietQR codes can only carry dong amounts.");
+
+        var amountField = string.Empty;
+        if (request.Amount is { } amount)
+        {
+            if (amount != decimal.Truncate(amount))
+                return PaymentQrResult.NotAvailable(rail, "A VietQR amount cannot have a fractional part.");
+
+            if (!TryFormatAmount(decimal.Truncate(amount), 1m, 9_999_999_999m, out var formatted))
+                return PaymentQrResult.NotAvailable(rail, "This amount cannot be put into a VietQR code.");
+
+            // TryFormatAmount gives two decimal places, which VND does not use.
+            amountField = formatted.Split('.')[0];
+        }
+
+        var beneficiary = Tlv("00", bin) + Tlv("01", account);
+        var merchantAccount =
+            Tlv("00", VietQrGui) +
+            Tlv(VietQrBeneficiary, beneficiary) +
+            Tlv("02", VietQrServiceToAccount);
+
+        var body = new StringBuilder()
+            .Append(Tlv(EmvPayloadFormatIndicator, "01"))
+            // 11 is a static code, 12 one that carries an amount and is meant to be scanned
+            // once. An invoice QR with a figure on it is the latter.
+            .Append(Tlv(EmvPointOfInitiation, amountField.Length > 0 ? "12" : "11"))
+            .Append(Tlv(VietQrMerchantAccountTemplate, merchantAccount))
+            .Append(Tlv(EmvTransactionCurrency, VietQrCurrency));
+
+        if (amountField.Length > 0)
+            body.Append(Tlv(EmvTransactionAmount, amountField));
+
+        body.Append(Tlv(EmvCountryCode, VietQrCountry));
+
+        // The payee's own name is deliberately left out. NAPAS resolves and displays the
+        // real account holder from the BIN and account number, so sending it would add a
+        // second, unverified name to the payer's screen and put it on the wire for nothing.
+        var purpose = ToEmvText(request.Reference);
+        if (purpose.Length > VietQrMaxPurposeLength)
+            purpose = purpose[..VietQrMaxPurposeLength];
+
+        if (purpose.Length > 0)
+            body.Append(Tlv(EmvAdditionalData, Tlv(VietQrPurposeSubTag, purpose)));
+
+        var payload = body.ToString();
+        return PaymentQrResult.Available(rail, payload + EmvCrcPrefix + Crc16CcittFalse(payload + EmvCrcPrefix));
+    }
+
 }

@@ -1,3 +1,4 @@
+@using Akinai.Shared.Payments
 @page "/dashboard"
 @attribute [Authorize]
 @implements IDisposable
@@ -491,12 +492,20 @@
                 ? p?.VietQrBankCode
                 : $"{p?.VietQrBankCode} · {acct}";
 
-            // Real static VietQR for the user's account (no amount) — the same
-            // img.vietqr.io endpoint the invoice view/PDF use.
+            // A standing VietQR for the user's own account, with no amount on it. Built
+            // here rather than fetched from img.vietqr.io: that URL carried the account
+            // number and holder's name in its query string, and the browser rendering this
+            // dashboard fetched it, so a third party saw both plus the viewer's address.
             if (!string.IsNullOrWhiteSpace(acct))
             {
-                var name = Uri.EscapeDataString(p?.BankAccountName ?? p?.CompanyName ?? "");
-                _vietQrImageUrl = $"https://img.vietqr.io/image/{p!.VietQrBankCode}-{acct}-compact.png?accountName={name}";
+                var qr = PaymentQrPayload.VietQr(
+                    new PaymentQrRequest(
+                        AccountIdentifier: acct,
+                        Amount: null,
+                        CurrencyCode: "VND"),
+                    p?.VietQrBankCode);
+
+                _vietQrImageUrl = qr.IsAvailable ? QrImage.DataUri(qr.Payload) : null;
             }
         }
 

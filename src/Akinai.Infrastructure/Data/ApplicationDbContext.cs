@@ -51,6 +51,7 @@ public sealed class ApplicationDbContext : IdentityDbContext<ApplicationUser>
     // Notifications
     public DbSet<Notification> Notifications => Set<Notification>();
     public DbSet<DunningReminder> DunningReminders => Set<DunningReminder>();
+    public DbSet<ConsentRecord> ConsentRecords => Set<ConsentRecord>();
 
     // Billing
     public DbSet<SubscriptionEvent> SubscriptionEvents => Set<SubscriptionEvent>();

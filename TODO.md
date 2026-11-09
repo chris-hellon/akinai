@@ -1,6 +1,6 @@
 # TODO
 
-Running list of known work. Nothing here is urgent-broken — the app builds, 544 tests
+Running list of known work. Nothing here is urgent-broken — the app builds, 579 tests
 pass, and the cross-border compliance work is live end to end.
 
 ## Half-built: tested logic with nothing calling it
@@ -122,6 +122,52 @@ sake: the timesheet summariser earns its place by solving a real grouping proble
       `UpdateDetails` happened to run before the time entries, expenses and line items,
       which are written through the DbSet and were covered by nothing but that ordering.
       Sending now says so before it happens, in the send modal and on Mark as sent.
+
+### Privacy and compliance (Vietnam launch)
+
+- [x] **Scan-to-pay QR codes are generated locally; the VietQR data leak is closed.**
+      Four places called `vietqr.io`: the invoice view, the dashboard card, the QuestPDF
+      fallback that produces the emailed PDF, and a runtime fetch of the bank list on the
+      settings page. The first three put the bank account number and the holder's name in
+      a query string, and two of them ran in a browser, so a third party also learned the
+      payer's IP. `PaymentQrPayload.VietQr` now builds the NAPAS EMVCo payload the way the
+      other four rails already did, and `VietQrBanks` holds the BIN table locally.
+      An unknown bank code produces **no** QR rather than a guessed BIN — a wrong digit
+      routes a payment to the wrong institution, which is worse than a missing code beside
+      printed bank details. For the same reason a non-digit account number is rejected
+      rather than stripped: stripping turned a pasted IBAN into a short number belonging
+      to nobody, which a test caught before it shipped.
+      25 tests, most of them about when no code should be produced.
+
+- [x] **Consent is captured at registration and recorded.** Two unticked boxes, not one
+      line of small print: accepting the Terms and Privacy Policy is required and refuses
+      the form without it, product email is optional and separate. Both answers are stored
+      in `ConsentRecords` with the document version, the time, the source and the caller's
+      address — including a declined optional consent, because an absent row cannot be
+      told apart from one that was never written.
+      Append-only: withdrawing writes a new row rather than updating the old one, since
+      what matters in a dispute is what was true on the day something was sent. No foreign
+      key to the user and no cascade, so the record outlives the account it answers for;
+      purging it is a retention decision rather than a side effect of a delete.
+      `LegalDocuments.CurrentVersion` is the dated version both documents share — bump it
+      when wording changes materially. The Terms and Privacy links on that form were
+      `href="#"` and went nowhere; they point at the real pages now.
+
+- [ ] **VietQR bypasses the scan-to-pay entitlement.** The dedicated VND block renders
+      whenever VND settings exist, while SEPA, UPI, PIX and PromptPay all sit behind
+      `ShowScanToPay`. Pre-existing, left as found rather than silently changed — but it
+      means Free accounts get a scan-to-pay code on VND invoices only.
+
+- [ ] **File a Cross-border Transfer Impact Assessment with the Ministry of Public
+      Security (A05).** Vietnam's PDPL (Law 91/2025) and Decree 356/2025 replaced Decree 13
+      on 1 Jan 2026. The filing is due within 60 days of the first transfer, and penalties
+      run to 5% of prior-year revenue or VND 3bn.
+      Hosting is Azure Southeast Asia (Singapore), so data leaves Vietnam the moment a
+      Vietnamese user's record is written — storing abroad *is* the transfer under Decree
+      356, and the clock starts with the first Vietnamese user rather than with anything
+      being deliberately "sent" anywhere. Four destinations to declare: Singapore
+      (database and backups), the UK (Azure Translator), and the US (Anthropic, Stripe).
+      All four are now named in the privacy policy.
 
 ### Platform
 

@@ -48,4 +48,20 @@ public static class QrImage
         var bytes = System.Text.Encoding.UTF8.GetBytes(svg);
         return $"data:image/svg+xml;base64,{Convert.ToBase64String(bytes)}";
     }
+
+    /// <summary>
+    /// PNG bytes for <paramref name="payload"/>, or null when there is nothing to encode.
+    ///
+    /// For the QuestPDF fallback renderer, which composes images from byte arrays and
+    /// cannot take the SVG the HTML path embeds. Twenty pixels per module so the code
+    /// stays scannable on paper after QuestPDF scales it into its slot.
+    /// </summary>
+    public static byte[]? Png(string? payload)
+    {
+        if (string.IsNullOrWhiteSpace(payload)) return null;
+
+        using var generator = new QRCodeGenerator();
+        using var data = generator.CreateQrCode(payload, QRCodeGenerator.ECCLevel.M);
+        return new PngByteQRCode(data).GetGraphic(pixelsPerModule: 20);
+    }
 }
